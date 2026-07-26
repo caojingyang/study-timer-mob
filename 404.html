@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>跳转中</title>
+<script>
+// 自定义 404 页面：检测路径并重定向
+// 如果是 /admin 路径，跳转到 #admin hash 路由
+if (window.location.pathname.match(/\/admin\/?$/)) {
+    window.location.replace('/#admin');
+} else {
+    // 其他 404 情况，回到首页
+    window.location.replace('/');
+}
+</script>
+<style>body{font-family:sans-serif;text-align:center;padding:50px;color:#666;}</style>
+</head>
+<body>页面不存在，正在跳转…</body>
+</html>
