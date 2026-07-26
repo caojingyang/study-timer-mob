@@ -1,0 +1,4 @@
+# 帽子云静态托管重定向规则（类似 Netlify/Cloudflare Pages）
+# /admin 路径返回 index.html 内容（SPA fallback），状态码 200
+/admin    /index.html  200
+/admin/*  /index.html  200
