@@ -865,6 +865,69 @@
             color: #2563eb;
         }
 
+        /* 联系方式类型选择 */
+        .contact-type-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+        .contact-type-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+            color: #555;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .contact-type-btn.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        /* 验证码输入行 */
+        .verify-code-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .verify-code-row input {
+            flex: 1;
+        }
+        .verify-code-row .btn-secondary {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .verify-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.3rem;
+            min-height: 1.1rem;
+        }
+        .verify-hint.sent { color: #16a34a; }
+        .verify-hint.error { color: #ef4444; }
+
+        /* 密码强度提示 */
+        .pwd-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: normal;
+        }
+        .password-strength {
+            font-size: 0.75rem;
+            margin-top: 0.3rem;
+            min-height: 1.1rem;
+        }
+        .password-strength.weak { color: #ef4444; }
+        .password-strength.medium { color: #f59e0b; }
+        .password-strength.strong { color: #16a34a; }
+
         /* 验证码输入行 */
         .verify-row {
             display: flex;
@@ -1783,13 +1846,29 @@
                     <label>用户名 *</label>
                     <input type="text" id="regUsername" placeholder="请输入用户名">
                 </div>
+                <!-- 联系方式 -->
                 <div class="form-group">
-                    <label>邮箱<span id="regEmailRequired"> *</span><span id="regEmailOptional" class="reg-optional-hint">（选填）</span></label>
-                    <input type="email" id="regEmail" placeholder="请输入邮箱">
+                    <label>联系方式 *</label>
+                    <div class="contact-type-selector" id="contactTypeSelector">
+                        <div class="contact-type-btn active" onclick="selectContactType(this,'email')" data-type="email">邮箱</div>
+                        <div class="contact-type-btn" onclick="selectContactType(this,'phone')" data-type="phone">手机号</div>
+                    </div>
+                    <input type="email" id="regEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;">
+                    <input type="tel" id="regPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;">
+                </div>
+                <!-- 验证码 -->
+                <div class="form-group">
+                    <label>验证码 *</label>
+                    <div class="verify-code-row">
+                        <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6">
+                        <button class="btn-secondary" id="sendCodeBtn" onclick="sendRegisterVerifyCode()">发送验证码</button>
+                    </div>
+                    <div class="verify-hint" id="verifyHint"></div>
                 </div>
                 <div class="form-group">
-                    <label>密码 *</label>
-                    <input type="password" id="regPassword" placeholder="至少6位">
+                    <label>密码 * <span class="pwd-hint">(至少6位，含字母、数字、特殊字符中至少两项)</span></label>
+                    <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)">
+                    <div class="password-strength" id="passwordStrength"></div>
                 </div>
                 <div class="form-group">
                     <label>确认密码 *</label>
@@ -2476,8 +2555,8 @@
 
         // Supabase REST API 封装（替代 SDK）
         // 登录等高频操作只查询必要字段
-        var SB_USER_SELECT_ALL = 'id,username,real_name,email,password_hash,role,subject,permissions,is_admin,banned_ips,need_password_change';
-        var SB_USER_SELECT_LOGIN = 'username,password_hash,real_name,email,role,subject,permissions,is_admin,need_password_change';
+        var SB_USER_SELECT_ALL = 'id,username,real_name,email,phone,password_hash,role,subject,permissions,is_admin,banned_ips,need_password_change';
+        var SB_USER_SELECT_LOGIN = 'username,password_hash,real_name,email,phone,role,subject,permissions,is_admin,need_password_change';
         var _sbUserCache = null;  // 内存缓存（TTL 30s）
         var _sbUserCacheTime = 0;
         var _sbUserCacheTTL = 30000; // 30秒
@@ -2609,7 +2688,7 @@
                         return rows.map(function(row) {
                             return {
                                 id: row.id, username: row.username, realname: row.real_name || '',
-                                email: row.email || '', password: row.password_hash,
+                                email: row.email || '', phone: row.phone || '', password: row.password_hash,
                                 role: row.role, subject: row.subject || '',
                                 permissions: row.permissions || {}, is_admin: row.is_admin || false,
                                 banned_ips: row.banned_ips || [],
@@ -2638,6 +2717,7 @@
                             username: row.username,
                             realname: row.real_name || '',
                             email: row.email || '',
+                            phone: row.phone || '',
                             password: row.password_hash,
                             role: row.role,
                             subject: row.subject || '',
@@ -2690,7 +2770,8 @@
                     var rowData = {
                         username: userData.username,
                         real_name: userData.realname,
-                        email: userData.email,
+                        email: userData.email || '',
+                        phone: userData.phone || '',
                         password_hash: userData.password,
                         role: userData.role,
                         subject: userData.subject || '',
@@ -2707,7 +2788,8 @@
                             id: inserted.id,
                             username: inserted.username,
                             realname: inserted.real_name,
-                            email: inserted.email,
+                            email: inserted.email || '',
+                            phone: inserted.phone || '',
                             password: inserted.password_hash,
                             role: inserted.role,
                             subject: inserted.subject,
@@ -3920,13 +4002,24 @@
             if (role === 'student') {
                 document.getElementById('regSubjectGroup').classList.add('hidden');
                 document.getElementById('regRealnameGroup').classList.remove('hidden');
-                document.getElementById('regEmailRequired').style.display = '';
-                document.getElementById('regEmailOptional').style.display = 'none';
             } else {
                 document.getElementById('regSubjectGroup').classList.remove('hidden');
                 document.getElementById('regRealnameGroup').classList.add('hidden');
-                document.getElementById('regEmailRequired').style.display = 'none';
-                document.getElementById('regEmailOptional').style.display = '';
+            }
+        }
+
+        // 联系方式类型选择（注册表单）
+        let regContactType = 'email';
+        function selectContactType(el, type) {
+            document.querySelectorAll('.contact-type-btn').forEach(function(b){ b.classList.remove('active'); });
+            el.classList.add('active');
+            regContactType = type;
+            if (type === 'email') {
+                document.getElementById('regEmail').classList.remove('hidden');
+                document.getElementById('regPhone').classList.add('hidden');
+            } else {
+                document.getElementById('regEmail').classList.add('hidden');
+                document.getElementById('regPhone').classList.remove('hidden');
             }
         }
 
@@ -4072,24 +4165,145 @@
             return true;
         }
         function clearRegErrors() {
-            ['regRealname','regUsername','regEmail','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
+            ['regRealname','regUsername','regEmail','regPhone','regVerifyCode','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
                 var el = document.getElementById(id);
                 if (el) el.classList.remove('input-error');
             });
         }
 
-        // 注册（含身份选择、真实姓名、确认密码、权限）
+        // 密码复杂度检查（自行注册时要求：字母、数字、特殊字符中至少两项）
+        function checkPasswordStrength(pw) {
+            var strengthEl = document.getElementById('passwordStrength');
+            if (!strengthEl) return;
+            if (!pw) { strengthEl.textContent = ''; strengthEl.className = 'password-strength'; return; }
+            var hasLetter = /[a-zA-Z]/.test(pw);
+            var hasDigit = /\d/.test(pw);
+            var hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw);
+            var types = (hasLetter ? 1 : 0) + (hasDigit ? 1 : 0) + (hasSpecial ? 1 : 0);
+            if (pw.length < 6) {
+                strengthEl.textContent = '密码太短（至少6位）';
+                strengthEl.className = 'password-strength weak';
+            } else if (types < 2) {
+                strengthEl.textContent = '密码强度：弱（需包含字母、数字、特殊字符中至少两项）';
+                strengthEl.className = 'password-strength weak';
+            } else if (types === 2) {
+                strengthEl.textContent = '密码强度：中等';
+                strengthEl.className = 'password-strength medium';
+            } else {
+                strengthEl.textContent = '密码强度：强';
+                strengthEl.className = 'password-strength strong';
+            }
+        }
+
+        // 生成6位数字验证码
+        function generateVerifyCode() {
+            return String(Math.floor(100000 + Math.random() * 900000));
+        }
+
+        // 发送注册验证码
+        var _regVerifyCode = '';
+        var _regVerifyExpires = 0;
+        async function sendRegisterVerifyCode() {
+            var btn = document.getElementById('sendCodeBtn');
+            var hint = document.getElementById('verifyHint');
+            var contact = regContactType === 'email' ? document.getElementById('regEmail').value.trim() : document.getElementById('regPhone').value.trim();
+
+            if (!contact) {
+                hint.textContent = '请先填写' + (regContactType === 'email' ? '邮箱' : '手机号');
+                hint.className = 'verify-hint error';
+                return;
+            }
+            if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+                hint.textContent = '邮箱格式不正确';
+                hint.className = 'verify-hint error';
+                return;
+            }
+            if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
+                hint.textContent = '手机号格式不正确';
+                hint.className = 'verify-hint error';
+                return;
+            }
+
+            btn.disabled = true;
+            hint.textContent = '正在发送…';
+            hint.className = 'verify-hint';
+
+            var code = generateVerifyCode();
+            var expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10分钟后过期
+            _regVerifyCode = code;
+            _regVerifyExpires = Date.now() + 10 * 60 * 1000;
+
+            try {
+                if (regContactType === 'email') {
+                    // 通过 EmailJS 发送验证码邮件
+                    await emailjs.send('service_xny0rnb', 'template_vhni5qq', {
+                        to_email: contact,
+                        message: '您的注册验证码是：' + code + '，10分钟内有效，请勿泄露给他人。',
+                        subject: '晚自习系统 - 注册验证码'
+                    });
+                } else {
+                    // 通过 Textbelt 发送短信（每天1条免费，国内号码可能不稳定）
+                    var smsResp = await fetch('https://textbelt.com/text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: contact,
+                            message: '【晚自习系统】您的注册验证码是：' + code + '，10分钟内有效。',
+                            key: 'textbelt'
+                        })
+                    });
+                    var smsResult = await smsResp.json();
+                    if (!smsResult.success) {
+                        throw new Error(smsResult.error || '短信发送失败');
+                    }
+                }
+
+                // 同时保存到数据库（用于跨设备验证和记录）
+                var username = document.getElementById('regUsername').value.trim() || 'temp_' + Date.now();
+                await DB.saveVerifyCode(username, regContactType === 'email' ? contact : '', code, expiresAt);
+
+                hint.textContent = '验证码已发送，请查收（10分钟有效）';
+                hint.className = 'verify-hint sent';
+
+                // 60秒倒计时
+                var seconds = 60;
+                btn.textContent = seconds + '秒后重发';
+                var timer = setInterval(function() {
+                    seconds--;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+                        btn.disabled = false;
+                        btn.textContent = '发送验证码';
+                    } else {
+                        btn.textContent = seconds + '秒后重发';
+                    }
+                }, 1000);
+            } catch(e) {
+                btn.disabled = false;
+                btn.textContent = '发送验证码';
+                hint.textContent = '发送失败：' + (e.message || '请稍后重试');
+                hint.className = 'verify-hint error';
+                console.error('验证码发送失败:', e);
+            }
+        }
+
+        // 注册（含身份选择、真实姓名、确认密码、权限、验证码验证）
         async function doRegister() {
             clearRegErrors();
             var realname = document.getElementById('regRealname').value.trim();
             var username = document.getElementById('regUsername').value.trim();
             var email = document.getElementById('regEmail').value.trim();
+            var phone = document.getElementById('regPhone').value.trim();
+            var verifyCode = document.getElementById('regVerifyCode').value.trim();
             var pw = document.getElementById('regPassword').value;
             var pwConfirm = document.getElementById('regPasswordConfirm').value;
             var subject = document.getElementById('regSubject').value;
             var msg = document.getElementById('regMsg');
             msg.textContent = '';
             msg.className = 'msg';
+
+            var contact = regContactType === 'email' ? email : phone;
+            var contactLabel = regContactType === 'email' ? '邮箱' : '手机号';
 
             // 自上往下依次验证
             if (regRole === 'student' && !realname) {
@@ -4098,17 +4312,30 @@
             if (!username) {
                 return markRegError('regUsername', '请填写用户名');
             }
-            if (regRole === 'student' && !email) {
-                return markRegError('regEmail', '请填写邮箱');
+            if (!contact) {
+                return markRegError(regContactType === 'email' ? 'regEmail' : 'regPhone', '请填写' + contactLabel);
             }
-            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
                 return markRegError('regEmail', '邮箱格式不正确');
+            }
+            if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
+                return markRegError('regPhone', '手机号格式不正确');
+            }
+            if (!verifyCode) {
+                return markRegError('regVerifyCode', '请输入验证码');
             }
             if (!pw) {
                 return markRegError('regPassword', '请填写密码');
             }
             if (pw.length < 6) {
                 return markRegError('regPassword', '密码至少6位');
+            }
+            // 密码复杂度：字母、数字、特殊字符中至少两项
+            var hasLetter = /[a-zA-Z]/.test(pw);
+            var hasDigit = /\d/.test(pw);
+            var hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw);
+            if ((hasLetter ? 1 : 0) + (hasDigit ? 1 : 0) + (hasSpecial ? 1 : 0) < 2) {
+                return markRegError('regPassword', '密码需包含字母、数字、特殊字符中至少两项');
             }
             if (!pwConfirm) {
                 return markRegError('regPasswordConfirm', '请再次输入密码');
@@ -4119,6 +4346,25 @@
             if (regRole === 'teacher' && !subject) {
                 return markRegError('regSubject', '请选择任教学科');
             }
+
+            // 验证验证码
+            msg.textContent = '验证中…'; msg.className = 'msg';
+            var codeValid = false;
+            // 先检查内存中的验证码
+            if (_regVerifyCode === verifyCode && Date.now() < _regVerifyExpires) {
+                codeValid = true;
+            } else {
+                // 再查数据库
+                try {
+                    codeValid = await DB.verifyCode(username, regContactType === 'email' ? contact : '', verifyCode);
+                } catch(e) { codeValid = false; }
+            }
+            if (!codeValid) {
+                msg.textContent = '验证码错误或已过期，请重新获取';
+                msg.className = 'msg error';
+                return;
+            }
+
             msg.textContent = '注册中…'; msg.className = 'msg';
 
             // 并行：检查用户名重复 + 计算密码哈希
@@ -4142,7 +4388,8 @@
                 await DB.createUser({
                     username: username,
                     realname: realname || '',
-                    email: email || '',
+                    email: regContactType === 'email' ? contact : '',
+                    phone: regContactType === 'phone' ? contact : '',
                     password: hash,
                     role: regRole,
                     subject: regRole === 'teacher' ? subject : '',
