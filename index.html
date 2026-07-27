@@ -2000,8 +2000,13 @@
         <div class="forgot-username-panel">
             <h3>&#x1F50D; 忘记用户名</h3>
             <div class="form-group">
-                <label>请输入注册时使用的邮箱</label>
-                <input type="email" id="forgotEmail" placeholder="请输入邮箱">
+                <label>选择找回方式</label>
+                <div class="contact-type-selector" id="forgotContactTypeSelector">
+                    <div class="contact-type-btn active" onclick="selectForgotContactType(this,'email')" data-type="email">邮箱</div>
+                    <div class="contact-type-btn" onclick="selectForgotContactType(this,'phone')" data-type="phone">手机号</div>
+                </div>
+                <input type="email" id="forgotEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;">
+                <input type="tel" id="forgotPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;">
             </div>
             <button class="btn-primary" onclick="doFindUsername()">查找用户名</button>
             <div class="msg" id="forgotUsernameMsg"></div>
@@ -2046,7 +2051,7 @@
                     </div>
                     <div class="admin-section-body">
                         <!-- 搜索框 -->
-                        <input type="text" class="admin-search" id="adminSearch" placeholder="搜索用户名、姓名或邮箱..." oninput="filterAdminUsers()">
+                        <input type="text" class="admin-search" id="adminSearch" placeholder="搜索用户名、姓名、邮箱或手机号..." oninput="filterAdminUsers()">
 
                         <!-- 移动端：卡片列表 -->
                         <div class="admin-user-cards" id="adminUserCards"></div>
@@ -2061,6 +2066,7 @@
                                             <th>用户名</th>
                                             <th>真实姓名</th>
                                             <th>邮箱</th>
+                                            <th>手机号</th>
                                             <th>角色</th>
                                             <th>学科</th>
                                             <th>权限</th>
@@ -2745,7 +2751,7 @@
                             if (rows[i].email && rows[i].email.toLowerCase() === email.toLowerCase()) {
                                 matched.push({
                                     id: rows[i].id, username: rows[i].username, realname: rows[i].real_name || '',
-                                    email: rows[i].email || '', password: rows[i].password_hash,
+                                    email: rows[i].email || '', phone: rows[i].phone || '', password: rows[i].password_hash,
                                     role: rows[i].role, subject: rows[i].subject || '',
                                     permissions: rows[i].permissions || {}, is_admin: rows[i].is_admin || false,
                                     banned_ips: rows[i].banned_ips || []
@@ -2761,6 +2767,35 @@
                 }
                 var users = JSON.parse(localStorage.getItem('mobile_users') || '[]');
                 return users.filter(x => x.email === email);
+            },
+
+            // 根据手机号查找用户
+            async findByPhone(phone) {
+                if (USE_SUPABASE) {
+                    dbShowStatus('查找手机号…', 'reading');
+                    try {
+                        var rows = await sbGet('users', null, null);
+                        var matched = [];
+                        for (var i = 0; i < rows.length; i++) {
+                            if (rows[i].phone && rows[i].phone === phone) {
+                                matched.push({
+                                    id: rows[i].id, username: rows[i].username, realname: rows[i].real_name || '',
+                                    email: rows[i].email || '', phone: rows[i].phone || '', password: rows[i].password_hash,
+                                    role: rows[i].role, subject: rows[i].subject || '',
+                                    permissions: rows[i].permissions || {}, is_admin: rows[i].is_admin || false,
+                                    banned_ips: rows[i].banned_ips || []
+                                });
+                            }
+                        }
+                        dbHideStatus();
+                        return matched;
+                    } catch(e) {
+                        dbShowStatus('查找手机号失败', 'error');
+                        return [];
+                    }
+                }
+                var users = JSON.parse(localStorage.getItem('mobile_users') || '[]');
+                return users.filter(x => x.phone === phone);
             },
 
             // 创建用户
@@ -3265,6 +3300,7 @@
                     '<td>' + escapeHtml(u.username) + '</td>' +
                     '<td>' + escapeHtml(u.realname || '-') + '</td>' +
                     '<td>' + escapeHtml(u.email || '-') + '</td>' +
+                    '<td>' + escapeHtml(u.phone || '-') + '</td>' +
                     '<td>' + escapeHtml(u.role || '教师') + '</td>' +
                     '<td>' + escapeHtml(u.subject || '-') + '</td>' +
                     '<td>' + permTags + '</td>' +
@@ -3274,7 +3310,7 @@
                     '</td>' +
                     '</tr>';
             }
-            if (!html) html = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:1rem;">暂无用户</td></tr>';
+            if (!html) html = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:1rem;">暂无用户</td></tr>';
             tbody.innerHTML = html;
         }
 
@@ -3316,6 +3352,7 @@
 
                 if (u.subject) html += '<span class="admin-user-tag subject">' + escapeHtml(u.subject) + '</span>';
                 if (u.email) html += '<span class="admin-user-tag email">' + escapeHtml(u.email) + '</span>';
+                if (u.phone) html += '<span class="admin-user-tag phone">' + escapeHtml(u.phone) + '</span>';
 
                 var perms = u.permissions || {};
                 if (perms.viewSchedule) html += '<span class="admin-user-tag perm">查看</span>';
@@ -3342,7 +3379,8 @@
                     var u = _adminUsersCache[i];
                     if ((u.username || '').toLowerCase().indexOf(keyword) >= 0 ||
                         (u.realname || '').toLowerCase().indexOf(keyword) >= 0 ||
-                        (u.email || '').toLowerCase().indexOf(keyword) >= 0) {
+                        (u.email || '').toLowerCase().indexOf(keyword) >= 0 ||
+                        (u.phone || '').toLowerCase().indexOf(keyword) >= 0) {
                         filtered.push(u);
                     }
                 }
@@ -4631,16 +4669,44 @@
             document.getElementById('forgotUsernameOverlay').classList.add('hidden');
         }
 
-        async function doFindUsername() {
-            var email = document.getElementById('forgotEmail').value.trim();
-            var msg = document.getElementById('forgotUsernameMsg');
-            if (!email) { msg.textContent = '请输入邮箱'; msg.className = 'msg error'; return; }
-            var matched = await DB.findByEmail(email);
-            if (matched.length === 0) {
-                msg.textContent = '未找到使用该邮箱注册的账号'; msg.className = 'msg error';
+        var forgotContactType = 'email';
+        function selectForgotContactType(el, type) {
+            forgotContactType = type;
+            var btns = document.querySelectorAll('#forgotContactTypeSelector .contact-type-btn');
+            for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+            el.classList.add('active');
+            if (type === 'email') {
+                document.getElementById('forgotEmail').classList.remove('hidden');
+                document.getElementById('forgotPhone').classList.add('hidden');
             } else {
-                var names = matched.map(function(x){ return x.username; }).join('、');
-                msg.textContent = '找到用户名：' + names; msg.className = 'msg success';
+                document.getElementById('forgotEmail').classList.add('hidden');
+                document.getElementById('forgotPhone').classList.remove('hidden');
+            }
+        }
+
+        async function doFindUsername() {
+            var msg = document.getElementById('forgotUsernameMsg');
+            var matched;
+            if (forgotContactType === 'email') {
+                var email = document.getElementById('forgotEmail').value.trim();
+                if (!email) { msg.textContent = '请输入邮箱'; msg.className = 'msg error'; return; }
+                matched = await DB.findByEmail(email);
+                if (matched.length === 0) {
+                    msg.textContent = '未找到使用该邮箱注册的账号'; msg.className = 'msg error';
+                } else {
+                    var names = matched.map(function(x){ return x.username; }).join('、');
+                    msg.textContent = '找到用户名：' + names; msg.className = 'msg success';
+                }
+            } else {
+                var phone = document.getElementById('forgotPhone').value.trim();
+                if (!phone) { msg.textContent = '请输入手机号'; msg.className = 'msg error'; return; }
+                matched = await DB.findByPhone(phone);
+                if (matched.length === 0) {
+                    msg.textContent = '未找到使用该手机号注册的账号'; msg.className = 'msg error';
+                } else {
+                    var names = matched.map(function(x){ return x.username; }).join('、');
+                    msg.textContent = '找到用户名：' + names; msg.className = 'msg success';
+                }
             }
         }
 
