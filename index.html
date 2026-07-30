@@ -2649,17 +2649,35 @@
             if (body && (method === 'POST' || method === 'PATCH')) {
                 opts.body = JSON.stringify(body);
             }
+            // 添加 15 秒超时
+            var ctrl = new AbortController();
+            var timer = setTimeout(function() { ctrl.abort(); }, 15000);
+            opts.signal = ctrl.signal;
             return fetch(url, opts).then(function(r) {
+                clearTimeout(timer);
                 if (!r.ok) throw new Error('Supabase REST error: ' + r.status);
                 return r.json();
+            }).catch(function(e) {
+                clearTimeout(timer);
+                throw e;
             });
         }
         function sbGet(table, filterCol, filterVal, selectCols) {
             var url = SUPABASE_URL + '/rest/v1/' + table + (filterCol ? '?' + filterCol + '=eq.' + encodeURIComponent(filterVal) : '');
             if (selectCols) url += (filterCol ? '&' : '?') + 'select=' + selectCols;
+            // 添加 10 秒超时，避免请求无限挂起
+            var ctrl = new AbortController();
+            var timer = setTimeout(function() { ctrl.abort(); }, 10000);
             return fetch(url, {
-                headers: { 'Content-Type': 'application/json' }
-            }).then(function(r) { return r.json(); });
+                headers: { 'Content-Type': 'application/json' },
+                signal: ctrl.signal
+            }).then(function(r) {
+                clearTimeout(timer);
+                return r.json();
+            }).catch(function(e) {
+                clearTimeout(timer);
+                throw e;
+            });
         }
         function sbGetSingle(table, filterCol, filterVal, selectCols) {
             return sbGet(table, filterCol, filterVal, selectCols).then(function(data) {
@@ -2778,18 +2796,21 @@
                 return JSON.parse(localStorage.getItem('mobile_users') || '[]');
             },
 
-            // 根据用户名查找用户
+            // 根据用户名查找用户（服务端过滤，避免拉取全部用户）
             async findByUsername(username) {
                 if (USE_SUPABASE) {
-                    dbShowStatus('查找用户…', 'reading');
                     try {
-                        var rows = await sbGet('users', null, null, SB_USER_SELECT_LOGIN);
-                        var row = null;
-                        for (var i = 0; i < rows.length; i++) {
-                            if (rows[i].username.toLowerCase() === username.toLowerCase()) { row = rows[i]; break; }
+                        // 优先用服务端精确过滤（大小写敏感）
+                        var rows = await sbGet('users', 'username', username, SB_USER_SELECT_LOGIN);
+                        var row = (rows && rows.length > 0) ? rows[0] : null;
+                        // 若精确匹配未命中，回退拉取全部做大小写不敏感匹配
+                        if (!row) {
+                            var allRows = await sbGet('users', null, null, SB_USER_SELECT_LOGIN);
+                            for (var i = 0; i < allRows.length; i++) {
+                                if (allRows[i].username.toLowerCase() === username.toLowerCase()) { row = allRows[i]; break; }
+                            }
                         }
                         if (!row) return null;
-                        // 映射数据库字段名为前端格式
                         return {
                             id: row.id,
                             username: row.username,
@@ -2805,8 +2826,7 @@
                         };
                     } catch(e) {
                         console.warn('Supabase 查找用户失败，回退到本地:', e);
-                        dbShowStatus('网络异常，使用本地模式', 'error');
-                    } finally { dbHideStatus(); }
+                    }
                 }
                 var users = JSON.parse(localStorage.getItem('mobile_users') || '[]');
                 return users.find(x => x.username.toLowerCase() === username.toLowerCase()) || null;
@@ -5274,28 +5294,39 @@
         var DEFAULT_RESET_PASSWORD_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
 
         // 确保 admin 账户存在（不存在则创建）
+        var _adminEnsureDone = false;
         async function ensureAdminAccount() {
+            if (_adminEnsureDone) return;
+            _adminEnsureDone = true; // 标记已执行，防止重复
             try {
                 var existing = await DB.findByUsername('admin');
                 if (existing) return;
-                await DB.createUser({
-                    username: 'admin',
-                    realname: '系统管理员',
-                    email: '',
-                    password: ADMIN_DEFAULT_PASSWORD_HASH,
-                    role: 'teacher',
-                    subject: '',
-                    permissions: {
-                        viewSchedule: true,
-                        modifySchedule: true,
-                        sendNotification: true,
-                        isAdmin: true
-                    },
-                    is_admin: true,
-                    need_password_change: false
-                });
-                console.log('admin 账户已创建');
+                // 创建 admin 账户（静默执行，不显示状态）
+                var oldShowStatus = window.dbShowStatus;
+                window.dbShowStatus = function(){}; // 临时屏蔽状态提示
+                try {
+                    await DB.createUser({
+                        username: 'admin',
+                        realname: '系统管理员',
+                        email: '',
+                        password: ADMIN_DEFAULT_PASSWORD_HASH,
+                        role: 'teacher',
+                        subject: '',
+                        permissions: {
+                            viewSchedule: true,
+                            modifySchedule: true,
+                            sendNotification: true,
+                            isAdmin: true
+                        },
+                        is_admin: true,
+                        need_password_change: false
+                    });
+                    console.log('admin 账户已创建');
+                } finally {
+                    window.dbShowStatus = oldShowStatus; // 恢复
+                }
             } catch(e) {
+                _adminEnsureDone = false; // 失败后允许下次重试
                 console.error('创建 admin 账户失败:', e);
             }
         }
