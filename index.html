@@ -1853,10 +1853,18 @@
                         <div class="contact-type-btn active" onclick="selectContactType(this,'email')" data-type="email">邮箱</div>
                         <div class="contact-type-btn" onclick="selectContactType(this,'phone')" data-type="phone">手机号</div>
                     </div>
-                    <input type="email" id="regEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;">
-                    <input type="tel" id="regPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;">
+                    <input type="email" id="regEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;" onblur="autoSendRegVerifyCode()">
+                    <input type="tel" id="regPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;" onblur="autoSendRegVerifyCode()">
                 </div>
-                <!-- 验证码（已移除：晚自习系统无需验证） -->
+                <!-- 验证码 -->
+                <div class="form-group">
+                    <label>验证码 *</label>
+                    <div class="verify-code-row">
+                        <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6">
+                        <button class="btn-secondary" id="sendCodeBtn" onclick="sendRegisterVerifyCode()">发送验证码</button>
+                    </div>
+                    <div class="verify-hint" id="verifyHint"></div>
+                </div>
                 <div class="form-group">
                     <label>密码 * <span class="pwd-hint">(至少6位，含字母、数字、特殊字符中至少两项)</span></label>
                     <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)">
@@ -1886,66 +1894,48 @@
             </div>
             <!-- 密码找回表单 -->
             <div id="recoverForm" class="hidden">
-                <!-- 步骤1：身份验证 -->
+                <!-- 步骤1：输入用户名查询 -->
                 <div id="recoverStep1">
                     <h3>&#x1F511; 密码找回</h3>
-                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请选择你的身份</p>
-                    <div class="rec-role-select">
-                        <div class="rec-role-btn" id="recRoleTeacher" onclick="selectRecRole('teacher')">
-                            <span style="font-size:1.2rem;">&#x1F9D1;&#x200D;&#x1F3EB;</span> 教师
-                        </div>
-                        <div class="rec-role-btn" id="recRoleStudent" onclick="selectRecRole('student')">
-                            <span style="font-size:1.2rem;">&#x1F393;</span> 学生
-                        </div>
+                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请输入用户名查询账号信息</p>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="recUsername" placeholder="请输入用户名">
                     </div>
-                    <div id="recFieldsArea" class="hidden">
-                        <div class="form-group" id="recRealnameGroup">
-                            <label>真实姓名</label>
-                            <input type="text" id="recRealname" placeholder="请输入真实姓名" oninput="updateRecSendBtn()">
-                        </div>
-                        <div class="form-group">
-                            <label>用户名</label>
-                            <input type="text" id="recUsername" placeholder="请输入用户名" oninput="updateRecSendBtn()">
-                        </div>
-                        <div class="form-group" id="recEmailGroup">
-                            <label>邮箱</label>
-                            <input type="email" id="recEmail" placeholder="请输入邮箱" oninput="updateRecSendBtn()">
-                        </div>
-                        <button class="btn-primary" id="btnRecStudentVerify" style="display:none;" disabled onclick="doStudentVerify()">验证并发送重置链接</button>
-                        <button class="btn-primary" id="btnRecTeacherVerify" style="display:none;" disabled onclick="doTeacherVerify()">验证身份</button>
-                        <div id="resetLinkArea" class="hidden" style="margin-top:0.8rem;padding:0.8rem;background:#f0fdf4;border-radius:0.5rem;border:1px solid #bbf7d0;">
-                            <p style="font-size:0.78rem;color:#166534;margin-bottom:0.4rem;">验证成功！自动发送邮件失败，请复制以下链接手动发送给学生：</p>
-                            <input type="text" id="resetLinkInput" readonly style="width:100%;padding:0.4rem;font-size:0.75rem;border:1px solid #cbd5e1;border-radius:0.3rem;box-sizing:border-box;">
-                        </div>
-                        <!-- 申诉表单 -->
-                        <div id="appealFormArea" class="hidden" style="margin-top:0.8rem;padding:0.8rem;background:#fffbeb;border-radius:0.5rem;border:1px solid #fde68a;">
-                            <p style="font-size:0.82rem;color:#92400e;font-weight:700;margin-bottom:0.6rem;">申诉表单</p>
-                            <p style="font-size:0.75rem;color:#78716c;margin-bottom:0.5rem;">如邮件无法发送，请填写以下信息提交申诉，管理员会尽快处理。</p>
-                            <div class="form-group">
-                                <label style="font-size:0.78rem;color:#4b5563;">用户名 *</label>
-                                <input type="text" id="appealUsername" placeholder="用户名" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.4rem;font-size:0.85rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-size:0.78rem;color:#4b5563;">真实姓名 *</label>
-                                <input type="text" id="appealRealname" placeholder="真实姓名" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.4rem;font-size:0.85rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-size:0.78rem;color:#4b5563;">邮箱（选填）</label>
-                                <input type="email" id="appealEmail" placeholder="邮箱（选填）" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.4rem;font-size:0.85rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-size:0.78rem;color:#4b5563;">学科（选填）</label>
-                                <input type="text" id="appealSubject" placeholder="学科（选填）" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.4rem;font-size:0.85rem;outline:none;box-sizing:border-box;">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-size:0.78rem;color:#4b5563;">备注（选填）</label>
-                                <textarea id="appealNote" placeholder="请填写备注信息，如遇到的问题等" style="width:100%;min-height:80px;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.4rem;font-size:0.85rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
-                            </div>
-                            <button class="btn-primary" onclick="submitAppeal()">提交申诉</button>
-                            <div class="msg" id="appealMsg" style="font-size:0.8rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
-                        </div>
-                    </div>
+                    <button class="btn-primary" onclick="queryUserForReset()">查询</button>
                     <div class="msg" id="recMsg"></div>
+
+                    <!-- 查询结果：选择重置方式 -->
+                    <div id="resetMethodArea" class="hidden" style="margin-top:0.8rem;">
+                        <div class="form-group" id="resetMethodSelect" style="display:none;">
+                            <label>选择重置方式</label>
+                            <div class="contact-type-selector">
+                                <div class="contact-type-btn active" id="resetMethodPhoneBtn" onclick="selectResetMethod('phone')">手机号验证</div>
+                                <div class="contact-type-btn" id="resetMethodEmailBtn" onclick="selectResetMethod('email')">邮箱链接</div>
+                            </div>
+                        </div>
+                        <!-- 手机验证码方式 -->
+                        <div id="resetPhoneArea">
+                            <div class="form-group">
+                                <label>验证码</label>
+                                <div class="verify-code-row">
+                                    <input type="text" id="resetVerifyCode" placeholder="6位验证码" maxlength="6">
+                                    <button class="btn-secondary" id="resetSendCodeBtn" onclick="sendResetVerifyCode()">发送验证码</button>
+                                </div>
+                                <div class="verify-hint" id="resetVerifyHint"></div>
+                            </div>
+                            <button class="btn-primary" onclick="verifyResetCode()">验证并重置密码</button>
+                        </div>
+                        <!-- 邮箱方式 -->
+                        <div id="resetEmailArea" class="hidden">
+                            <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin:0.5rem 0;">重置链接将发送至您的邮箱</p>
+                            <button class="btn-primary" onclick="sendResetLink()">发送重置链接</button>
+                        </div>
+                        <div id="resetEmailSent" class="hidden" style="text-align:center;padding:0.5rem;background:#f0fdf4;border-radius:0.5rem;margin-top:0.5rem;">
+                            <p style="font-size:0.85rem;color:#166534;">&#x2709; 重置链接已发送至邮箱，请查收</p>
+                        </div>
+                    </div>
+
                     <div style="text-align:center;margin-top:0.6rem;">
                         <button class="btn-text" onclick="showAuth('login')">返回登录</button>
                     </div>
@@ -1953,10 +1943,10 @@
                         <button class="btn-text" onclick="showForgotUsername()">忘记用户名？</button>
                     </div>
                 </div>
-                <!-- 步骤2：密码重置（身份验证通过后） -->
+                <!-- 步骤2：验证码通过后重置密码 -->
                 <div id="recoverStep2" class="hidden">
                     <h3>&#x1F511; 重置密码</h3>
-                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请输入新密码</p>
+                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">验证码验证通过，请设置新密码</p>
                     <div class="form-group">
                         <label>新密码</label>
                         <input type="password" id="recNewPassword" placeholder="至少6位">
@@ -2124,6 +2114,13 @@
                                 <input type="email" class="admin-form-input" id="singleEmail" placeholder="email@example.com（选填）">
                             </div>
                         </div>
+                        <div class="admin-form-row">
+                            <div class="admin-form-group">
+                                <label>手机号（选填）</label>
+                                <input type="tel" class="admin-form-input" id="singlePhone" placeholder="手机号（选填）">
+                            </div>
+                            <div class="admin-form-group"></div>
+                        </div>
                         <!-- 学科选择（仅教师可见） -->
                         <div class="admin-form-group" id="singleSubjectGroup">
                             <label>任教学科</label>
@@ -2160,8 +2157,8 @@
                         <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
                     </div>
                     <div class="admin-section-body">
-                        <p class="admin-hint">每行格式：用户名,密码,真实姓名,邮箱,角色(学生/教师),学科（学科可留空）</p>
-                        <textarea class="admin-textarea" id="adminBatchInput" placeholder="zhangsan,123456,张三,zhangsan@example.com,教师,数学&#10;lisi,123456,李四,lisi@example.com,学生,"></textarea>
+                        <p class="admin-hint">每行格式：用户名,密码,真实姓名,邮箱,手机号,角色(学生/教师),学科（学科可留空）</p>
+                        <textarea class="admin-textarea" id="adminBatchInput" placeholder="zhangsan,123456,张三,zhangsan@example.com,13800138000,教师,数学&#10;lisi,123456,李四,lisi@example.com,13900139000,学生,"></textarea>
                         <button class="admin-btn-primary" onclick="adminBatchAdd()">添加</button>
                         <div class="msg" id="adminBatchMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
                     </div>
@@ -2208,6 +2205,59 @@
                         <div id="bannedDevicesList"></div>
                     </div>
                 </div>
+
+                <!-- 回忆录管理（可折叠） -->
+                <div class="admin-section" id="sectionHistory">
+                    <div class="admin-section-header" onclick="toggleAdminSection('sectionHistory')">
+                        <h3>&#x1F30C; 回忆录管理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="admin-section-body">
+                        <p class="admin-hint">管理/history页面的时间节点。每个节点包含时间、标题、内容，支持自定义字体和字色，可嵌入B站视频。</p>
+                        <div class="admin-form-row">
+                            <div class="admin-form-group">
+                                <label>时间 *</label>
+                                <input type="date" class="admin-form-input" id="historyNodeDate">
+                            </div>
+                            <div class="admin-form-group">
+                                <label>标题 *</label>
+                                <input type="text" class="admin-form-input" id="historyNodeTitle" placeholder="如：班级成立">
+                            </div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label>内容 *</label>
+                            <textarea class="admin-textarea" id="historyNodeContent" placeholder="请输入内容..." style="min-height:80px;"></textarea>
+                        </div>
+                        <div class="admin-form-row">
+                            <div class="admin-form-group">
+                                <label>字体</label>
+                                <select class="admin-form-select" id="historyNodeFont">
+                                    <option value="">默认</option>
+                                    <option value="'SimHei','STHeiti',sans-serif">黑体</option>
+                                    <option value="'SimSun','STSong',serif">宋体</option>
+                                    <option value="'KaiTi','STKaiti',serif">楷体</option>
+                                    <option value="'Microsoft YaHei',sans-serif">微软雅黑</option>
+                                </select>
+                            </div>
+                            <div class="admin-form-group">
+                                <label>字色</label>
+                                <input type="color" class="admin-form-input" id="historyNodeColor" value="#ffffff" style="height:38px;padding:2px;">
+                            </div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label>图片链接（图床URL，选填，支持多张以逗号分隔）</label>
+                            <input type="text" class="admin-form-input" id="historyNodeImages" placeholder="https://img.example.com/1.jpg, https://img.example.com/2.jpg">
+                        </div>
+                        <div class="admin-form-group">
+                            <label>B站视频链接（选填）</label>
+                            <input type="text" class="admin-form-input" id="historyNodeVideo" placeholder="https://www.bilibili.com/video/BV...">
+                        </div>
+                        <button class="admin-btn-primary" onclick="addHistoryNode()" id="historyNodeAddBtn">添加节点</button>
+                        <button class="admin-btn-secondary hidden" onclick="cancelEditHistoryNode()" id="historyNodeCancelBtn" style="margin-left:0.5rem;">取消</button>
+                        <div class="msg" id="historyNodeMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
+                        <div style="margin-top:1rem;" id="historyNodeList"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2243,6 +2293,13 @@
                     <label>邮箱</label>
                     <input type="email" class="admin-form-input" id="editEmail" placeholder="email@example.com（选填）">
                 </div>
+            </div>
+            <div class="admin-form-row">
+                <div class="admin-form-group">
+                    <label>手机号</label>
+                    <input type="tel" class="admin-form-input" id="editPhone" placeholder="手机号（选填）">
+                </div>
+                <div class="admin-form-group"></div>
             </div>
             <div class="admin-form-row">
                 <div class="admin-form-group">
@@ -2295,6 +2352,7 @@
     <div id="mainMenu" class="main-menu">
         <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">&#x1F4CB; 查看晚自习作业时间表</button>
         <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">&#x1F4E4; 发送通知至晚自习系统</button>
+        <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="window.location.href='/history'">&#x1F30C; 情怀：我们一起走过的日子</button>
     </div>
 
     <!-- 个人中心视图 -->
@@ -2314,6 +2372,10 @@
             <div class="profile-row">
                 <span class="label">邮箱</span>
                 <span class="value" id="profileEmail">-</span>
+            </div>
+            <div class="profile-row">
+                <span class="label">手机号</span>
+                <span class="value" id="profilePhone">-</span>
             </div>
             <div class="profile-row">
                 <span class="label">身份</span>
@@ -2338,6 +2400,23 @@
                     </div>
                     <button class="profile-action-btn" onclick="doChangeEmail()">修改邮箱</button>
                     <div class="msg" id="profileEmailMsg" style="font-size:0.8rem;text-align:center;margin-top:0.3rem;min-height:1.2rem;"></div>
+                </div>
+            </div>
+
+            <!-- 修改手机号 -->
+            <div class="profile-action">
+                <div class="profile-card" style="margin-bottom:0;">
+                    <h4 style="font-size:0.95rem;color:#374151;margin-bottom:0.6rem;">修改手机号</h4>
+                    <div class="form-group">
+                        <label style="font-size:0.8rem;color:#4b5563;">验证当前密码</label>
+                        <input type="password" id="profilePhonePwdVerify" placeholder="请输入当前密码" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.8rem;color:#4b5563;">新手机号</label>
+                        <input type="tel" id="profileNewPhone" placeholder="请输入新手机号" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                    </div>
+                    <button class="profile-action-btn" onclick="doChangePhone()">修改手机号</button>
+                    <div class="msg" id="profilePhoneMsg" style="font-size:0.8rem;text-align:center;margin-top:0.3rem;min-height:1.2rem;"></div>
                 </div>
             </div>
 
@@ -2525,7 +2604,8 @@
          * CREATE TABLE verify_codes (
          *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
          *   username TEXT NOT NULL,
-         *   email TEXT NOT NULL,
+         *   email TEXT,
+         *   phone TEXT,
          *   code TEXT NOT NULL,
          *   expires_at TIMESTAMPTZ NOT NULL,
          *   used BOOLEAN NOT NULL DEFAULT false
@@ -2888,25 +2968,29 @@
             },
 
             // 保存验证码
-            async saveVerifyCode(username, email, code, expiresAt) {
+            async saveVerifyCode(username, email, phone, code, expiresAt) {
                 if (USE_SUPABASE) {
                     dbShowStatus('保存验证码…', 'writing');
                     try {
-                        await sbRest('verify_codes', 'POST', {username: username, email: email, code: code, expires_at: expiresAt, used: false});
+                        var payload = {username: username, code: code, expires_at: expiresAt, used: false};
+                        if (email) payload.email = email;
+                        if (phone) payload.phone = phone;
+                        await sbRest('verify_codes', 'POST', payload);
                     } finally { dbHideStatus(); }
                     return;
                 }
-                localStorage.setItem('mobile_verify_code', JSON.stringify({username, email, code, expires_at: expiresAt}));
+                localStorage.setItem('mobile_verify_code', JSON.stringify({username, email, phone, code, expires_at: expiresAt}));
             },
 
-            // 验证验证码
-            async verifyCode(username, email, code) {
+            // 验证验证码（支持 email 或 phone）
+            async verifyCode(username, contact, code, contactType) {
                 if (USE_SUPABASE) {
                     dbShowStatus('验证验证码…', 'reading');
                     try {
                         var codes = await sbGet('verify_codes', 'username', username);
                         var valid = codes.find(function(c) {
-                            return c.email === email && c.code === code && !c.used && new Date(c.expires_at) > new Date();
+                            var contactMatch = contactType === 'phone' ? (c.phone === contact) : (c.email === contact);
+                            return contactMatch && c.code === code && !c.used && new Date(c.expires_at) > new Date();
                         });
                         if (valid) {
                             await sbUpdate('verify_codes', 'id', valid.id, {used: true});
@@ -2916,7 +3000,45 @@
                     } finally { dbHideStatus(); }
                 }
                 var saved = JSON.parse(localStorage.getItem('mobile_verify_code') || '{}');
-                return saved.code === code && saved.username === username && saved.email === email;
+                var contactMatch = contactType === 'phone' ? (saved.phone === contact) : (saved.email === contact);
+                return saved.code === code && saved.username === username && contactMatch;
+            },
+
+            // 查找未过期的验证码
+            async findValidVerifyCode(username, contact, contactType) {
+                if (USE_SUPABASE) {
+                    var codes = await sbGet('verify_codes', 'username', username);
+                    return codes.find(function(c) {
+                        var contactMatch = contactType === 'phone' ? (c.phone === contact) : (c.email === contact);
+                        return contactMatch && !c.used && new Date(c.expires_at) > new Date();
+                    }) || null;
+                }
+                var saved = JSON.parse(localStorage.getItem('mobile_verify_code') || '{}');
+                var contactMatch = contactType === 'phone' ? (saved.phone === contact) : (saved.email === contact);
+                if (saved.username === username && contactMatch && !saved.used && new Date(saved.expires_at) > new Date()) {
+                    return saved;
+                }
+                return null;
+            },
+
+            // 清理过期验证码
+            async cleanExpiredVerifyCodes() {
+                if (USE_SUPABASE) {
+                    try {
+                        var codes = await sbGet('verify_codes');
+                        var now = new Date();
+                        for (var i = 0; i < codes.length; i++) {
+                            if (new Date(codes[i].expires_at) < now) {
+                                await sbDelete('verify_codes', 'id', codes[i].id);
+                            }
+                        }
+                    } catch(e) { console.error('清理过期验证码失败:', e); }
+                    return;
+                }
+                var saved = JSON.parse(localStorage.getItem('mobile_verify_code') || '{}');
+                if (saved.expires_at && new Date(saved.expires_at) < new Date()) {
+                    localStorage.removeItem('mobile_verify_code');
+                }
             },
 
             // IP封禁列表
@@ -3195,6 +3317,7 @@
                 renderAdminBanList();
                 renderBannedDevices();
                 renderAppeals();
+                renderHistoryNodes();
             }
         }
 
@@ -3212,11 +3335,11 @@
             var pendingUsers = [];
             for (var i = 0; i < lines.length; i++) {
                 var parts = lines[i].split(',').map(function(s){ return s.trim(); });
-                if (parts.length < 4) { errors.push('第' + (i+1) + '行格式错误'); continue; }
-                var uname = parts[0], pw = parts[1], realname = parts[2], email = parts[3];
-                var role = parts[4] || '教师';
-                var subject = parts[5] || '';
-                if (!uname || !pw || !realname || !email) { errors.push('第' + (i+1) + '行缺少必填字段'); continue; }
+                if (parts.length < 5) { errors.push('第' + (i+1) + '行格式错误'); continue; }
+                var uname = parts[0], pw = parts[1], realname = parts[2], email = parts[3], phone = parts[4];
+                var role = parts[5] || '教师';
+                var subject = parts[6] || '';
+                if (!uname || !pw || !realname) { errors.push('第' + (i+1) + '行缺少必填字段'); continue; }
                 if (existingNames.has(uname)) { errors.push('第' + (i+1) + '行用户名已存在'); continue; }
                 var permissions = {};
                 if (role === '教师') {
@@ -3229,7 +3352,8 @@
                 pendingUsers.push({
                     username: uname,
                     realname: realname,
-                    email: email,
+                    email: email || '',
+                    phone: phone || '',
                     password: '__pending__' + pw,
                     role: role,
                     subject: subject,
@@ -3458,6 +3582,7 @@
             var password = document.getElementById('singlePassword').value;
             var realname = document.getElementById('singleRealname').value.trim();
             var email = document.getElementById('singleEmail').value.trim();
+            var phone = document.getElementById('singlePhone').value.trim();
             var role = singleAddRole;
             var subject = getSingleSubjectValue();
             var msg = document.getElementById('singleMsg');
@@ -3468,6 +3593,9 @@
             if (password.length < 6) { msg.textContent = '密码至少6位'; msg.className = 'msg error'; return; }
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 msg.textContent = '邮箱格式不正确'; msg.className = 'msg error'; return;
+            }
+            if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+                msg.textContent = '手机号格式不正确'; msg.className = 'msg error'; return;
             }
             if (role === 'teacher' && !subject) {
                 msg.textContent = '请选择或填写任教学科'; msg.className = 'msg error'; return;
@@ -3489,6 +3617,7 @@
                     username: username,
                     realname: realname,
                     email: email || '',
+                    phone: phone || '',
                     password: hash,
                     role: role,
                     subject: role === 'teacher' ? subject : '',
@@ -3501,6 +3630,7 @@
                 document.getElementById('singlePassword').value = '';
                 document.getElementById('singleRealname').value = '';
                 document.getElementById('singleEmail').value = '';
+                document.getElementById('singlePhone').value = '';
                 document.getElementById('singleSubjectSelect').value = '';
                 document.getElementById('singleSubjectCustom').value = '';
                 document.getElementById('singleSubjectCustom').style.display = 'none';
@@ -3522,6 +3652,7 @@
             document.getElementById('editPasswordConfirm').value = '';
             document.getElementById('editRealname').value = u.realname || '';
             document.getElementById('editEmail').value = u.email || '';
+            document.getElementById('editPhone').value = u.phone || '';
             document.getElementById('editPermView').checked = !!perms.viewSchedule;
             document.getElementById('editPermModify').checked = !!perms.modifySchedule;
             document.getElementById('editPermSend').checked = !!perms.sendNotification;
@@ -3668,6 +3799,7 @@
             var newPwConfirm = document.getElementById('editPasswordConfirm').value;
             var realname = document.getElementById('editRealname').value.trim();
             var email = document.getElementById('editEmail').value.trim();
+            var phone = document.getElementById('editPhone').value.trim();
             var role = document.getElementById('editRole').value;
             var subject = getEditSubjectValue();
             var msg = document.getElementById('editModalMsg');
@@ -3687,6 +3819,9 @@
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 msg.textContent = '邮箱格式不正确'; msg.className = 'msg error'; return;
             }
+            if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+                msg.textContent = '手机号格式不正确'; msg.className = 'msg error'; return;
+            }
 
             // 如果修改了用户名，检查是否已存在
             if (newUsername !== origName) {
@@ -3705,6 +3840,7 @@
                 username: newUsername,
                 realname: realname,
                 email: email,
+                phone: phone,
                 role: role,
                 subject: role === 'teacher' ? subject : '',
                 permissions: permissions,
@@ -3937,6 +4073,133 @@
             }
         }
 
+        // ====== 回忆录时间节点管理 ======
+        function getHistoryNodes() {
+            try {
+                var saved = localStorage.getItem('history_nodes');
+                return saved ? JSON.parse(saved) : [];
+            } catch(e) { return []; }
+        }
+        function saveHistoryNodes(nodes) {
+            localStorage.setItem('history_nodes', JSON.stringify(nodes));
+        }
+
+        var _historyEditIndex = -1;
+
+        async function addHistoryNode() {
+            var date = document.getElementById('historyNodeDate').value;
+            var title = document.getElementById('historyNodeTitle').value.trim();
+            var content = document.getElementById('historyNodeContent').value.trim();
+            var font = document.getElementById('historyNodeFont').value;
+            var color = document.getElementById('historyNodeColor').value;
+            var images = document.getElementById('historyNodeImages').value.trim();
+            var video = document.getElementById('historyNodeVideo').value.trim();
+            var msg = document.getElementById('historyNodeMsg');
+
+            if (!date) { msg.textContent = '请选择时间'; msg.className = 'msg error'; return; }
+            if (!title) { msg.textContent = '请输入标题'; msg.className = 'msg error'; return; }
+            if (!content) { msg.textContent = '请输入内容'; msg.className = 'msg error'; return; }
+
+            var nodes = getHistoryNodes();
+            var nodeData = {
+                date: date,
+                title: title,
+                content: content,
+                fontFamily: font,
+                fontColor: color !== '#ffffff' ? color : '',
+                images: images,
+                video: video
+            };
+
+            if (_historyEditIndex >= 0) {
+                nodes[_historyEditIndex] = nodeData;
+                msg.textContent = '节点修改成功'; msg.className = 'msg success';
+                _historyEditIndex = -1;
+                document.getElementById('historyNodeAddBtn').textContent = '添加节点';
+                document.getElementById('historyNodeCancelBtn').classList.add('hidden');
+            } else {
+                nodes.push(nodeData);
+                msg.textContent = '节点添加成功'; msg.className = 'msg success';
+            }
+            // 按时间排序
+            nodes.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+            saveHistoryNodes(nodes);
+
+            document.getElementById('historyNodeDate').value = '';
+            document.getElementById('historyNodeTitle').value = '';
+            document.getElementById('historyNodeContent').value = '';
+            document.getElementById('historyNodeImages').value = '';
+            document.getElementById('historyNodeVideo').value = '';
+            renderHistoryNodes();
+        }
+
+        function editHistoryNode(idx) {
+            var nodes = getHistoryNodes();
+            var n = nodes[idx];
+            if (!n) return;
+            document.getElementById('historyNodeDate').value = n.date || '';
+            document.getElementById('historyNodeTitle').value = n.title || '';
+            document.getElementById('historyNodeContent').value = n.content || '';
+            document.getElementById('historyNodeFont').value = n.fontFamily || '';
+            document.getElementById('historyNodeColor').value = n.fontColor || '#ffffff';
+            document.getElementById('historyNodeImages').value = n.images || '';
+            document.getElementById('historyNodeVideo').value = n.video || '';
+            _historyEditIndex = idx;
+            document.getElementById('historyNodeAddBtn').textContent = '保存修改';
+            document.getElementById('historyNodeCancelBtn').classList.remove('hidden');
+            document.getElementById('historyNodeMsg').textContent = '';
+        }
+
+        function cancelEditHistoryNode() {
+            _historyEditIndex = -1;
+            document.getElementById('historyNodeDate').value = '';
+            document.getElementById('historyNodeTitle').value = '';
+            document.getElementById('historyNodeContent').value = '';
+            document.getElementById('historyNodeImages').value = '';
+            document.getElementById('historyNodeVideo').value = '';
+            document.getElementById('historyNodeAddBtn').textContent = '添加节点';
+            document.getElementById('historyNodeCancelBtn').classList.add('hidden');
+            document.getElementById('historyNodeMsg').textContent = '';
+        }
+
+        function deleteHistoryNode(idx) {
+            if (!confirm('确定删除该时间节点吗？')) return;
+            var nodes = getHistoryNodes();
+            nodes.splice(idx, 1);
+            saveHistoryNodes(nodes);
+            if (_historyEditIndex === idx) cancelEditHistoryNode();
+            renderHistoryNodes();
+        }
+
+        function renderHistoryNodes() {
+            var container = document.getElementById('historyNodeList');
+            if (!container) return;
+            var nodes = getHistoryNodes();
+            if (!nodes.length) {
+                container.innerHTML = '<p style="font-size:0.82rem;color:#94a3b8;">暂无时间节点</p>';
+                return;
+            }
+            var html = '<table class="admin-table" style="margin-top:0.5rem;"><thead><tr><th>时间</th><th>标题</th><th>内容</th><th>操作</th></tr></thead><tbody>';
+            for (var i = 0; i < nodes.length; i++) {
+                var n = nodes[i];
+                var extra = [];
+                if (n.images) extra.push('图');
+                if (n.video) extra.push('视频');
+                var extraLabel = extra.length ? '<span style="color:#667eea;font-size:0.75rem;">[' + extra.join(',') + ']</span>' : '';
+                html += '<tr>' +
+                    '<td>' + escapeHtml(n.date) + '</td>' +
+                    '<td>' + escapeHtml(n.title) + ' ' + extraLabel + '</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(n.content) + '</td>' +
+                    '<td>' +
+                    '<button class="admin-btn-sm" onclick="editHistoryNode(' + i + ')" style="margin-right:0.3rem;">编辑</button>' +
+                    '<button class="admin-btn-sm admin-btn-del" onclick="deleteHistoryNode(' + i + ')">删除</button>' +
+                    '</td>' +
+                    '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
         // 检查 IP 封禁
         async function checkIPBan() {
             var banList = await DB.getBannedIPs();
@@ -4041,7 +4304,7 @@
         // 联系方式类型选择（注册表单）
         let regContactType = 'email';
         function selectContactType(el, type) {
-            document.querySelectorAll('.contact-type-btn').forEach(function(b){ b.classList.remove('active'); });
+            document.querySelectorAll('#contactTypeSelector .contact-type-btn').forEach(function(b){ b.classList.remove('active'); });
             el.classList.add('active');
             regContactType = type;
             if (type === 'email') {
@@ -4051,6 +4314,21 @@
                 document.getElementById('regEmail').classList.add('hidden');
                 document.getElementById('regPhone').classList.remove('hidden');
             }
+            // 切换后若已填写有效联系方式，自动发送验证码
+            setTimeout(function(){ autoSendRegVerifyCode(); }, 300);
+        }
+
+        // 注册验证码自动发送（blur时触发）
+        var _regAutoSent = false;
+        function autoSendRegVerifyCode() {
+            var contact = regContactType === 'email' ? document.getElementById('regEmail').value.trim() : document.getElementById('regPhone').value.trim();
+            if (!contact) return;
+            if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return;
+            if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) return;
+            // 避免重复自动发送
+            if (_regAutoSent) return;
+            _regAutoSent = true;
+            sendRegisterVerifyCode(true);
         }
 
         // 登录（用户名）
@@ -4230,38 +4508,79 @@
             return String(Math.floor(100000 + Math.random() * 900000));
         }
 
+        // 通用倒计时器
+        function startCountdown(btn, seconds, onEnd) {
+            btn.disabled = true;
+            var remaining = seconds;
+            btn.textContent = '发送验证码（' + remaining + '）';
+            var timer = setInterval(function() {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.textContent = '发送验证码';
+                    if (onEnd) onEnd();
+                } else {
+                    btn.textContent = '发送验证码（' + remaining + '）';
+                }
+            }, 1000);
+            return timer;
+        }
+
         // 发送注册验证码
         var _regVerifyCode = '';
         var _regVerifyExpires = 0;
-        async function sendRegisterVerifyCode() {
+        var _regCountdownTimer = null;
+        async function sendRegisterVerifyCode(autoSend) {
             var btn = document.getElementById('sendCodeBtn');
             var hint = document.getElementById('verifyHint');
             var contact = regContactType === 'email' ? document.getElementById('regEmail').value.trim() : document.getElementById('regPhone').value.trim();
 
-            if (!contact) {
-                hint.textContent = '请先填写' + (regContactType === 'email' ? '邮箱' : '手机号');
-                hint.className = 'verify-hint error';
-                return;
-            }
-            if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-                hint.textContent = '邮箱格式不正确';
-                hint.className = 'verify-hint error';
-                return;
-            }
-            if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
-                hint.textContent = '手机号格式不正确';
-                hint.className = 'verify-hint error';
-                return;
+            if (!autoSend) {
+                if (!contact) {
+                    hint.textContent = '请先填写' + (regContactType === 'email' ? '邮箱' : '手机号');
+                    hint.className = 'verify-hint error';
+                    return;
+                }
+                if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+                    hint.textContent = '邮箱格式不正确';
+                    hint.className = 'verify-hint error';
+                    return;
+                }
+                if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
+                    hint.textContent = '手机号格式不正确';
+                    hint.className = 'verify-hint error';
+                    return;
+                }
+            } else if (!contact) {
+                return; // 自动发送时若联系信息未填则静默返回
             }
 
             btn.disabled = true;
-            hint.textContent = '正在发送…';
-            hint.className = 'verify-hint';
+            if (!autoSend) {
+                hint.textContent = '正在发送…';
+                hint.className = 'verify-hint';
+            }
 
-            var code = generateVerifyCode();
-            var expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10分钟后过期
-            _regVerifyCode = code;
-            _regVerifyExpires = Date.now() + 10 * 60 * 1000;
+            var username = document.getElementById('regUsername').value.trim() || 'temp_' + Date.now();
+            var code, expiresAt;
+
+            // 先清理过期验证码
+            await DB.cleanExpiredVerifyCodes();
+
+            // 检查是否有未过期的验证码
+            var existing = await DB.findValidVerifyCode(username, contact, regContactType);
+            if (existing) {
+                code = existing.code;
+                expiresAt = existing.expires_at;
+                _regVerifyCode = code;
+                _regVerifyExpires = new Date(expiresAt).getTime();
+            } else {
+                code = generateVerifyCode();
+                expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10分钟后过期
+                _regVerifyCode = code;
+                _regVerifyExpires = Date.now() + 10 * 60 * 1000;
+            }
 
             try {
                 if (regContactType === 'email') {
@@ -4272,44 +4591,48 @@
                         subject: '晚自习系统 - 注册验证码'
                     });
                 } else {
-                    // 通过 Spug 推送平台发送短信（国内三大运营商均支持，¥0.08/条）
-                    // 请先在 https://push.spug.cc 注册并创建短信验证码模板，将下面的 SPUG_SMS_TPL 替换为你的模板 ID
-                    var SPUG_SMS_TPL = 'YOUR_SPUG_TEMPLATE_ID'; // ← 替换为你的 Spug 模板 ID
-                    var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TPL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: '晚自习系统',
-                            code: code,
-                            targets: contact
-                        })
-                    });
-                    var smsResult = await smsResp.json();
-                    if (smsResult.code !== 0) {
-                        throw new Error(smsResult.message || '短信发送失败');
+                    // 短信发送：支持多平台切换（spug | textbelt | httpsms）
+                    var smsProvider = 'spug'; // ← 修改此处切换平台
+                    if (smsProvider === 'spug') {
+                        // Spug 推送平台（推荐，国内稳定，个人开发者可用，¥0.08/条）
+                        // 注册: https://push.spug.cc → 创建验证码模板 → 替换下方模板ID
+                        var SPUG_SMS_TPL = 'YOUR_SPUG_TEMPLATE_ID';
+                        var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TPL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: '晚自习系统', code: code, targets: contact })
+                        });
+                        var smsResult = await smsResp.json();
+                        if (smsResult.code !== 0) throw new Error(smsResult.message || '短信发送失败');
+                    } else if (smsProvider === 'textbelt') {
+                        // Textbelt（无需注册，免费层每天1条，适合测试）
+                        var tbResp = await fetch('https://textbelt.com/text', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                phone: contact,
+                                message: '【晚自习系统】验证码：' + code + '，10分钟内有效。',
+                                key: 'textbelt'
+                            })
+                        });
+                        var tbResult = await tbResp.json();
+                        if (!tbResult.success) throw new Error(tbResult.error || '短信发送失败');
+                    } else if (smsProvider === 'httpsms') {
+                        throw new Error('httpSMS 需自行部署安卓网关，请参考 https://docs.httpsms.com');
                     }
                 }
 
-                // 同时保存到数据库（用于跨设备验证和记录）
-                var username = document.getElementById('regUsername').value.trim() || 'temp_' + Date.now();
-                await DB.saveVerifyCode(username, regContactType === 'email' ? contact : '', code, expiresAt);
+                // 若为新验证码则保存到数据库
+                if (!existing) {
+                    await DB.saveVerifyCode(username, regContactType === 'email' ? contact : '', regContactType === 'phone' ? contact : '', code, expiresAt);
+                }
 
                 hint.textContent = '验证码已发送，请查收（10分钟有效）';
                 hint.className = 'verify-hint sent';
 
                 // 60秒倒计时
-                var seconds = 60;
-                btn.textContent = seconds + '秒后重发';
-                var timer = setInterval(function() {
-                    seconds--;
-                    if (seconds <= 0) {
-                        clearInterval(timer);
-                        btn.disabled = false;
-                        btn.textContent = '发送验证码';
-                    } else {
-                        btn.textContent = seconds + '秒后重发';
-                    }
-                }, 1000);
+                if (_regCountdownTimer) clearInterval(_regCountdownTimer);
+                _regCountdownTimer = startCountdown(btn, 60);
             } catch(e) {
                 btn.disabled = false;
                 btn.textContent = '发送验证码';
@@ -4375,6 +4698,16 @@
                 return markRegError('regSubject', '请选择任教学科');
             }
 
+            // 验证码验证
+            var verifyCode = document.getElementById('regVerifyCode').value.trim();
+            if (!verifyCode) {
+                return markRegError('regVerifyCode', '请输入验证码');
+            }
+            var codeValid = await DB.verifyCode(username, contact, verifyCode, regContactType);
+            if (!codeValid) {
+                return markRegError('regVerifyCode', '验证码错误或已过期');
+            }
+
             msg.textContent = '注册中…'; msg.className = 'msg';
 
             // 并行：检查用户名重复 + 计算密码哈希
@@ -4414,80 +4747,7 @@
             }
         }
 
-        // 密码找回 - 步骤1：更新按钮状态
-        var recUserRole = ''; // 缓存用户角色
-        var recSelectedRole = ''; // 用户选择的身份
-
-        // 选择找回密码的身份
-        function selectRecRole(role) {
-            recSelectedRole = role;
-            // 更新按钮高亮
-            document.getElementById('recRoleTeacher').classList.toggle('active', role === 'teacher');
-            document.getElementById('recRoleStudent').classList.toggle('active', role === 'student');
-            // 显示字段区域
-            document.getElementById('recFieldsArea').classList.remove('hidden');
-            document.getElementById('resetLinkArea').classList.add('hidden');
-            // 根据角色显示/隐藏字段和按钮
-            var realnameGroup = document.getElementById('recRealnameGroup');
-            var emailGroup = document.getElementById('recEmailGroup');
-            var teacherBtn = document.getElementById('btnRecTeacherVerify');
-            var studentBtn = document.getElementById('btnRecStudentVerify');
-
-            if (role === 'teacher') {
-                realnameGroup.classList.remove('hidden');
-                if (emailGroup) emailGroup.style.display = 'none';
-                if (teacherBtn) teacherBtn.style.display = '';
-                if (studentBtn) studentBtn.style.display = 'none';
-            } else {
-                realnameGroup.classList.remove('hidden');
-                if (emailGroup) emailGroup.style.display = '';
-                if (teacherBtn) teacherBtn.style.display = 'none';
-                if (studentBtn) studentBtn.style.display = '';
-            }
-            // 清空输入和消息
-            document.getElementById('recUsername').value = '';
-            document.getElementById('recRealname').value = '';
-            document.getElementById('recEmail').value = '';
-            document.getElementById('recMsg').textContent = '';
-            document.getElementById('recMsg').className = 'msg';
-            if (teacherBtn) teacherBtn.disabled = true;
-            if (studentBtn) studentBtn.disabled = true;
-        }
-
-        async function updateRecSendBtn() {
-            var username = document.getElementById('recUsername').value.trim();
-            var email = document.getElementById('recEmail').value.trim();
-            var realname = document.getElementById('recRealname').value.trim();
-            var msg = document.getElementById('recMsg');
-            if (msg) { msg.textContent = ''; msg.className = 'msg'; }
-
-            if (recSelectedRole === 'teacher') {
-                var teacherBtn = document.getElementById('btnRecTeacherVerify');
-                if (teacherBtn) teacherBtn.disabled = !(username && realname);
-            } else {
-                var studentBtn = document.getElementById('btnRecStudentVerify');
-                var emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-                if (studentBtn) studentBtn.disabled = !(username && realname && email && emailValid);
-            }
-        }
-
-        // 教师验证（用户名+真实姓名）
-        async function doTeacherVerify() {
-            var username = document.getElementById('recUsername').value.trim();
-            var realname = document.getElementById('recRealname').value.trim();
-            var msg = document.getElementById('recMsg');
-
-            var u = await DB.findByUsername(username);
-            if (!u) { msg.textContent = '用户名不存在'; msg.className = 'msg error'; return; }
-            if (u.role !== 'teacher') { msg.textContent = '该账号不是教师账号'; msg.className = 'msg error'; return; }
-            if (u.realname !== realname.trim()) { msg.textContent = '真实姓名不匹配'; msg.className = 'msg error'; return; }
-
-            document.getElementById('recoverStep1').classList.add('hidden');
-            document.getElementById('recoverStep2').classList.remove('hidden');
-            msg.textContent = ''; msg.className = 'msg';
-        }
-
-        // ========== 学生密码重置 Token 管理 ==========
+        // ========== 密码重置 Token 管理 ==========
         function generateResetToken(username) {
             var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             var token = '';
@@ -4495,58 +4755,227 @@
             return token;
         }
 
-        // 学生验证（真实姓名+用户名+邮箱）并发送重置链接
-        async function doStudentVerify() {
-            var realname = document.getElementById('recRealname').value.trim();
+        // 密码找回 - 新流程：查询用户联系方式
+        var _resetTargetUser = null; // 缓存查询到的用户
+        var _resetSelectedMethod = 'phone'; // 默认重置方式
+        var _resetCountdownTimer = null;
+        var _resetLinkCountdownTimer = null;
+
+        async function queryUserForReset() {
             var username = document.getElementById('recUsername').value.trim();
-            var email = document.getElementById('recEmail').value.trim();
             var msg = document.getElementById('recMsg');
+            msg.textContent = ''; msg.className = 'msg';
 
-            if (!realname || !username || !email) {
-                msg.textContent = '请填写完整信息'; msg.className = 'msg error'; return;
-            }
-
-            // 检测该用户是否有已自动处理的申诉
-            try {
-                var appeals = await DB.getAppeals('auto_processed');
-                var matched = appeals && appeals.filter(function(a){ return a.username === username; });
-                if (matched && matched.length > 0) {
-                    msg.textContent = '申诉成功，密码已重置为123456，请登录'; msg.className = 'msg success';
-                    return;
-                }
-            } catch(e) {}
+            if (!username) { msg.textContent = '请输入用户名'; msg.className = 'msg error'; return; }
 
             var u = await DB.findByUsername(username);
             if (!u) { msg.textContent = '用户名不存在'; msg.className = 'msg error'; return; }
-            if (u.role !== 'student') { msg.textContent = '该账号不是学生账号'; msg.className = 'msg error'; return; }
-            if (u.realname !== realname) { msg.textContent = '真实姓名不匹配'; msg.className = 'msg error'; return; }
-            if (u.email.toLowerCase() !== email.toLowerCase()) { msg.textContent = '邮箱不匹配'; msg.className = 'msg error'; return; }
 
-            // 验证通过，生成token并尝试发送邮件
-            var token = generateResetToken(username);
-            await DB.saveResetToken(username, email, token);
-            var resetUrl = 'https://wh12z213mob.pages.dev/?reset=' + token;
+            _resetTargetUser = u;
+            var hasPhone = !!u.phone;
+            var hasEmail = !!u.email;
 
-            msg.textContent = '正在发送重置邮件…'; msg.className = 'msg';
+            document.getElementById('resetMethodArea').classList.remove('hidden');
+            var methodSelect = document.getElementById('resetMethodSelect');
+            var phoneArea = document.getElementById('resetPhoneArea');
+            var emailArea = document.getElementById('resetEmailArea');
+
+            if (hasPhone && hasEmail) {
+                // 同时有手机号和邮箱，让用户选择
+                methodSelect.style.display = '';
+                selectResetMethod('phone');
+            } else if (hasPhone && !hasEmail) {
+                // 只有手机号
+                methodSelect.style.display = 'none';
+                phoneArea.classList.remove('hidden');
+                emailArea.classList.add('hidden');
+                _resetSelectedMethod = 'phone';
+                // 自动发送验证码
+                setTimeout(function(){ sendResetVerifyCode(true); }, 300);
+            } else if (!hasPhone && hasEmail) {
+                // 只有邮箱
+                methodSelect.style.display = 'none';
+                phoneArea.classList.add('hidden');
+                emailArea.classList.remove('hidden');
+                _resetSelectedMethod = 'email';
+                // 自动发送重置链接
+                setTimeout(function(){ sendResetLink(true); }, 300);
+            } else {
+                msg.textContent = '该账号未绑定手机号或邮箱，请联系管理员处理'; msg.className = 'msg error';
+            }
+        }
+
+        function selectResetMethod(type) {
+            _resetSelectedMethod = type;
+            document.getElementById('resetMethodPhoneBtn').classList.toggle('active', type === 'phone');
+            document.getElementById('resetMethodEmailBtn').classList.toggle('active', type === 'email');
+            document.getElementById('resetPhoneArea').classList.toggle('hidden', type !== 'phone');
+            document.getElementById('resetEmailArea').classList.toggle('hidden', type !== 'email');
+            document.getElementById('resetEmailSent').classList.add('hidden');
+
+            if (type === 'phone') {
+                setTimeout(function(){ sendResetVerifyCode(true); }, 300);
+            }
+        }
+
+        // 发送重置验证码（手机方式）
+        async function sendResetVerifyCode(autoSend) {
+            if (!_resetTargetUser || !_resetTargetUser.phone) return;
+            var btn = document.getElementById('resetSendCodeBtn');
+            var hint = document.getElementById('resetVerifyHint');
+            var phone = _resetTargetUser.phone;
+            var username = _resetTargetUser.username;
+
+            if (!autoSend) {
+                btn.disabled = true;
+                hint.textContent = '正在发送…';
+                hint.className = 'verify-hint';
+            } else {
+                btn.disabled = true;
+            }
+
+            var code, expiresAt;
+
+            // 先清理过期验证码
+            await DB.cleanExpiredVerifyCodes();
+
+            // 检查是否有未过期的验证码
+            var existing = await DB.findValidVerifyCode(username, phone, 'phone');
+            if (existing) {
+                code = existing.code;
+                expiresAt = existing.expires_at;
+            } else {
+                code = generateVerifyCode();
+                expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+                await DB.saveVerifyCode(username, '', phone, code, expiresAt);
+            }
 
             try {
-                await emailjs.send('service_xny0rnb', 'template_wrye0wo', {
+                // 短信发送：支持多平台切换（spug | textbelt | httpsms）
+                var smsProvider = 'spug'; // ← 修改此处切换平台
+                if (smsProvider === 'spug') {
+                    var SPUG_SMS_TPL = 'YOUR_SPUG_TEMPLATE_ID';
+                    var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TPL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: '晚自习系统', code: code, targets: phone })
+                    });
+                    var smsResult = await smsResp.json();
+                    if (smsResult.code !== 0) throw new Error(smsResult.message || '短信发送失败');
+                } else if (smsProvider === 'textbelt') {
+                    var tbResp = await fetch('https://textbelt.com/text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: phone,
+                            message: '【晚自习系统】验证码：' + code + '，10分钟内有效。',
+                            key: 'textbelt'
+                        })
+                    });
+                    var tbResult = await tbResp.json();
+                    if (!tbResult.success) throw new Error(tbResult.error || '短信发送失败');
+                } else if (smsProvider === 'httpsms') {
+                    throw new Error('httpSMS 需自行部署安卓网关');
+                }
+
+                hint.textContent = '验证码已发送至尾号' + phone.slice(-4) + '，请查看手机短信（10分钟有效）';
+                hint.className = 'verify-hint sent';
+
+                // 60秒倒计时
+                if (_resetCountdownTimer) clearInterval(_resetCountdownTimer);
+                _resetCountdownTimer = startCountdown(btn, 60);
+            } catch(e) {
+                btn.disabled = false;
+                btn.textContent = '发送验证码';
+                hint.textContent = '发送失败：' + (e.message || '请稍后重试');
+                hint.className = 'verify-hint error';
+                console.error('重置验证码发送失败:', e);
+            }
+        }
+
+        // 验证重置验证码
+        async function verifyResetCode() {
+            var code = document.getElementById('resetVerifyCode').value.trim();
+            var msg = document.getElementById('recMsg');
+            msg.textContent = ''; msg.className = 'msg';
+
+            if (!code) { msg.textContent = '请输入验证码'; msg.className = 'msg error'; return; }
+            if (!_resetTargetUser || !_resetTargetUser.phone) { msg.textContent = '用户信息异常'; msg.className = 'msg error'; return; }
+
+            var valid = await DB.verifyCode(_resetTargetUser.username, _resetTargetUser.phone, code, 'phone');
+            if (valid) {
+                document.getElementById('recoverStep1').classList.add('hidden');
+                document.getElementById('recoverStep2').classList.remove('hidden');
+                msg.textContent = '';
+            } else {
+                msg.textContent = '验证码错误或已过期'; msg.className = 'msg error';
+            }
+        }
+
+        // 发送重置链接（邮箱方式）
+        async function sendResetLink(autoSend) {
+            if (!_resetTargetUser || !_resetTargetUser.email) return;
+            var btn = document.getElementById('resetEmailArea').querySelector('.btn-primary');
+            var sentDiv = document.getElementById('resetEmailSent');
+            var email = _resetTargetUser.email;
+            var username = _resetTargetUser.username;
+            var msg = document.getElementById('recMsg');
+
+            if (!autoSend) {
+                btn.disabled = true;
+                btn.textContent = '发送中…';
+            } else {
+                if (btn) btn.disabled = true;
+            }
+
+            // 先清理过期token
+            await DB.cleanExpiredVerifyCodes();
+
+            // 检查是否已有未过期的token
+            var existingToken = null;
+            try {
+                var tokens = await sbGet('reset_tokens', 'username', username);
+                for (var i = 0; i < tokens.length; i++) {
+                    if (tokens[i].email === email && new Date(tokens[i].expires_at) > new Date()) {
+                        existingToken = tokens[i];
+                        break;
+                    }
+                }
+            } catch(e) {}
+
+            var token, resetUrl;
+            if (existingToken) {
+                token = existingToken.token;
+            } else {
+                token = generateResetToken(username);
+                await DB.saveResetToken(username, email, token);
+            }
+            resetUrl = 'https://wh12z213mob.pages.dev/?reset=' + token;
+
+            try {
+                await emailjs.send('service_xny0rnb', 'template_vhni5qq', {
                     email: email,
-                    to_name: u.realname,
+                    to_name: _resetTargetUser.realname || username,
                     reset_link: resetUrl
                 });
-                msg.textContent = '重置链接已发送至邮箱，请查收'; msg.className = 'msg success';
+
+                sentDiv.classList.remove('hidden');
+                if (msg) { msg.textContent = ''; msg.className = 'msg'; }
+
+                // 60秒倒计时（按钮）
+                if (btn) {
+                    if (_resetLinkCountdownTimer) clearInterval(_resetLinkCountdownTimer);
+                    _resetLinkCountdownTimer = startCountdown(btn, 60, function(){
+                        if (btn) btn.textContent = '发送重置链接';
+                    });
+                }
             } catch(e) {
                 console.error('EmailJS send error:', e);
-                var errText = e && e.text ? e.text : (e && e.message ? e.message : '未知错误');
-                msg.textContent = '邮件发送失败，可填写下方申诉表单提交给管理员处理'; msg.className = 'msg error';
-                document.getElementById('resetLinkArea').classList.remove('hidden');
-                document.getElementById('resetLinkInput').value = resetUrl;
-                // 显示申诉表单，并自动填充用户名、真实姓名、邮箱
-                document.getElementById('appealFormArea').classList.remove('hidden');
-                document.getElementById('appealUsername').value = username;
-                document.getElementById('appealRealname').value = realname;
-                document.getElementById('appealEmail').value = email;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '发送重置链接';
+                }
+                if (msg) { msg.textContent = '邮件发送失败，请稍后重试'; msg.className = 'msg error'; }
             }
         }
 
@@ -4592,7 +5021,7 @@
             if (newPw.length < 6) { msg.textContent = '密码至少6位'; msg.className = 'msg error'; return; }
             if (newPw !== newPwConfirm) { msg.textContent = '两次输入的密码不一致'; msg.className = 'msg error'; return; }
 
-            var username = document.getElementById('recUsername').value.trim();
+            var username = _resetTargetUser ? _resetTargetUser.username : document.getElementById('recUsername').value.trim();
             var u = await DB.findByUsername(username);
             if (u) {
                 var hash = await sha256(newPw);
@@ -4746,6 +5175,7 @@
             document.getElementById('profileUsername').textContent = currentUser.username;
             document.getElementById('profileRealname').textContent = u ? (u.realname || '-') : (currentUser.realname || '-');
             document.getElementById('profileEmail').textContent = currentUser.email || '-';
+            document.getElementById('profilePhone').textContent = (u && u.phone) ? u.phone : (currentUser.phone || '-');
             document.getElementById('profileRole').textContent = (u && u.role === 'student') ? '学生' : '教师';
 
             var subject = (currentUser.user_metadata && currentUser.user_metadata.subject) || (u ? u.subject : '');
@@ -4788,6 +5218,30 @@
             msg.textContent = '邮箱修改成功'; msg.className = 'msg success';
             document.getElementById('profilePwdVerify').value = '';
             document.getElementById('profileNewEmail').value = '';
+        }
+
+        // 修改手机号
+        async function doChangePhone() {
+            var pwd = document.getElementById('profilePhonePwdVerify').value;
+            var newPhone = document.getElementById('profileNewPhone').value.trim();
+            var msg = document.getElementById('profilePhoneMsg');
+            if (!pwd) { msg.textContent = '请输入当前密码'; msg.className = 'msg error'; return; }
+            if (!newPhone) { msg.textContent = '请输入新手机号'; msg.className = 'msg error'; return; }
+            if (!/^1[3-9]\d{9}$/.test(newPhone)) { msg.textContent = '手机号格式不正确'; msg.className = 'msg error'; return; }
+
+            var u = await DB.findByUsername(currentUser.username);
+            if (!u) { msg.textContent = '用户数据不存在'; msg.className = 'msg error'; return; }
+
+            var hash = await sha256(pwd);
+            if (hash !== u.password) { msg.textContent = '当前密码错误'; msg.className = 'msg error'; return; }
+
+            await DB.updateUser(currentUser.username, {phone: newPhone});
+            currentUser.phone = newPhone;
+            saveSession();
+            document.getElementById('profilePhone').textContent = newPhone;
+            msg.textContent = '手机号修改成功'; msg.className = 'msg success';
+            document.getElementById('profilePhonePwdVerify').value = '';
+            document.getElementById('profileNewPhone').value = '';
         }
 
         // 修改学科
