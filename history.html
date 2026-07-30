@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>情怀：我们一起走过的日子</title>
+    <link rel="icon" href="icon.jpg" type="image/jpeg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SimHei', 'STHeiti', 'Heiti SC', '黑体', 'Noto Sans CJK SC', sans-serif;
+            overflow: hidden;
+            background: #0a0a1a;
+            color: #fff;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ====== 返回按钮 ====== */
+        .back-to-mobile {
+            position: fixed;
+            top: 0.8rem;
+            left: 0.8rem;
+            z-index: 1000;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 0.45rem 0.9rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.3s ease;
+        }
+        .back-to-mobile:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
+        }
+
+        /* ====== 加载层 ====== */
+        #loaderLayer {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+            background: linear-gradient(180deg, #1a0a2e 0%, #0d0d0d 50%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.2s ease;
+        }
+        #loaderLayer.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 拼图动画 */
+        .puzzle-loader {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .puzzle-piece {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            background: #fff;
+            border-radius: 4px;
+            opacity: 0.9;
+        }
+        .puzzle-piece:nth-child(1) { top: 0; left: 0; animation: puzzleMove1 2s infinite ease-in-out; }
+        .puzzle-piece:nth-child(2) { top: 0; right: 0; animation: puzzleMove2 2s infinite ease-in-out 0.3s; }
+        .puzzle-piece:nth-child(3) { bottom: 0; left: 0; animation: puzzleMove3 2s infinite ease-in-out 0.6s; }
+        .puzzle-piece:nth-child(4) { bottom: 0; right: 0; animation: puzzleMove4 2s infinite ease-in-out 0.9s; }
+
+        @keyframes puzzleMove1 {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            25% { transform: translate(44px,0) rotate(90deg); }
+            50% { transform: translate(44px,44px) rotate(180deg); }
+            75% { transform: translate(0,44px) rotate(270deg); }
+        }
+        @keyframes puzzleMove2 {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            25% { transform: translate(0,44px) rotate(90deg); }
+            50% { transform: translate(-44px,44px) rotate(180deg); }
+            75% { transform: translate(-44px,0) rotate(270deg); }
+        }
+        @keyframes puzzleMove3 {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            25% { transform: translate(0,-44px) rotate(90deg); }
+            50% { transform: translate(44px,-44px) rotate(180deg); }
+            75% { transform: translate(44px,0) rotate(270deg); }
+        }
+        @keyframes puzzleMove4 {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            25% { transform: translate(-44px,0) rotate(90deg); }
+            50% { transform: translate(-44px,-44px) rotate(180deg); }
+            75% { transform: translate(0,-44px) rotate(270deg); }
+        }
+
+        .loader-text {
+            margin-top: 1.8rem;
+            font-size: 1rem;
+            color: #fff;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        /* ====== 诗句层 ====== */
+        #poemLayer {
+            position: fixed;
+            inset: 0;
+            z-index: 800;
+            background: linear-gradient(180deg, #1a0a2e 0%, #0d0d0d 50%, #000000 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        #poemLayer.active {
+            display: flex;
+            opacity: 1;
+        }
+        .poem-lines {
+            text-align: center;
+            line-height: 2.2;
+            font-size: 1.05rem;
+            color: rgba(255,255,255,0.9);
+            max-width: 90vw;
+        }
+        .poem-lines .highlight {
+            color: #ffd700;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(255,215,0,0.4);
+        }
+        .explore-btn {
+            margin-top: 2.5rem;
+            padding: 0.85rem 2.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 2rem;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.4);
+            transition: all 0.3s ease;
+        }
+        .explore-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(102,126,234,0.6);
+        }
+
+        /* ====== 时光穿梭层 ====== */
+        #warpLayer {
+            position: fixed;
+            inset: 0;
+            z-index: 850;
+            background: #000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        #warpLayer.active {
+            display: block;
+            opacity: 1;
+        }
+        .warp-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ====== 白屏过渡 ====== */
+        #whiteFlash {
+            position: fixed;
+            inset: 0;
+            z-index: 860;
+            background: #fff;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        #whiteFlash.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ====== 回忆录主页面 ====== */
+        #memoryBook {
+            position: fixed;
+            inset: 0;
+            z-index: 700;
+            display: none;
+            overflow: hidden;
+        }
+        #memoryBook.active {
+            display: block;
+        }
+
+        /* 宇宙星河背景 Canvas */
+        #starfield {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* 页面容器 */
+        .memory-pages {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        .memory-page {
+            width: 100%;
+            min-height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            position: relative;
+        }
+
+        /* 玻璃态内容卡片 */
+        .memory-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 1.2rem;
+            padding: 2rem 1.8rem;
+            max-width: 680px;
+            width: 92vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        /* 保留边缘不虚化 */
+        .memory-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 1.3rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.08) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 第一页：数据统计 */
+        .stats-page .memory-card {
+            text-align: center;
+            padding: 2.5rem 2rem;
+        }
+        .stats-greeting {
+            font-size: 1.15rem;
+            line-height: 2.2;
+            color: rgba(255,255,255,0.92);
+            margin-bottom: 1rem;
+        }
+        .stats-greeting .name {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+        .stats-greeting .role {
+            color: #87CEFA;
+            font-weight: bold;
+        }
+        .rolling-number {
+            display: inline-block;
+            font-variant-numeric: tabular-nums;
+            color: #ff69b4;
+            font-weight: bold;
+            font-size: 1.4rem;
+            min-width: 2.5em;
+            text-align: center;
+        }
+        .stats-ending {
+            margin-top: 1.2rem;
+            font-size: 1.1rem;
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255,215,0,0.3);
+        }
+
+        /* 时间节点页面 */
+        .timeline-page .memory-card {
+            padding: 2rem;
+        }
+        .timeline-date {
+            font-size: 0.9rem;
+            color: #87CEFA;
+            margin-bottom: 0.6rem;
+            letter-spacing: 0.08em;
+        }
+        .timeline-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .timeline-content {
+            font-size: 1rem;
+            line-height: 1.9;
+            color: rgba(255,255,255,0.88);
+            margin-bottom: 1.2rem;
+            white-space: pre-wrap;
+        }
+        .timeline-video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 0.6rem;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .timeline-video iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .timeline-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+        .timeline-images img {
+            width: 100%;
+            border-radius: 0.5rem;
+            object-fit: cover;
+            aspect-ratio: 4/3;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .timeline-images img:hover {
+            transform: scale(1.03);
+        }
+
+        /* 页码指示器 */
+        .page-dots {
+            position: fixed;
+            right: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .page-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .page-dot.active {
+            background: #ffd700;
+            box-shadow: 0 0 8px rgba(255,215,0,0.5);
+            transform: scale(1.3);
+        }
+
+        /* 页面切换提示 */
+        .swipe-hint {
+            position: fixed;
+            bottom: 1.2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.4);
+            animation: bounce 2s infinite;
+            pointer-events: none;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-6px); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .stats-greeting { font-size: 1rem; line-height: 2; }
+            .stats-greeting .name { font-size: 1.15rem; }
+            .rolling-number { font-size: 1.2rem; }
+            .timeline-title { font-size: 1.2rem; }
+            .memory-card { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回移动端 -->
+    <a href="/" class="back-to-mobile">&#x2190; 返回移动端</a>
+
+    <!-- 加载层 -->
+    <div id="loaderLayer">
+        <div class="puzzle-loader">
+            <div class="puzzle-piece"></div>
+            <div class="puzzle-piece"></div>
+            <div class="puzzle-piece"></div>
+            <div class="puzzle-piece"></div>
+        </div>
+        <div class="loader-text">记忆碎片搜索中...</div>
+    </div>
+
+    <!-- 诗句层 -->
+    <div id="poemLayer">
+        <div class="poem-lines" id="poemLines"></div>
+        <button class="explore-btn" onclick="startWarp()">&#x2728; 探索时光记忆</button>
+    </div>
+
+    <!-- 时光穿梭层 -->
+    <div id="warpLayer">
+        <canvas id="warpCanvas" class="warp-canvas"></canvas>
+    </div>
+
+    <!-- 白屏过渡 -->
+    <div id="whiteFlash"></div>
+
+    <!-- 回忆录主页面 -->
+    <div id="memoryBook">
+        <canvas id="starfield"></canvas>
+        <div class="memory-pages" id="memoryPages"></div>
+        <div class="page-dots" id="pageDots"></div>
+        <div class="swipe-hint" id="swipeHint">&#x2191; 上滑查看更多</div>
+    </div>
+
+    <script>
+        // ====== 配置 ======
+        const CLASS_START = new Date('2026-03-14T00:00:00');
+        const GAOKAO_DATE = new Date('2028-06-07T00:00:00');
+        const STUDENT_COUNT = 61;
+        const TEACHER_COUNT = 62;
+
+        // 当前用户信息（从URL参数或localStorage获取）
+        let userInfo = { name: '同学', role: '同学', isStudent: true };
+        try {
+            var saved = localStorage.getItem('mobile_current_user');
+            if (saved) {
+                var u = JSON.parse(saved);
+                userInfo.name = u.realname || u.username || '同学';
+                userInfo.isStudent = (u.role === 'student');
+                userInfo.role = userInfo.isStudent ? '同学' : '老师';
+            }
+        } catch(e) {}
+
+        // ====== 预加载所有资源 ======
+        let assetsLoaded = false;
+        function preloadAssets() {
+            return new Promise(function(resolve) {
+                // 模拟资源加载（实际图片/视频可在此预加载）
+                setTimeout(function() {
+                    assetsLoaded = true;
+                    resolve();
+                }, 2500);
+            });
+        }
+
+        // ====== 诗句数据 ======
+        const poems = [
+            '<span class="highlight">青春是一本太仓促的书</span>',
+            '我们含着泪，一读再读',
+            '',
+            '十三班的教室里，',
+            '有笔尖划过纸张的沙沙声，',
+            '有课间十分钟的嬉笑打闹，',
+            '有晚自习窗外渐暗的天色。',
+            '',
+            '<span class="highlight">那些看似平凡的日子</span>',
+            '<span class="highlight">终将成为我们最珍贵的记忆</span>',
+            '',
+            '从2026年3月14日那天起，',
+            '我们有了一个共同的名字——',
+            '<span class="highlight">高二（13）班</span>',
+            '',
+            '愿此去前程似锦，',
+            '再相逢依旧如故。'
+        ];
+
+        // ====== 加载流程 ======
+        async function runLoader() {
+            await preloadAssets();
+            var loader = document.getElementById('loaderLayer');
+            loader.classList.add('hidden');
+            setTimeout(function() {
+                loader.style.display = 'none';
+                showPoemLayer();
+            }, 1200);
+        }
+
+        function showPoemLayer() {
+            var layer = document.getElementById('poemLayer');
+            var container = document.getElementById('poemLines');
+            container.innerHTML = '';
+            layer.classList.add('active');
+
+            // 逐行显示诗句
+            var idx = 0;
+            function showNextLine() {
+                if (idx >= poems.length) return;
+                var line = poems[idx];
+                var p = document.createElement('div');
+                p.style.opacity = '0';
+                p.style.transform = 'translateY(12px)';
+                p.style.transition = 'all 0.8s ease';
+                p.innerHTML = line || '&nbsp;';
+                container.appendChild(p);
+                // 强制重排
+                p.offsetHeight;
+                p.style.opacity = '1';
+                p.style.transform = 'translateY(0)';
+                idx++;
+                setTimeout(showNextLine, line === '' ? 400 : 700);
+            }
+            showNextLine();
+        }
+
+        // ====== 时光穿梭动画 ======
+        function startWarp() {
+            document.getElementById('poemLayer').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('poemLayer').style.display = 'none';
+            }, 500);
+
+            var warp = document.getElementById('warpLayer');
+            warp.classList.add('active');
+            runWarpAnimation();
+
+            setTimeout(function() {
+                var white = document.getElementById('whiteFlash');
+                white.classList.add('active');
+                setTimeout(function() {
+                    warp.classList.remove('active');
+                    document.getElementById('warpCanvas').style.display = 'none';
+                    enterMemoryBook();
+                }, 800);
+            }, 3500);
+        }
+
+        function runWarpAnimation() {
+            var canvas = document.getElementById('warpCanvas');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = window.innerWidth;
+            var h = canvas.height = window.innerHeight;
+            var cx = w / 2, cy = h / 2;
+            var stars = [];
+            for (var i = 0; i < 400; i++) {
+                var angle = Math.random() * Math.PI * 2;
+                var dist = Math.random() * Math.max(w, h) * 0.8;
+                stars.push({
+                    x: cx + Math.cos(angle) * dist,
+                    y: cy + Math.sin(angle) * dist,
+                    speed: 2 + Math.random() * 8,
+                    size: 1 + Math.random() * 2
+                });
+            }
+            var animId;
+            function draw() {
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.fillRect(0, 0, w, h);
+                for (var i = 0; i < stars.length; i++) {
+                    var s = stars[i];
+                    var dx = s.x - cx, dy = s.y - cy;
+                    var dist = Math.sqrt(dx*dx + dy*dy);
+                    var nx = dx / dist, ny = dy / dist;
+                    s.x += nx * s.speed * 3;
+                    s.y += ny * s.speed * 3;
+                    s.speed *= 1.015;
+                    var newDist = Math.sqrt((s.x-cx)*(s.x-cx)+(s.y-cy)*(s.y-cy));
+                    if (newDist > Math.max(w,h) || newDist < 2) {
+                        var angle = Math.random() * Math.PI * 2;
+                        var d = 10 + Math.random() * 50;
+                        s.x = cx + Math.cos(angle) * d;
+                        s.y = cy + Math.sin(angle) * d;
+                        s.speed = 2 + Math.random() * 5;
+                    }
+                    var alpha = Math.min(1, newDist / (Math.max(w,h)*0.3));
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(180,200,255,' + alpha * 0.6 + ')';
+                    ctx.lineWidth = s.size * (1 + newDist / 300);
+                    ctx.moveTo(s.x - nx * s.speed * 2, s.y - ny * s.speed * 2);
+                    ctx.lineTo(s.x, s.y);
+                    ctx.stroke();
+                }
+                animId = requestAnimationFrame(draw);
+            }
+            draw();
+            setTimeout(function() { cancelAnimationFrame(animId); }, 3500);
+        }
+
+        // ====== 宇宙星河背景 ======
+        function initStarfield() {
+            var canvas = document.getElementById('starfield');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = window.innerWidth;
+            var h = canvas.height = window.innerHeight;
+            var stars = [];
+            for (var i = 0; i < 300; i++) {
+                stars.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    size: Math.random() * 2.5,
+                    speed: 0.05 + Math.random() * 0.15,
+                    brightness: 0.3 + Math.random() * 0.7,
+                    twinkleSpeed: 0.01 + Math.random() * 0.03,
+                    twinklePhase: Math.random() * Math.PI * 2
+                });
+            }
+            // 添加几个星云
+            var nebulas = [];
+            for (var n = 0; n < 4; n++) {
+                nebulas.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    radius: 100 + Math.random() * 200,
+                    hue: [260, 200, 320, 180][n],
+                    opacity: 0.03 + Math.random() * 0.04
+                });
+            }
+
+            function draw() {
+                // 深空背景
+                var grad = ctx.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, '#0a0a1a');
+                grad.addColorStop(0.5, '#0d0d1f');
+                grad.addColorStop(1, '#050510');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+
+                // 星云
+                for (var n = 0; n < nebulas.length; n++) {
+                    var neb = nebulas[n];
+                    var rg = ctx.createRadialGradient(neb.x, neb.y, 0, neb.x, neb.y, neb.radius);
+                    rg.addColorStop(0, 'hsla(' + neb.hue + ', 60%, 50%, ' + neb.opacity + ')');
+                    rg.addColorStop(1, 'hsla(' + neb.hue + ', 60%, 50%, 0)');
+                    ctx.fillStyle = rg;
+                    ctx.fillRect(neb.x - neb.radius, neb.y - neb.radius, neb.radius * 2, neb.radius * 2);
+                }
+
+                // 星星
+                for (var i = 0; i < stars.length; i++) {
+                    var s = stars[i];
+                    s.y -= s.speed;
+                    if (s.y < 0) { s.y = h; s.x = Math.random() * w; }
+                    s.twinklePhase += s.twinkleSpeed;
+                    var alpha = s.brightness * (0.6 + 0.4 * Math.sin(s.twinklePhase));
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+                    ctx.fill();
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+
+            window.addEventListener('resize', function() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            });
+        }
+
+        // ====== 数字滚动动画 ======
+        function animateRollingNumber(el, target, duration) {
+            return new Promise(function(resolve) {
+                var start = performance.now();
+                var max = target * 1.5;
+                function update(now) {
+                    var progress = Math.min((now - start) / duration, 1);
+                    var ease = 1 - Math.pow(1 - progress, 3);
+                    var current = Math.round(max * ease);
+                    if (progress >= 1) current = target;
+                    el.textContent = current;
+                    if (progress < 1) {
+                        requestAnimationFrame(update);
+                    } else {
+                        resolve();
+                    }
+                }
+                requestAnimationFrame(update);
+            });
+        }
+
+        // ====== 进入回忆录 ======
+        function enterMemoryBook() {
+            document.getElementById('whiteFlash').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('whiteFlash').style.display = 'none';
+            }, 800);
+
+            var book = document.getElementById('memoryBook');
+            book.classList.add('active');
+            initStarfield();
+            renderMemoryPages();
+
+            // 页面滚动监听
+            var pages = document.getElementById('memoryPages');
+            var dots = document.getElementById('pageDots');
+            var hint = document.getElementById('swipeHint');
+            pages.addEventListener('scroll', function() {
+                var idx = Math.round(pages.scrollTop / window.innerHeight);
+                var dotEls = dots.querySelectorAll('.page-dot');
+                dotEls.forEach(function(d, i) {
+                    d.classList.toggle('active', i === idx);
+                });
+                if (idx > 0) hint.style.display = 'none';
+            });
+        }
+
+        // ====== 渲染回忆录页面 ======
+        function renderMemoryPages() {
+            var container = document.getElementById('memoryPages');
+            var dots = document.getElementById('pageDots');
+            var now = new Date();
+            var daysPassed = Math.floor((now - CLASS_START) / (1000 * 60 * 60 * 24));
+            var daysToGaokao = Math.ceil((GAOKAO_DATE - now) / (1000 * 60 * 60 * 24));
+            var peopleCount = userInfo.isStudent ? STUDENT_COUNT : TEACHER_COUNT;
+
+            // 从 localStorage 读取时间节点数据
+            var nodes = [];
+            try {
+                var saved = localStorage.getItem('history_nodes');
+                if (saved) nodes = JSON.parse(saved);
+            } catch(e) {}
+            // 若没有数据，使用默认示例
+            if (!nodes.length) {
+                nodes = [
+                    { date: '2026-03-14', title: '班级成立', content: '高二（13）班正式成立，来自不同班级的我们汇聚在一起，开始了新的征程。', fontFamily: '', fontColor: '', video: '' },
+                    { date: '2026-04-01', title: '第一次月考', content: '全年级第一次统一考试，13班整体表现优异，班级凝聚力初显。', fontFamily: '', fontColor: '', video: '' }
+                ];
+            }
+
+            var html = '';
+            var dotsHtml = '';
+
+            // 第1页：数据统计
+            html += '<div class="memory-page stats-page">' +
+                '<div class="memory-card">' +
+                '<div class="stats-greeting">' +
+                '亲爱的<span class="name">' + escapeHtml(userInfo.name) + '</span><span class="role">' + userInfo.role + '</span>：<br>' +
+                '13班已陪你走过<span class="rolling-number" id="numDays">0</span>天<br>' +
+                '<span class="rolling-number" id="numPeople">0</span>位' + (userInfo.isStudent ? '同学' : '师生') + '与你并肩奋斗<br>' +
+                '距离高考还有<span class="rolling-number" id="numGaokao">0</span>天<br>' +
+                '</div>' +
+                '<div class="stats-ending">让我们一起为着理想大学而奋斗！</div>' +
+                '</div></div>';
+            dotsHtml += '<div class="page-dot active" onclick="scrollToPage(0)"></div>';
+
+            // 时间节点页面
+            for (var i = 0; i < nodes.length; i++) {
+                var node = nodes[i];
+                var dateStr = node.date || '';
+                var titleStyle = node.fontColor ? 'color:' + node.fontColor + ';' : '';
+                        var titleFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
+                        var contentStyle = node.fontColor ? 'color:' + node.fontColor + ';' : '';
+                        var contentFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
+                        var videoHtml = '';
+                        if (node.video) {
+                            var bvid = extractBvid(node.video);
+                            if (bvid) {
+                                videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
+                            }
+                        }
+                        var imagesHtml = '';
+                        if (node.images) {
+                            var imgUrls = node.images.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+                            if (imgUrls.length) {
+                                imagesHtml = '<div class="timeline-images">';
+                                for (var k = 0; k < imgUrls.length; k++) {
+                                    imagesHtml += '<img src="' + escapeHtml(imgUrls[k]) + '" alt="" loading="lazy">';
+                                }
+                                imagesHtml += '</div>';
+                            }
+                        }
+                        html += '<div class="memory-page timeline-page">' +
+                            '<div class="memory-card">' +
+                            '<div class="timeline-date">' + escapeHtml(dateStr) + '</div>' +
+                            '<div class="timeline-title" style="' + titleStyle + titleFont + '">' + escapeHtml(node.title || '') + '</div>' +
+                            '<div class="timeline-content" style="' + contentStyle + contentFont + '">' + escapeHtml(node.content || '') + '</div>' +
+                            imagesHtml +
+                            videoHtml +
+                            '</div></div>';
+                dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (i+1) + ')"></div>';
+            }
+
+            container.innerHTML = html;
+            dots.innerHTML = dotsHtml;
+
+            // 触发数字滚动
+            setTimeout(function() {
+                animateRollingNumber(document.getElementById('numDays'), daysPassed, 2000);
+                animateRollingNumber(document.getElementById('numPeople'), peopleCount, 2000);
+                animateRollingNumber(document.getElementById('numGaokao'), daysToGaokao, 2000);
+            }, 500);
+        }
+
+        function scrollToPage(idx) {
+            var pages = document.getElementById('memoryPages');
+            pages.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
+        }
+
+        function extractBvid(url) {
+            if (!url) return null;
+            var m = url.match(/BV[0-9A-Za-z]+/);
+            return m ? m[0] : null;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 启动
+        runLoader();
+    </script>
+</body>
+</html>
