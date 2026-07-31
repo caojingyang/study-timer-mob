@@ -120,7 +120,9 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding: 2rem;
             opacity: 0;
             transition: opacity 1s ease;
@@ -128,6 +130,13 @@
         #poemLayer.active {
             display: flex;
             opacity: 1;
+        }
+        .poem-inner {
+            margin: auto 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 0;
         }
         .poem-lines {
             text-align: center;
@@ -424,8 +433,10 @@
 
     <!-- 诗句层 -->
     <div id="poemLayer">
-        <div class="poem-lines" id="poemLines"></div>
-        <button class="explore-btn" onclick="startWarp()">&#x2728; 探索时光记忆</button>
+        <div class="poem-inner">
+            <div class="poem-lines" id="poemLines"></div>
+            <button class="explore-btn" onclick="startWarp()">&#x2728; 探索时光记忆</button>
+        </div>
     </div>
 
     <!-- 时光穿梭层 -->
