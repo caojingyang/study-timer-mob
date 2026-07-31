@@ -451,6 +451,41 @@
         const STUDENT_COUNT = 61;
         const TEACHER_COUNT = 62;
 
+        // ====== Supabase 配置（通过 Cloudflare Pages 代理） ======
+        const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
+
+        // 从 Supabase 加载回忆录时间节点
+        async function loadHistoryNodesFromDB() {
+            try {
+                var url = SUPABASE_URL + '/rest/v1/history_nodes?select=id,node_date,title,content,font_family,font_color,images,video&order=node_date.asc';
+                var resp = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var rows = await resp.json();
+                if (rows && rows.length) {
+                    return rows.map(function(r) {
+                        return {
+                            id: r.id,
+                            date: r.node_date,
+                            title: r.title,
+                            content: r.content,
+                            fontFamily: r.font_family || '',
+                            fontColor: r.font_color || '',
+                            images: r.images || '',
+                            video: r.video || ''
+                        };
+                    });
+                }
+                return [];
+            } catch(e) {
+                console.warn('从数据库加载回忆录节点失败，回退到 localStorage:', e);
+                // 回退到 localStorage
+                try {
+                    var saved = localStorage.getItem('history_nodes');
+                    return saved ? JSON.parse(saved) : [];
+                } catch(e2) { return []; }
+            }
+        }
+
         // 当前用户信息（从URL参数或localStorage获取）
         let userInfo = { name: '同学', role: '同学', isStudent: true };
         try {
@@ -726,7 +761,7 @@
         }
 
         // ====== 渲染回忆录页面 ======
-        function renderMemoryPages() {
+        async function renderMemoryPages() {
             var container = document.getElementById('memoryPages');
             var dots = document.getElementById('pageDots');
             var now = new Date();
@@ -734,12 +769,8 @@
             var daysToGaokao = Math.ceil((GAOKAO_DATE - now) / (1000 * 60 * 60 * 24));
             var peopleCount = userInfo.isStudent ? STUDENT_COUNT : TEACHER_COUNT;
 
-            // 从 localStorage 读取时间节点数据
-            var nodes = [];
-            try {
-                var saved = localStorage.getItem('history_nodes');
-                if (saved) nodes = JSON.parse(saved);
-            } catch(e) {}
+            // 从数据库读取时间节点数据
+            var nodes = await loadHistoryNodesFromDB();
             // 若没有数据，使用默认示例
             if (!nodes.length) {
                 nodes = [
