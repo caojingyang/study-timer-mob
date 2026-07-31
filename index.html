@@ -2649,35 +2649,17 @@
             if (body && (method === 'POST' || method === 'PATCH')) {
                 opts.body = JSON.stringify(body);
             }
-            // 添加 15 秒超时
-            var ctrl = new AbortController();
-            var timer = setTimeout(function() { ctrl.abort(); }, 15000);
-            opts.signal = ctrl.signal;
             return fetch(url, opts).then(function(r) {
-                clearTimeout(timer);
                 if (!r.ok) throw new Error('Supabase REST error: ' + r.status);
                 return r.json();
-            }).catch(function(e) {
-                clearTimeout(timer);
-                throw e;
             });
         }
         function sbGet(table, filterCol, filterVal, selectCols) {
             var url = SUPABASE_URL + '/rest/v1/' + table + (filterCol ? '?' + filterCol + '=eq.' + encodeURIComponent(filterVal) : '');
             if (selectCols) url += (filterCol ? '&' : '?') + 'select=' + selectCols;
-            // 添加 10 秒超时，避免请求无限挂起
-            var ctrl = new AbortController();
-            var timer = setTimeout(function() { ctrl.abort(); }, 10000);
             return fetch(url, {
-                headers: { 'Content-Type': 'application/json' },
-                signal: ctrl.signal
-            }).then(function(r) {
-                clearTimeout(timer);
-                return r.json();
-            }).catch(function(e) {
-                clearTimeout(timer);
-                throw e;
-            });
+                headers: { 'Content-Type': 'application/json' }
+            }).then(function(r) { return r.json(); });
         }
         function sbGetSingle(table, filterCol, filterVal, selectCols) {
             return sbGet(table, filterCol, filterVal, selectCols).then(function(data) {
@@ -2891,7 +2873,7 @@
             },
 
             // 创建用户
-            async createUser(userData) {
+            async createUser(userData, silent) {
                 if (USE_SUPABASE) {
                     // 映射字段名：password -> password_hash, realname -> real_name
                     var rowData = {
@@ -2907,7 +2889,7 @@
                         banned_ips: userData.banned_ips || [],
                         need_password_change: userData.need_password_change || false
                     };
-                    dbShowStatus('创建用户 "' + rowData.username + '"…', 'writing');
+                    if (!silent) dbShowStatus('创建用户 "' + rowData.username + '"…', 'writing');
                     try {
                         const inserted = await sbInsert('users', rowData);
                         _sbInvalidateCache();
@@ -2925,7 +2907,7 @@
                             banned_ips: inserted.banned_ips || [],
                             need_password_change: inserted.need_password_change || false
                         };
-                    } finally { dbHideStatus(); }
+                    } finally { if (!silent) dbHideStatus(); }
                 }
                 var users = JSON.parse(localStorage.getItem('mobile_users') || '[]');
                 users.push(userData);
@@ -5301,30 +5283,24 @@
             try {
                 var existing = await DB.findByUsername('admin');
                 if (existing) return;
-                // 创建 admin 账户（静默执行，不显示状态）
-                var oldShowStatus = window.dbShowStatus;
-                window.dbShowStatus = function(){}; // 临时屏蔽状态提示
-                try {
-                    await DB.createUser({
-                        username: 'admin',
-                        realname: '系统管理员',
-                        email: '',
-                        password: ADMIN_DEFAULT_PASSWORD_HASH,
-                        role: 'teacher',
-                        subject: '',
-                        permissions: {
-                            viewSchedule: true,
-                            modifySchedule: true,
-                            sendNotification: true,
-                            isAdmin: true
-                        },
-                        is_admin: true,
-                        need_password_change: false
-                    });
-                    console.log('admin 账户已创建');
-                } finally {
-                    window.dbShowStatus = oldShowStatus; // 恢复
-                }
+                // 创建 admin 账户（静默执行，不显示任何状态提示）
+                await DB.createUser({
+                    username: 'admin',
+                    realname: '系统管理员',
+                    email: '',
+                    password: ADMIN_DEFAULT_PASSWORD_HASH,
+                    role: 'teacher',
+                    subject: '',
+                    permissions: {
+                        viewSchedule: true,
+                        modifySchedule: true,
+                        sendNotification: true,
+                        isAdmin: true
+                    },
+                    is_admin: true,
+                    need_password_change: false
+                }, true); // silent=true，不显示"创建用户admin"
+                console.log('admin 账户已创建');
             } catch(e) {
                 _adminEnsureDone = false; // 失败后允许下次重试
                 console.error('创建 admin 账户失败:', e);
