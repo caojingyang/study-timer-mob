@@ -498,12 +498,13 @@
         }
 
         // 当前用户信息（从URL参数或localStorage获取）
-        let userInfo = { name: '同学', role: '同学', isStudent: true };
+        let userInfo = { name: '', role: '同学', isStudent: true };
         try {
             var saved = localStorage.getItem('mobile_current_user');
             if (saved) {
                 var u = JSON.parse(saved);
-                userInfo.name = u.realname || u.username || '同学';
+                // 优先真实姓名，其次用户名，都没有则留空
+                userInfo.name = (u.realname && u.realname.trim()) || (u.username && u.username.trim()) || '';
                 userInfo.isStudent = (u.role === 'student');
                 userInfo.role = userInfo.isStudent ? '同学' : '老师';
             }
@@ -794,12 +795,18 @@
             var dotsHtml = '';
 
             // 第1页：数据统计
+            var greetingHtml = '亲爱的';
+            if (userInfo.name) {
+                greetingHtml += '<span class="name">' + escapeHtml(userInfo.name) + '</span>';
+            }
+            greetingHtml += '<span class="role">' + userInfo.role + '</span>：';
+
             html += '<div class="memory-page stats-page">' +
                 '<div class="memory-card">' +
                 '<div class="stats-greeting">' +
-                '亲爱的<span class="name">' + escapeHtml(userInfo.name) + '</span><span class="role">' + userInfo.role + '</span>：<br>' +
+                greetingHtml + '<br>' +
                 '13班已陪你走过<span class="rolling-number" id="numDays">0</span>天<br>' +
-                '<span class="rolling-number" id="numPeople">0</span>位' + (userInfo.isStudent ? '同学' : '师生') + '与你并肩奋斗<br>' +
+                '<span class="rolling-number" id="numPeople">0</span>位同学与你并肩奋斗<br>' +
                 '距离高考还有<span class="rolling-number" id="numGaokao">0</span>天<br>' +
                 '</div>' +
                 '<div class="stats-ending">让我们一起为着理想大学而奋斗！</div>' +
