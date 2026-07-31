@@ -1841,6 +1841,7 @@
                 <div class="form-group hidden" id="regRealnameGroup">
                     <label>真实姓名 *</label>
                     <input type="text" id="regRealname" placeholder="请输入真实姓名">
+                    <div class="reg-hint" id="regRealnameHint" style="font-size:0.72rem;color:#f59e0b;margin-top:0.25rem;">&#x26A0; 请如实填写真实姓名，此信息将用于后期功能权限授予（如回忆录访问等）</div>
                 </div>
                 <div class="form-group">
                     <label>用户名 *</label>
@@ -2213,49 +2214,134 @@
                         <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
                     </div>
                     <div class="admin-section-body">
-                        <p class="admin-hint">管理/history页面的时间节点。每个节点包含时间、标题、内容，支持自定义字体和字色，可嵌入B站视频。</p>
-                        <div class="admin-form-row">
-                            <div class="admin-form-group">
-                                <label>时间 *</label>
-                                <input type="date" class="admin-form-input" id="historyNodeDate">
+                        <p class="admin-hint">管理回忆录时间节点。每个节点以卡片形式展示，支持富文本编辑（字体、字色、字号、对齐、加粗等）、插入图片（可带超链接）、超链接文字/按钮、B站视频嵌入及背景图片设置。</p>
+                        <button class="admin-btn-primary" onclick="openHistoryNodeEditor()" style="margin-bottom:1rem;">+ 添加时间节点</button>
+                        <div id="historyNodeCards" style="display:flex;flex-direction:column;gap:0.8rem;"></div>
+                    </div>
+                </div>
+
+                <!-- 回忆录节点编辑器模态框 -->
+                <div id="historyNodeModal" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);align-items:flex-start;justify-content:center;overflow-y:auto;padding:1rem;">
+                    <div style="background:#1e293b;border-radius:0.8rem;width:95%;max-width:680px;margin:1rem auto;padding:1.2rem;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                            <h3 id="historyNodeModalTitle" style="font-size:1.05rem;color:#f1f5f9;">添加时间节点</h3>
+                            <button onclick="closeHistoryNodeEditor()" style="background:none;border:none;color:#94a3b8;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+                        </div>
+
+                        <!-- 基本信息区 -->
+                        <div style="display:flex;gap:0.8rem;margin-bottom:0.8rem;flex-wrap:wrap;">
+                            <div style="flex:1;min-width:140px;">
+                                <label style="font-size:0.78rem;color:#94a3b8;display:block;margin-bottom:0.25rem;">时间 *</label>
+                                <input type="date" id="hnDate" style="width:100%;padding:0.45rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.85rem;">
                             </div>
-                            <div class="admin-form-group">
-                                <label>标题 *</label>
-                                <input type="text" class="admin-form-input" id="historyNodeTitle" placeholder="如：班级成立">
+                            <div style="flex:2;min-width:200px;">
+                                <label style="font-size:0.78rem;color:#94a3b8;display:block;margin-bottom:0.25rem;">标题 *</label>
+                                <input type="text" id="hnTitle" placeholder="如：班级成立" style="width:100%;padding:0.45rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.85rem;">
                             </div>
                         </div>
-                        <div class="admin-form-group">
-                            <label>内容 *</label>
-                            <textarea class="admin-textarea" id="historyNodeContent" placeholder="请输入内容..." style="min-height:80px;"></textarea>
+
+                        <!-- 背景图片 -->
+                        <div style="margin-bottom:0.8rem;">
+                            <label style="font-size:0.78rem;color:#94a3b8;display:block;margin-bottom:0.25rem;">背景图片URL（选填，设置后该节点页面使用此图片作为背景）</label>
+                            <input type="text" id="hnBgImage" placeholder="https://img.example.com/bg.jpg" style="width:100%;padding:0.45rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.85rem;">
                         </div>
+
+                        <!-- 富文本编辑器工具栏 -->
+                        <div style="background:#0f172a;border:1px solid #334155;border-radius:0.4rem;padding:0.4rem;margin-bottom:0.3rem;display:flex;flex-wrap:wrap;gap:0.25rem;align-items:center;">
+                            <select id="hnFontFamily" onchange="hnExec('fontName',this.value);this.value='';" style="padding:0.25rem 0.35rem;background:#1e293b;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.75rem;" title="字体">
+                                <option value="">字体</option>
+                                <option value="SimHei,STHeiti,sans-serif">黑体</option>
+                                <option value="SimSun,STSong,serif">宋体</option>
+                                <option value="KaiTi,STKaiti,serif">楷体</option>
+                                <option value="Microsoft YaHei,sans-serif">微软雅黑</option>
+                                <option value="Arial,sans-serif">Arial</option>
+                                <option value="Georgia,serif">Georgia</option>
+                            </select>
+                            <select id="hnFontSize" onchange="hnExec('fontSize',this.value);this.value='';" style="padding:0.25rem 0.35rem;background:#1e293b;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.75rem;" title="字号">
+                                <option value="">字号</option>
+                                <option value="1">小</option>
+                                <option value="2">较小</option>
+                                <option value="3">正常</option>
+                                <option value="4">较大</option>
+                                <option value="5">大</option>
+                                <option value="6">很大</option>
+                                <option value="7">最大</option>
+                            </select>
+                            <input type="color" id="hnColorPicker" onchange="hnExec('foreColor',this.value);" style="width:28px;height:28px;padding:0;border:1px solid #475569;border-radius:0.3rem;cursor:pointer;" title="文字颜色">
+                            <button type="button" onclick="hnExec('bold')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;font-weight:bold;" title="加粗">B</button>
+                            <button type="button" onclick="hnExec('italic')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;font-style:italic;" title="斜体">I</button>
+                            <button type="button" onclick="hnExec('underline')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;text-decoration:underline;" title="下划线">U</button>
+                            <button type="button" onclick="hnExec('justifyLeft')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;" title="左对齐">左</button>
+                            <button type="button" onclick="hnExec('justifyCenter')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;" title="居中">中</button>
+                            <button type="button" onclick="hnExec('justifyRight')" style="padding:0.2rem 0.5rem;background:#334155;border:1px solid #475569;border-radius:0.3rem;color:#e2e8f0;font-size:0.8rem;cursor:pointer;" title="右对齐">右</button>
+                            <button type="button" onclick="hnInsertImageLink()" style="padding:0.2rem 0.5rem;background:#1e3a5f;border:1px solid #3b82f6;border-radius:0.3rem;color:#93c5fd;font-size:0.75rem;cursor:pointer;" title="插入图片（可带超链接）">图片</button>
+                            <button type="button" onclick="hnInsertLink()" style="padding:0.2rem 0.5rem;background:#1e3a5f;border:1px solid #3b82f6;border-radius:0.3rem;color:#93c5fd;font-size:0.75rem;cursor:pointer;" title="插入超链接文字">链接文字</button>
+                            <button type="button" onclick="hnInsertLinkButton()" style="padding:0.2rem 0.5rem;background:#1e3a5f;border:1px solid #3b82f6;border-radius:0.3rem;color:#93c5fd;font-size:0.75rem;cursor:pointer;" title="插入超链接按钮">链接按钮</button>
+                            <button type="button" onclick="hnSearchBilibili()" style="padding:0.2rem 0.5rem;background:#3b1e5f;border:1px solid #a855f7;border-radius:0.3rem;color:#d8b4fe;font-size:0.75rem;cursor:pointer;" title="搜索并插入B站视频">B站视频</button>
+                        </div>
+
+                        <!-- 富文本编辑区 -->
+                        <div id="hnEditor" contenteditable="true" style="width:100%;min-height:180px;max-height:320px;overflow-y:auto;padding:0.7rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.85rem;line-height:1.8;outline:none;" oninput="document.getElementById('hnEditorPlaceholder').style.display=this.innerText.trim()?'none':'block';"></div>
+                        <div id="hnEditorPlaceholder" style="margin-top:-180px;pointer-events:none;color:#475569;font-size:0.85rem;padding:0.7rem;">请输入内容...（可使用上方工具栏设置文字格式、插入图片/链接/按钮/视频）</div>
+
+                        <!-- 图片链接（兼容旧数据，仍保留但折叠） -->
+                        <details style="margin-top:0.6rem;">
+                            <summary style="font-size:0.78rem;color:#64748b;cursor:pointer;">高级：直接填写图片链接（逗号分隔，多张）</summary>
+                            <input type="text" id="hnImages" placeholder="https://img.example.com/1.jpg, https://img.example.com/2.jpg" style="width:100%;padding:0.45rem;margin-top:0.3rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.82rem;">
+                        </details>
+
+                        <!-- B站视频链接（直接填写） -->
+                        <details style="margin-top:0.4rem;">
+                            <summary style="font-size:0.78rem;color:#64748b;cursor:pointer;">高级：直接填写B站视频链接</summary>
+                            <input type="text" id="hnVideo" placeholder="https://www.bilibili.com/video/BV..." style="width:100%;padding:0.45rem;margin-top:0.3rem;background:#0f172a;border:1px solid #334155;border-radius:0.4rem;color:#f1f5f9;font-size:0.82rem;">
+                        </details>
+
+                        <!-- 操作按钮 -->
+                        <div style="display:flex;gap:0.6rem;margin-top:1rem;justify-content:flex-end;">
+                            <button onclick="closeHistoryNodeEditor()" style="padding:0.5rem 1.2rem;background:#334155;border:1px solid #475569;border-radius:0.4rem;color:#e2e8f0;font-size:0.85rem;cursor:pointer;">取消</button>
+                            <button onclick="saveHistoryNode()" id="hnSaveBtn" style="padding:0.5rem 1.2rem;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:0.4rem;color:#fff;font-size:0.85rem;cursor:pointer;">保存</button>
+                        </div>
+                        <div id="hnMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
+                    </div>
+                </div>
+
+                <!-- 花名册管理（可折叠） -->
+                <div class="admin-section" id="sectionRoster">
+                    <div class="admin-section-header" onclick="toggleAdminSection('sectionRoster')">
+                        <h3>&#x1F4D6; 花名册管理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="admin-section-body">
+                        <p class="admin-hint">管理13班花名册。在花名册中的学生可访问回忆录页面。可批量导入或逐个添加。</p>
                         <div class="admin-form-row">
                             <div class="admin-form-group">
-                                <label>字体</label>
-                                <select class="admin-form-select" id="historyNodeFont">
-                                    <option value="">默认</option>
-                                    <option value="'SimHei','STHeiti',sans-serif">黑体</option>
-                                    <option value="'SimSun','STSong',serif">宋体</option>
-                                    <option value="'KaiTi','STKaiti',serif">楷体</option>
-                                    <option value="'Microsoft YaHei',sans-serif">微软雅黑</option>
+                                <label>姓名 *</label>
+                                <input type="text" class="admin-form-input" id="rosterName" placeholder="学生真实姓名">
+                            </div>
+                            <div class="admin-form-group">
+                                <label>班级分组</label>
+                                <select class="admin-form-select" id="rosterGroup">
+                                    <option value="13班">13班</option>
+                                    <option value="非13班">非13班</option>
                                 </select>
                             </div>
-                            <div class="admin-form-group">
-                                <label>字色</label>
-                                <input type="color" class="admin-form-input" id="historyNodeColor" value="#ffffff" style="height:38px;padding:2px;">
-                            </div>
                         </div>
-                        <div class="admin-form-group">
-                            <label>图片链接（图床URL，选填，支持多张以逗号分隔）</label>
-                            <input type="text" class="admin-form-input" id="historyNodeImages" placeholder="https://img.example.com/1.jpg, https://img.example.com/2.jpg">
+                        <button class="admin-btn-primary" onclick="addRosterEntry()">添加</button>
+                        <div class="msg" id="rosterMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
+                        <div style="margin-top:0.8rem;">
+                            <label style="font-size:0.8rem;color:#475563;">批量导入（每行一个姓名，默认13班）</label>
+                            <textarea class="admin-textarea" id="rosterBatchInput" placeholder="张三&#10;李四&#10;王五" style="min-height:80px;margin-top:0.3rem;"></textarea>
+                            <button class="admin-btn-secondary" onclick="batchAddRoster()" style="margin-top:0.3rem;">批量导入</button>
                         </div>
-                        <div class="admin-form-group">
-                            <label>B站视频链接（选填）</label>
-                            <input type="text" class="admin-form-input" id="historyNodeVideo" placeholder="https://www.bilibili.com/video/BV...">
+                        <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="admin-form-input" id="rosterSearch" placeholder="搜索姓名..." oninput="renderRoster()" style="flex:1;">
+                            <select class="admin-form-select" id="rosterFilter" onchange="renderRoster()" style="width:100px;">
+                                <option value="">全部</option>
+                                <option value="13班">13班</option>
+                                <option value="非13班">非13班</option>
+                            </select>
                         </div>
-                        <button class="admin-btn-primary" onclick="addHistoryNode()" id="historyNodeAddBtn">添加节点</button>
-                        <button class="admin-btn-secondary hidden" onclick="cancelEditHistoryNode()" id="historyNodeCancelBtn" style="margin-left:0.5rem;">取消</button>
-                        <div class="msg" id="historyNodeMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
-                        <div style="margin-top:1rem;" id="historyNodeList"></div>
+                        <div style="margin-top:0.8rem;" id="rosterList"></div>
                     </div>
                 </div>
             </div>
@@ -2634,12 +2720,27 @@
          *   font_color TEXT DEFAULT '',
          *   images TEXT DEFAULT '',
          *   video TEXT DEFAULT '',
+         *   background_image TEXT DEFAULT '',
          *   sort_order INTEGER DEFAULT 0,
          *   created_at TIMESTAMPTZ DEFAULT now()
          * );
          * CREATE INDEX IF NOT EXISTS idx_history_nodes_date ON history_nodes(node_date);
          * ALTER TABLE history_nodes ENABLE ROW LEVEL SECURITY;
          * CREATE POLICY "Allow all on history_nodes" ON history_nodes FOR ALL USING (true) WITH CHECK (true);
+         *
+         * -- 如表已存在，执行以下语句添加新列：
+         * ALTER TABLE history_nodes ADD COLUMN IF NOT EXISTS background_image TEXT DEFAULT '';
+         *
+         * -- 6. 花名册表
+         * CREATE TABLE IF NOT EXISTS student_roster (
+         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         *   real_name TEXT NOT NULL,
+         *   class_group TEXT NOT NULL DEFAULT '13班',
+         *   created_at TIMESTAMPTZ DEFAULT now()
+         * );
+         * CREATE INDEX IF NOT EXISTS idx_roster_name ON student_roster(real_name);
+         * ALTER TABLE student_roster ENABLE ROW LEVEL SECURITY;
+         * CREATE POLICY "Allow all on student_roster" ON student_roster FOR ALL USING (true) WITH CHECK (true);
          */
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
@@ -3064,17 +3165,24 @@
                 if (USE_SUPABASE) {
                     dbShowStatus('保存验证码…', 'writing');
                     try {
-                        var payload = {username: username, code: code, expires_at: expiresAt, used: false};
-                        if (email) payload.email = email;
-                        if (phone) payload.phone = phone;
+                        var payload = {username: username, code: code, expires_at: expiresAt, used: false, email: email || '', phone: phone || ''};
                         try {
                             await sbRest('verify_codes', 'POST', payload);
                         } catch(insertErr) {
-                            // phone 列可能不存在，去掉 phone 后重试
-                            if (insertErr.message && insertErr.message.indexOf('phone') !== -1) {
-                                var payloadNoPhone = Object.assign({}, payload);
-                                delete payloadNoPhone.phone;
-                                await sbRest('verify_codes', 'POST', payloadNoPhone);
+                            // phone 或 email 列可能不存在，逐步去掉后重试
+                            var errMsg = insertErr.message || '';
+                            if (errMsg.indexOf('phone') !== -1 || errMsg.indexOf('email') !== -1) {
+                                var payloadSafe = {username: username, code: code, expires_at: expiresAt, used: false};
+                                try {
+                                    await sbRest('verify_codes', 'POST', payloadSafe);
+                                } catch(e2) {
+                                    // 仍然失败则只保存核心字段
+                                    if (e2.message && e2.message.indexOf('email') !== -1) {
+                                        await sbRest('verify_codes', 'POST', {username: username, code: code, expires_at: expiresAt, used: false, email: ''});
+                                    } else {
+                                        throw e2;
+                                    }
+                                }
                             } else {
                                 throw insertErr;
                             }
@@ -4177,15 +4285,16 @@
             }
         }
 
-        // ====== 回忆录时间节点管理（Supabase 数据库存储） ======
-        var _historyNodesCache = [];   // 内存缓存，保存已加载的节点（含 id）
-        var _historyEditId = null;      // 当前编辑的节点 ID（null=新增）
+        // ====== 回忆录时间节点管理（卡片式 + 富文本编辑器） ======
+        var _historyNodesCache = [];
+        var _historyEditId = null;
+        var _historyEditIndex = -1;
 
         // 从数据库加载全部时间节点（按时间升序）
         async function loadHistoryNodes() {
             if (USE_SUPABASE) {
                 try {
-                    var rows = await sbGet('history_nodes', null, null, 'id,node_date,title,content,font_family,font_color,images,video');
+                    var rows = await sbGet('history_nodes', null, null, 'id,node_date,title,content,font_family,font_color,images,video,background_image');
                     if (rows && rows.length) {
                         rows.sort(function(a, b) {
                             return new Date(a.node_date) - new Date(b.node_date);
@@ -4199,7 +4308,8 @@
                                 fontFamily: r.font_family || '',
                                 fontColor: r.font_color || '',
                                 images: r.images || '',
-                                video: r.video || ''
+                                video: r.video || '',
+                                bgImage: r.background_image || ''
                             };
                         });
                     } else {
@@ -4207,7 +4317,16 @@
                     }
                 } catch(e) {
                     console.warn('加载回忆录节点失败:', e);
-                    _historyNodesCache = [];
+                    // 尝试不含 background_image 列的旧查询
+                    try {
+                        var rows2 = await sbGet('history_nodes', null, null, 'id,node_date,title,content,font_family,font_color,images,video');
+                        if (rows2 && rows2.length) {
+                            rows2.sort(function(a, b) { return new Date(a.node_date) - new Date(b.node_date); });
+                            _historyNodesCache = rows2.map(function(r) {
+                                return { id: r.id, date: r.node_date, title: r.title, content: r.content, fontFamily: r.font_family || '', fontColor: r.font_color || '', images: r.images || '', video: r.video || '', bgImage: '' };
+                            });
+                        } else { _historyNodesCache = []; }
+                    } catch(e2) { _historyNodesCache = []; }
                 }
             } else {
                 try {
@@ -4218,36 +4337,62 @@
             return _historyNodesCache;
         }
 
-        // 获取缓存中的节点（同步，用于渲染）
-        function getHistoryNodes() {
-            return _historyNodesCache;
+        function getHistoryNodes() { return _historyNodesCache; }
+
+        // 打开编辑器（新增模式）
+        function openHistoryNodeEditor() {
+            _historyEditId = null;
+            _historyEditIndex = -1;
+            document.getElementById('historyNodeModalTitle').textContent = '添加时间节点';
+            document.getElementById('hnDate').value = '';
+            document.getElementById('hnTitle').value = '';
+            document.getElementById('hnBgImage').value = '';
+            document.getElementById('hnEditor').innerHTML = '';
+            document.getElementById('hnImages').value = '';
+            document.getElementById('hnVideo').value = '';
+            document.getElementById('hnMsg').textContent = '';
+            document.getElementById('hnEditorPlaceholder').style.display = 'block';
+            document.getElementById('historyNodeModal').style.display = 'flex';
         }
 
-        var _historyEditIndex = -1;
+        // 打开编辑器（编辑模式）
+        function editHistoryNode(idx) {
+            var nodes = getHistoryNodes();
+            var n = nodes[idx];
+            if (!n) return;
+            _historyEditIndex = idx;
+            _historyEditId = n.id || null;
+            document.getElementById('historyNodeModalTitle').textContent = '编辑时间节点';
+            document.getElementById('hnDate').value = n.date || '';
+            document.getElementById('hnTitle').value = n.title || '';
+            document.getElementById('hnBgImage').value = n.bgImage || '';
+            document.getElementById('hnEditor').innerHTML = n.content || '';
+            document.getElementById('hnImages').value = n.images || '';
+            document.getElementById('hnVideo').value = n.video || '';
+            document.getElementById('hnMsg').textContent = '';
+            document.getElementById('hnEditorPlaceholder').style.display = (n.content && n.content.trim()) ? 'none' : 'block';
+            document.getElementById('historyNodeModal').style.display = 'flex';
+        }
 
-        async function addHistoryNode() {
-            var date = document.getElementById('historyNodeDate').value;
-            var title = document.getElementById('historyNodeTitle').value.trim();
-            var content = document.getElementById('historyNodeContent').value.trim();
-            var font = document.getElementById('historyNodeFont').value;
-            var color = document.getElementById('historyNodeColor').value;
-            var images = document.getElementById('historyNodeImages').value.trim();
-            var video = document.getElementById('historyNodeVideo').value.trim();
-            var msg = document.getElementById('historyNodeMsg');
+        function closeHistoryNodeEditor() {
+            document.getElementById('historyNodeModal').style.display = 'none';
+            _historyEditId = null;
+            _historyEditIndex = -1;
+        }
+
+        // 保存节点
+        async function saveHistoryNode() {
+            var date = document.getElementById('hnDate').value;
+            var title = document.getElementById('hnTitle').value.trim();
+            var content = document.getElementById('hnEditor').innerHTML.trim();
+            var images = document.getElementById('hnImages').value.trim();
+            var video = document.getElementById('hnVideo').value.trim();
+            var bgImage = document.getElementById('hnBgImage').value.trim();
+            var msg = document.getElementById('hnMsg');
 
             if (!date) { msg.textContent = '请选择时间'; msg.className = 'msg error'; return; }
             if (!title) { msg.textContent = '请输入标题'; msg.className = 'msg error'; return; }
-            if (!content) { msg.textContent = '请输入内容'; msg.className = 'msg error'; return; }
-
-            var nodeData = {
-                date: date,
-                title: title,
-                content: content,
-                fontFamily: font,
-                fontColor: color !== '#ffffff' ? color : '',
-                images: images,
-                video: video
-            };
+            if (!content || content === '<br>') { msg.textContent = '请输入内容'; msg.className = 'msg error'; return; }
 
             msg.textContent = '保存中…'; msg.className = 'msg';
 
@@ -4257,88 +4402,58 @@
                         node_date: date,
                         title: title,
                         content: content,
-                        font_family: font || '',
-                        font_color: color !== '#ffffff' ? color : '',
+                        font_family: '',
+                        font_color: '',
                         images: images || '',
-                        video: video || ''
+                        video: video || '',
+                        background_image: bgImage || ''
                     };
                     if (_historyEditId) {
-                        // 更新
                         await sbUpdate('history_nodes', 'id', _historyEditId, rowData);
-                        msg.textContent = '节点修改成功'; msg.className = 'msg success';
                     } else {
-                        // 新增
                         await sbInsert('history_nodes', rowData);
-                        msg.textContent = '节点添加成功'; msg.className = 'msg success';
                     }
                 } else {
-                    // localStorage 回退
                     var nodes = getHistoryNodes();
+                    var nodeData = { date: date, title: title, content: content, fontFamily: '', fontColor: '', images: images, video: video, bgImage: bgImage };
                     if (_historyEditIndex >= 0) {
                         nodeData.id = nodes[_historyEditIndex].id;
                         nodes[_historyEditIndex] = nodeData;
-                        msg.textContent = '节点修改成功'; msg.className = 'msg success';
                     } else {
                         nodeData.id = Date.now().toString();
                         nodes.push(nodeData);
-                        msg.textContent = '节点添加成功'; msg.className = 'msg success';
                     }
                     nodes.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
                     localStorage.setItem('history_nodes', JSON.stringify(nodes));
                 }
 
-                _historyEditId = null;
-                _historyEditIndex = -1;
-                document.getElementById('historyNodeAddBtn').textContent = '添加节点';
-                document.getElementById('historyNodeCancelBtn').classList.add('hidden');
-
-                // 清空表单
-                document.getElementById('historyNodeDate').value = '';
-                document.getElementById('historyNodeTitle').value = '';
-                document.getElementById('historyNodeContent').value = '';
-                document.getElementById('historyNodeImages').value = '';
-                document.getElementById('historyNodeVideo').value = '';
-
-                // 重新加载并渲染
+                msg.textContent = '保存成功'; msg.className = 'msg success';
+                setTimeout(function() { closeHistoryNodeEditor(); }, 600);
                 await loadHistoryNodes();
                 renderHistoryNodes();
             } catch(e) {
+                // 如果是 background_image 列不存在，尝试不含该列
+                if (e.message && e.message.indexOf('background_image') !== -1) {
+                    try {
+                        var rowData2 = { node_date: date, title: title, content: content, font_family: '', font_color: '', images: images || '', video: video || '' };
+                        if (_historyEditId) { await sbUpdate('history_nodes', 'id', _historyEditId, rowData2); }
+                        else { await sbInsert('history_nodes', rowData2); }
+                        msg.textContent = '保存成功（背景图片列需手动添加）'; msg.className = 'msg success';
+                        setTimeout(function() { closeHistoryNodeEditor(); }, 800);
+                        await loadHistoryNodes();
+                        renderHistoryNodes();
+                        return;
+                    } catch(e2) {
+                        msg.textContent = '保存失败：' + (e2.message || '错误'); msg.className = 'msg error';
+                        return;
+                    }
+                }
                 msg.textContent = '保存失败：' + (e.message || '错误'); msg.className = 'msg error';
                 console.error('保存回忆录节点失败:', e);
             }
         }
 
-        function editHistoryNode(idx) {
-            var nodes = getHistoryNodes();
-            var n = nodes[idx];
-            if (!n) return;
-            document.getElementById('historyNodeDate').value = n.date || '';
-            document.getElementById('historyNodeTitle').value = n.title || '';
-            document.getElementById('historyNodeContent').value = n.content || '';
-            document.getElementById('historyNodeFont').value = n.fontFamily || '';
-            document.getElementById('historyNodeColor').value = n.fontColor || '#ffffff';
-            document.getElementById('historyNodeImages').value = n.images || '';
-            document.getElementById('historyNodeVideo').value = n.video || '';
-            _historyEditIndex = idx;
-            _historyEditId = n.id || null;
-            document.getElementById('historyNodeAddBtn').textContent = '保存修改';
-            document.getElementById('historyNodeCancelBtn').classList.remove('hidden');
-            document.getElementById('historyNodeMsg').textContent = '';
-        }
-
-        function cancelEditHistoryNode() {
-            _historyEditIndex = -1;
-            _historyEditId = null;
-            document.getElementById('historyNodeDate').value = '';
-            document.getElementById('historyNodeTitle').value = '';
-            document.getElementById('historyNodeContent').value = '';
-            document.getElementById('historyNodeImages').value = '';
-            document.getElementById('historyNodeVideo').value = '';
-            document.getElementById('historyNodeAddBtn').textContent = '添加节点';
-            document.getElementById('historyNodeCancelBtn').classList.add('hidden');
-            document.getElementById('historyNodeMsg').textContent = '';
-        }
-
+        // 删除节点
         async function deleteHistoryNode(idx) {
             if (!confirm('确定删除该时间节点吗？')) return;
             var nodes = getHistoryNodes();
@@ -4351,7 +4466,6 @@
                     nodes.splice(idx, 1);
                     localStorage.setItem('history_nodes', JSON.stringify(nodes));
                 }
-                if (_historyEditIndex === idx) cancelEditHistoryNode();
                 await loadHistoryNodes();
                 renderHistoryNodes();
             } catch(e) {
@@ -4359,33 +4473,306 @@
             }
         }
 
+        // 卡片式渲染
         function renderHistoryNodes() {
-            var container = document.getElementById('historyNodeList');
+            var container = document.getElementById('historyNodeCards');
             if (!container) return;
             var nodes = getHistoryNodes();
             if (!nodes.length) {
-                container.innerHTML = '<p style="font-size:0.82rem;color:#94a3b8;">暂无时间节点</p>';
+                container.innerHTML = '<p style="font-size:0.82rem;color:#94a3b8;text-align:center;padding:1.5rem;">暂无时间节点，点击上方按钮添加</p>';
                 return;
             }
-            var html = '<table class="admin-table" style="margin-top:0.5rem;"><thead><tr><th>时间</th><th>标题</th><th>内容</th><th>操作</th></tr></thead><tbody>';
+            var html = '';
             for (var i = 0; i < nodes.length; i++) {
                 var n = nodes[i];
-                var extra = [];
-                if (n.images) extra.push('图');
-                if (n.video) extra.push('视频');
-                var extraLabel = extra.length ? '<span style="color:#667eea;font-size:0.75rem;">[' + extra.join(',') + ']</span>' : '';
+                var plainContent = (n.content || '').replace(/<[^>]+>/g, '').substring(0, 80);
+                var tags = [];
+                if (n.bgImage) tags.push('<span style="background:#1e3a5f;color:#93c5fd;padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7rem;">背景图</span>');
+                if (n.images) tags.push('<span style="background:#1e3a5f;color:#93c5fd;padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7rem;">图片</span>');
+                if (n.video) tags.push('<span style="background:#3b1e5f;color:#d8b4fe;padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7rem;">视频</span>');
+                if (n.content && n.content.indexOf('<') !== -1) tags.push('<span style="background:#1e3a5f;color:#93c5fd;padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7rem;">富文本</span>');
+
+                html += '<div style="background:#1e293b;border:1px solid #334155;border-radius:0.6rem;padding:0.8rem;display:flex;gap:0.8rem;align-items:flex-start;">';
+                // 序号
+                html += '<div style="min-width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#fff;font-weight:bold;">' + (i+1) + '</div>';
+                // 内容预览
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.3rem;">';
+                html += '<span style="color:#87CEFA;font-size:0.78rem;">' + escapeHtml(n.date || '') + '</span>';
+                html += '<span style="color:#f1f5f9;font-size:0.88rem;font-weight:bold;">' + escapeHtml(n.title || '') + '</span>';
+                if (tags.length) html += ' ' + tags.join(' ');
+                html += '</div>';
+                html += '<div style="color:#94a3b8;font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(plainContent) + '</div>';
+                html += '</div>';
+                // 操作按钮
+                html += '<div style="display:flex;flex-direction:column;gap:0.3rem;">';
+                html += '<button class="admin-btn-sm" onclick="editHistoryNode(' + i + ')" style="white-space:nowrap;">编辑</button>';
+                html += '<button class="admin-btn-sm admin-btn-del" onclick="deleteHistoryNode(' + i + ')" style="white-space:nowrap;">删除</button>';
+                html += '</div>';
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        // ====== 富文本编辑器命令 ======
+        function hnExec(cmd, val) {
+            document.getElementById('hnEditor').focus();
+            document.execCommand(cmd, false, val || null);
+        }
+
+        // 插入图片（可带超链接）
+        function hnInsertImageLink() {
+            var imgUrl = prompt('请输入图片URL（图床链接）：');
+            if (!imgUrl) return;
+            var linkUrl = prompt('为图片添加超链接？（可留空，留空则图片不可点击）');
+            var editor = document.getElementById('hnEditor');
+            editor.focus();
+            var html = '';
+            if (linkUrl && linkUrl.trim()) {
+                html = '<a href="' + escapeAttr(linkUrl.trim()) + '" target="_blank" style="display:inline-block;"><img src="' + escapeAttr(imgUrl) + '" style="max-width:100%;border-radius:0.4rem;margin:0.3rem 0;" alt="图片"></a>';
+            } else {
+                html = '<img src="' + escapeAttr(imgUrl) + '" style="max-width:100%;border-radius:0.4rem;margin:0.3rem 0;" alt="图片">';
+            }
+            document.execCommand('insertHTML', false, html + '<br>');
+        }
+
+        // 插入超链接文字
+        function hnInsertLink() {
+            var text = prompt('请输入链接显示文字：');
+            if (!text) return;
+            var url = prompt('请输入链接URL：');
+            if (!url) return;
+            var editor = document.getElementById('hnEditor');
+            editor.focus();
+            var html = '<a href="' + escapeAttr(url.trim()) + '" target="_blank" style="color:#667eea;text-decoration:underline;">' + escapeHtml(text) + '</a>';
+            document.execCommand('insertHTML', false, html);
+        }
+
+        // 插入超链接按钮
+        function hnInsertLinkButton() {
+            var btnText = prompt('请输入按钮文字：');
+            if (!btnText) return;
+            var btnUrl = prompt('请输入链接URL：');
+            if (!btnUrl) return;
+            var btnColor = prompt('请输入按钮背景颜色（十六进制，如 #667eea，默认 #667eea）：') || '#667eea';
+            var txtColor = prompt('请输入文字颜色（十六进制，如 #ffffff，默认 #ffffff）：') || '#ffffff';
+            var shape = confirm('按钮形状：确定=圆角矩形，取消=圆形？') ? 'rounded' : 'circle';
+            var pos = prompt('按钮位置（left/center/right，默认 center）：') || 'center';
+            if (!['left','center','right'].includes(pos)) pos = 'center';
+
+            var radius = shape === 'circle' ? '50%' : '0.4rem';
+            var padding = shape === 'circle' ? '0.6rem 0.6rem' : '0.5rem 1.2rem';
+            var alignStyle = pos === 'left' ? 'text-align:left;' : (pos === 'right' ? 'text-align:right;' : 'text-align:center;');
+
+            var html = '<div style="' + alignStyle + 'margin:0.5rem 0;"><a href="' + escapeAttr(btnUrl.trim()) + '" target="_blank" style="display:inline-block;padding:' + padding + ';background:' + escapeAttr(btnColor) + ';color:' + escapeAttr(txtColor) + ';border-radius:' + radius + ';text-decoration:none;font-size:0.85rem;">' + escapeHtml(btnText) + '</a></div>';
+            var editor = document.getElementById('hnEditor');
+            editor.focus();
+            document.execCommand('insertHTML', false, html + '<br>');
+        }
+
+        // 搜索B站视频并插入
+        function hnSearchBilibili() {
+            var keyword = prompt('请输入B站视频搜索关键词（或直接输入BV号/链接）：');
+            if (!keyword) return;
+            // 检查是否是BV号或链接
+            var bvid = keyword.match(/BV[0-9A-Za-z]+/);
+            if (bvid) {
+                hnInsertBilibiliVideo(bvid[0]);
+                return;
+            }
+            // 搜索B站
+            window.open('https://search.bilibili.com/all?keyword=' + encodeURIComponent(keyword), '_blank');
+            var inputBv = prompt('已打开B站搜索页面，请在搜索结果中找到目标视频，复制其BV号或链接并粘贴到此处：');
+            if (inputBv) {
+                var m = inputBv.match(/BV[0-9A-Za-z]+/);
+                if (m) {
+                    hnInsertBilibiliVideo(m[0]);
+                } else {
+                    alert('未识别到有效的BV号，请重试');
+                }
+            }
+        }
+
+        function hnInsertBilibiliVideo(bvid) {
+            var editor = document.getElementById('hnEditor');
+            editor.focus();
+            var html = '<div style="margin:0.5rem 0;"><div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:0.4rem;overflow:hidden;background:#000;">' +
+                '<iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>' +
+                '</div></div><br>';
+            document.execCommand('insertHTML', false, html);
+            // 同时填充视频链接字段
+            var videoField = document.getElementById('hnVideo');
+            if (!videoField.value) {
+                videoField.value = 'https://www.bilibili.com/video/' + bvid;
+            }
+        }
+
+        function escapeAttr(s) {
+            if (!s) return '';
+            return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ====== 花名册管理 ======
+        var _rosterCache = [];
+
+        async function loadRoster() {
+            if (USE_SUPABASE) {
+                try {
+                    var rows = await sbGet('student_roster', null, null, 'id,real_name,class_group');
+                    _rosterCache = rows || [];
+                } catch(e) {
+                    console.warn('加载花名册失败:', e);
+                    _rosterCache = [];
+                }
+            } else {
+                _rosterCache = JSON.parse(localStorage.getItem('mobile_roster') || '[]');
+            }
+            return _rosterCache;
+        }
+
+        // 检查用户是否有回忆录访问权限
+        async function checkHistoryPermission(user) {
+            if (!user) return false;
+            // 教师默认有权限
+            var role = user.user_metadata ? user.user_metadata.role : (user.role || 'teacher');
+            if (role === 'teacher') return true;
+            // 学生需在花名册中
+            var realname = (user.realname || '').trim();
+            if (!realname) return false;
+            await loadRoster();
+            var found = _rosterCache.find(function(r) { return r.real_name === realname; });
+            return !!found;
+        }
+
+        async function addRosterEntry() {
+            var name = document.getElementById('rosterName').value.trim();
+            var group = document.getElementById('rosterGroup').value;
+            var msg = document.getElementById('rosterMsg');
+            if (!name) { msg.textContent = '请输入姓名'; msg.className = 'msg error'; return; }
+
+            try {
+                if (USE_SUPABASE) {
+                    await sbInsert('student_roster', { real_name: name, class_group: group });
+                } else {
+                    _rosterCache.push({ id: Date.now().toString(), real_name: name, class_group: group });
+                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
+                }
+                msg.textContent = '添加成功'; msg.className = 'msg success';
+                document.getElementById('rosterName').value = '';
+                await loadRoster();
+                renderRoster();
+            } catch(e) {
+                msg.textContent = '添加失败：' + (e.message || '错误'); msg.className = 'msg error';
+            }
+        }
+
+        async function batchAddRoster() {
+            var text = document.getElementById('rosterBatchInput').value.trim();
+            var msg = document.getElementById('rosterMsg');
+            if (!text) { msg.textContent = '请输入姓名'; msg.className = 'msg error'; return; }
+            var names = text.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+            msg.textContent = '导入中…'; msg.className = 'msg';
+            var added = 0, failed = 0;
+            try {
+                for (var i = 0; i < names.length; i++) {
+                    try {
+                        if (USE_SUPABASE) {
+                            await sbInsert('student_roster', { real_name: names[i], class_group: '13班' });
+                        } else {
+                            _rosterCache.push({ id: Date.now() + i, real_name: names[i], class_group: '13班' });
+                        }
+                        added++;
+                    } catch(e) { failed++; }
+                }
+                if (!USE_SUPABASE) localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
+                await loadRoster();
+                renderRoster();
+                msg.textContent = '成功导入 ' + added + ' 人' + (failed > 0 ? '，失败 ' + failed + ' 人' : ''); msg.className = 'msg success';
+                document.getElementById('rosterBatchInput').value = '';
+            } catch(e) {
+                msg.textContent = '导入失败：' + (e.message || '错误'); msg.className = 'msg error';
+            }
+        }
+
+        async function deleteRosterEntry(id) {
+            if (!confirm('确定删除该条目吗？')) return;
+            try {
+                if (USE_SUPABASE) {
+                    await sbDelete('student_roster', 'id', id);
+                } else {
+                    _rosterCache = _rosterCache.filter(function(r) { return r.id !== id; });
+                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
+                }
+                await loadRoster();
+                renderRoster();
+            } catch(e) {
+                alert('删除失败：' + (e.message || '错误'));
+            }
+        }
+
+        async function changeRosterGroup(id, newGroup) {
+            try {
+                if (USE_SUPABASE) {
+                    await sbUpdate('student_roster', 'id', id, { class_group: newGroup });
+                } else {
+                    var item = _rosterCache.find(function(r) { return r.id === id; });
+                    if (item) item.class_group = newGroup;
+                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
+                }
+                await loadRoster();
+                renderRoster();
+            } catch(e) {
+                alert('修改失败：' + (e.message || '错误'));
+            }
+        }
+
+        function renderRoster() {
+            var container = document.getElementById('rosterList');
+            if (!container) return;
+            var search = (document.getElementById('rosterSearch') ? document.getElementById('rosterSearch').value : '').trim().toLowerCase();
+            var filter = document.getElementById('rosterFilter') ? document.getElementById('rosterFilter').value : '';
+            var list = _rosterCache.filter(function(r) {
+                if (search && r.real_name.toLowerCase().indexOf(search) === -1) return false;
+                if (filter && r.class_group !== filter) return false;
+                return true;
+            });
+            if (!list.length) {
+                container.innerHTML = '<p style="font-size:0.82rem;color:#94a3b8;">暂无花名册数据</p>';
+                return;
+            }
+            // 统计
+            var count13 = _rosterCache.filter(function(r) { return r.class_group === '13班'; }).length;
+            var countOther = _rosterCache.filter(function(r) { return r.class_group === '非13班'; }).length;
+            var html = '<p style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem;">共 ' + _rosterCache.length + ' 人（13班 ' + count13 + ' 人，非13班 ' + countOther + ' 人）</p>';
+            html += '<table class="admin-table"><thead><tr><th>姓名</th><th>班级</th><th>操作</th></tr></thead><tbody>';
+            for (var i = 0; i < list.length; i++) {
+                var r = list[i];
                 html += '<tr>' +
-                    '<td>' + escapeHtml(n.date) + '</td>' +
-                    '<td>' + escapeHtml(n.title) + ' ' + extraLabel + '</td>' +
-                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(n.content) + '</td>' +
-                    '<td>' +
-                    '<button class="admin-btn-sm" onclick="editHistoryNode(' + i + ')" style="margin-right:0.3rem;">编辑</button>' +
-                    '<button class="admin-btn-sm admin-btn-del" onclick="deleteHistoryNode(' + i + ')">删除</button>' +
-                    '</td>' +
+                    '<td>' + escapeHtml(r.real_name) + '</td>' +
+                    '<td><select class="admin-form-select" style="width:90px;" onchange="changeRosterGroup(\'' + r.id + '\', this.value)">' +
+                        '<option value="13班"' + (r.class_group === '13班' ? ' selected' : '') + '>13班</option>' +
+                        '<option value="非13班"' + (r.class_group === '非13班' ? ' selected' : '') + '>非13班</option>' +
+                    '</select></td>' +
+                    '<td><button class="admin-btn-sm admin-btn-del" onclick="deleteRosterEntry(\'' + r.id + '\')">删除</button></td>' +
                     '</tr>';
             }
             html += '</tbody></table>';
             container.innerHTML = html;
+        }
+
+        // 进入回忆录页面（带权限检查）
+        async function goToHistory() {
+            if (!currentUser) {
+                alert('请先登录');
+                showAuth('login');
+                return;
+            }
+            var hasPermission = await checkHistoryPermission(currentUser);
+            if (!hasPermission) {
+                alert('您暂时没有回忆录访问权限。\n\n教师默认拥有访问权限。\n学生需真实姓名在花名册中方可访问。\n\n如有疑问请联系管理员。');
+                return;
+            }
+            window.location.href = '/history';
         }
 
         // 检查 IP 封禁
@@ -4603,8 +4990,14 @@
                     DB.addLoginRecord(username, ip || 'unknown', deviceInfo).catch(function(e){
                         console.warn('记录登录信息失败:', e);
                     });
-                    // 如果需要强制修改密码，弹出修改密码弹窗
-                    if (u.need_password_change) {
+                    // 如果需要强制修改密码（被管理员重置 或 密码为默认密码123456），弹出修改密码弹窗
+                    if (u.need_password_change || hash === DEFAULT_RESET_PASSWORD_HASH) {
+                        if (hash === DEFAULT_RESET_PASSWORD_HASH) {
+                            // 密码为默认密码，更新数据库标记
+                            DB.updateUser(username, { need_password_change: true }).catch(function(e){
+                                console.warn('更新密码标记失败:', e);
+                            });
+                        }
                         setTimeout(function(){
                             showForceChangePasswordModal();
                         }, 500);
@@ -6714,12 +7107,35 @@
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">&#x1F4AC; 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.4.0</div>
+    <div class="version-label">当前版本：v2.6.0</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>&#x1F4DC; 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">&times;</button></h2>
+
+            <h3>v2.6.0</h3>
+            <ul>
+                <li>后台回忆录时间节点管理升级为卡片式展示，支持富文本编辑器</li>
+                <li>富文本编辑器支持：字体、字号、字色、对齐、加粗、斜体、下划线</li>
+                <li>支持插入图片（可带超链接）、超链接文字、超链接按钮（可设置形状、颜色、位置）</li>
+                <li>支持搜索并嵌入B站视频（可输入关键词搜索或直接粘贴BV号）</li>
+                <li>每个时间节点可设置独立背景图片</li>
+                <li>回忆录页面渲染支持富文本HTML内容，兼容旧版纯文本数据</li>
+                <li>预加载阶段增加富文本内嵌图片和背景图片的预加载</li>
+            </ul>
+
+            <h3>v2.5.0</h3>
+            <ul>
+                <li>回忆录页面新增BGM背景音乐系统：50首主题音乐随机播放，支持淡入淡出、音符图标控制、视频联动</li>
+                <li>回忆录加载阶段预加载所有图片和视频资源</li>
+                <li>回忆录时间节点数据存储到Supabase数据库，支持多设备同步</li>
+                <li>新增回忆录权限系统：教师默认拥有，学生按花名册授予</li>
+                <li>新增花名册管理功能：学生分为13班和非13班</li>
+                <li>登录后检测默认密码强制修改</li>
+                <li>学生注册时提示真实姓名涉及后期权限授予</li>
+                <li>修复验证码存储兼容性问题</li>
+            </ul>
 
             <h3>v2.4.0</h3>
             <ul>
@@ -6746,7 +7162,6 @@
                 <li>修改请求优先写入数据库 modify_requests 表，支持审批状态追踪</li>
                 <li>新增 45 秒轮询修改请求状态：approved 自动刷新时间表，ignored 提示用户</li>
                 <li>数据库操作失败时自动回退到 ntfy.sh，保证服务可用性</li>
-                <li>新增 schedules 和 modify_requests 表的数据库操作方法（DB.getSchedule 等）</li>
             </ul>
 
             <h3>v2.2.0</h3>
@@ -6763,7 +7178,6 @@
                 <li>用户管理操作按钮突出显示：蓝色背景（编辑）、红色背景（删除）、白色文字</li>
                 <li>管理员后台支持 /admin 路径访问（Netlify 重定向）</li>
                 <li>新增全屏加载遮罩，页面初始化完成后淡出显示</li>
-                <li>新增 admin 系统管理员账户，每 30 秒自动处理合理申诉（密码重置为 123456）</li>
                 <li>首次登录或密码被管理员重置后强制修改密码</li>
             </ul>
 
@@ -6772,9 +7186,7 @@
                 <li>数据存储层重构：从 localStorage 迁移到 Supabase 云端数据库，支持多设备数据同步</li>
                 <li>引入统一数据访问层 DB 对象，所有用户操作函数通过 DB 接口访问数据</li>
                 <li>实现双模式架构：Supabase 模式（云端）和 localStorage 回退模式（本地），不可用时自动回退</li>
-                <li>新增 Supabase SDK（@supabase/supabase-js@2），通过 CDN 引入</li>
                 <li>新增建表 SQL 注释（users 表、verify_codes 表），含索引和 RLS 策略</li>
-                <li>密码继续使用 SHA-256 哈希（不使用 Supabase Auth），保持用户名登录方式</li>
                 <li>本地会话缓存（登录状态、发送历史）继续使用 localStorage</li>
                 <li>IP 封禁数据存储在管理员用户记录的 banned_ips 字段中（Supabase 模式）</li>
             </ul>
@@ -6789,7 +7201,6 @@
                 <li>新增个人中心：查看用户信息、修改邮箱（需密码验证）、修改任教学科</li>
                 <li>新增后台管理页面（#admin）：批量添加用户、用户管理、批量更改权限、IP封禁</li>
                 <li>主菜单根据用户权限动态显示按钮</li>
-                <li>点击登录弹窗外部不再关闭弹窗</li>
                 <li>localStorage 键名统一使用 mobile_ 前缀</li>
             </ul>
 
@@ -6798,13 +7209,12 @@
                 <li>强制要求用户登录才能使用系统，未登录时内容被锁定并弹出登录框</li>
                 <li>注册改为用户名（必填）+ 邮箱（选填）+ 密码 + 学科</li>
                 <li>登录改为使用用户名登录</li>
-                <li>密码找回改为通过邮箱查询用户名（本地模式）</li>
             </ul>
 
             <h3>v1.3.9</h3>
             <ul>
                 <li>新增用户注册/登录/密码找回系统，注册时需选择任教学科，发送通知时默认选中该学科</li>
-                <li>支持 Netlify Identity 在线模式与 localStorage 离线回退模式</li>
+                <li>支持在线模式与 localStorage 离线回退模式</li>
                 <li>通过 cookie + localStorage 保存登录状态和已发送通知历史</li>
             </ul>
 
