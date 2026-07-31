@@ -2623,6 +2623,23 @@
          * -- 允许所有操作（anon key，前端直接访问）
          * CREATE POLICY "Allow all on users" ON users FOR ALL USING (true) WITH CHECK (true);
          * CREATE POLICY "Allow all on verify_codes" ON verify_codes FOR ALL USING (true) WITH CHECK (true);
+         *
+         * -- 5. 回忆录时间节点表
+         * CREATE TABLE IF NOT EXISTS history_nodes (
+         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         *   node_date TEXT NOT NULL,
+         *   title TEXT NOT NULL,
+         *   content TEXT NOT NULL,
+         *   font_family TEXT DEFAULT '',
+         *   font_color TEXT DEFAULT '',
+         *   images TEXT DEFAULT '',
+         *   video TEXT DEFAULT '',
+         *   sort_order INTEGER DEFAULT 0,
+         *   created_at TIMESTAMPTZ DEFAULT now()
+         * );
+         * CREATE INDEX IF NOT EXISTS idx_history_nodes_date ON history_nodes(node_date);
+         * ALTER TABLE history_nodes ENABLE ROW LEVEL SECURITY;
+         * CREATE POLICY "Allow all on history_nodes" ON history_nodes FOR ALL USING (true) WITH CHECK (true);
          */
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
@@ -2630,6 +2647,11 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_x0V-7Mj0PyphcH0W2cID0A_W-yUfdME';
         let supabase = null;
         let USE_SUPABASE = SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co';
+
+        // ========== 短信验证码配置（Spug 推送平台） ==========
+        // 文档: https://push.spug.cc/guide/sms
+        // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
+        var SPUG_SMS_TEMPLATE = 'Dw1GdmdgzE8l32qK';
 
         // Supabase REST API 封装（替代 SDK）
         // 登录等高频操作只查询必要字段
@@ -2713,7 +2735,18 @@
             return fetch(url, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
-            }).then(function(r) { return r.json(); });
+            }).then(function(r) {
+                if (!r.ok) {
+                    return r.json().then(function(errBody) {
+                        var errMsg = (errBody && errBody.message) ? errBody.message : ('HTTP ' + r.status);
+                        throw new Error('Supabase DELETE error: ' + errMsg);
+                    }).catch(function(e) {
+                        if (e.message) throw e;
+                        throw new Error('Supabase DELETE error: HTTP ' + r.status);
+                    });
+                }
+                return r.json();
+            });
         }
         // 写操作后立即失效缓存
         function _sbInvalidateCache() { _sbUserCache = null; _sbUserCacheTime = 0; }
@@ -3374,6 +3407,7 @@
                 renderAdminBanList();
                 renderBannedDevices();
                 renderAppeals();
+                await loadHistoryNodes();
                 renderHistoryNodes();
             }
         }
@@ -4130,15 +4164,50 @@
             }
         }
 
-        // ====== 回忆录时间节点管理 ======
-        function getHistoryNodes() {
-            try {
-                var saved = localStorage.getItem('history_nodes');
-                return saved ? JSON.parse(saved) : [];
-            } catch(e) { return []; }
+        // ====== 回忆录时间节点管理（Supabase 数据库存储） ======
+        var _historyNodesCache = [];   // 内存缓存，保存已加载的节点（含 id）
+        var _historyEditId = null;      // 当前编辑的节点 ID（null=新增）
+
+        // 从数据库加载全部时间节点（按时间升序）
+        async function loadHistoryNodes() {
+            if (USE_SUPABASE) {
+                try {
+                    var rows = await sbGet('history_nodes', null, null, 'id,node_date,title,content,font_family,font_color,images,video');
+                    if (rows && rows.length) {
+                        rows.sort(function(a, b) {
+                            return new Date(a.node_date) - new Date(b.node_date);
+                        });
+                        _historyNodesCache = rows.map(function(r) {
+                            return {
+                                id: r.id,
+                                date: r.node_date,
+                                title: r.title,
+                                content: r.content,
+                                fontFamily: r.font_family || '',
+                                fontColor: r.font_color || '',
+                                images: r.images || '',
+                                video: r.video || ''
+                            };
+                        });
+                    } else {
+                        _historyNodesCache = [];
+                    }
+                } catch(e) {
+                    console.warn('加载回忆录节点失败:', e);
+                    _historyNodesCache = [];
+                }
+            } else {
+                try {
+                    var saved = localStorage.getItem('history_nodes');
+                    _historyNodesCache = saved ? JSON.parse(saved) : [];
+                } catch(e) { _historyNodesCache = []; }
+            }
+            return _historyNodesCache;
         }
-        function saveHistoryNodes(nodes) {
-            localStorage.setItem('history_nodes', JSON.stringify(nodes));
+
+        // 获取缓存中的节点（同步，用于渲染）
+        function getHistoryNodes() {
+            return _historyNodesCache;
         }
 
         var _historyEditIndex = -1;
@@ -4157,7 +4226,6 @@
             if (!title) { msg.textContent = '请输入标题'; msg.className = 'msg error'; return; }
             if (!content) { msg.textContent = '请输入内容'; msg.className = 'msg error'; return; }
 
-            var nodes = getHistoryNodes();
             var nodeData = {
                 date: date,
                 title: title,
@@ -4168,26 +4236,63 @@
                 video: video
             };
 
-            if (_historyEditIndex >= 0) {
-                nodes[_historyEditIndex] = nodeData;
-                msg.textContent = '节点修改成功'; msg.className = 'msg success';
+            msg.textContent = '保存中…'; msg.className = 'msg';
+
+            try {
+                if (USE_SUPABASE) {
+                    var rowData = {
+                        node_date: date,
+                        title: title,
+                        content: content,
+                        font_family: font || '',
+                        font_color: color !== '#ffffff' ? color : '',
+                        images: images || '',
+                        video: video || ''
+                    };
+                    if (_historyEditId) {
+                        // 更新
+                        await sbUpdate('history_nodes', 'id', _historyEditId, rowData);
+                        msg.textContent = '节点修改成功'; msg.className = 'msg success';
+                    } else {
+                        // 新增
+                        await sbInsert('history_nodes', rowData);
+                        msg.textContent = '节点添加成功'; msg.className = 'msg success';
+                    }
+                } else {
+                    // localStorage 回退
+                    var nodes = getHistoryNodes();
+                    if (_historyEditIndex >= 0) {
+                        nodeData.id = nodes[_historyEditIndex].id;
+                        nodes[_historyEditIndex] = nodeData;
+                        msg.textContent = '节点修改成功'; msg.className = 'msg success';
+                    } else {
+                        nodeData.id = Date.now().toString();
+                        nodes.push(nodeData);
+                        msg.textContent = '节点添加成功'; msg.className = 'msg success';
+                    }
+                    nodes.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+                    localStorage.setItem('history_nodes', JSON.stringify(nodes));
+                }
+
+                _historyEditId = null;
                 _historyEditIndex = -1;
                 document.getElementById('historyNodeAddBtn').textContent = '添加节点';
                 document.getElementById('historyNodeCancelBtn').classList.add('hidden');
-            } else {
-                nodes.push(nodeData);
-                msg.textContent = '节点添加成功'; msg.className = 'msg success';
-            }
-            // 按时间排序
-            nodes.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
-            saveHistoryNodes(nodes);
 
-            document.getElementById('historyNodeDate').value = '';
-            document.getElementById('historyNodeTitle').value = '';
-            document.getElementById('historyNodeContent').value = '';
-            document.getElementById('historyNodeImages').value = '';
-            document.getElementById('historyNodeVideo').value = '';
-            renderHistoryNodes();
+                // 清空表单
+                document.getElementById('historyNodeDate').value = '';
+                document.getElementById('historyNodeTitle').value = '';
+                document.getElementById('historyNodeContent').value = '';
+                document.getElementById('historyNodeImages').value = '';
+                document.getElementById('historyNodeVideo').value = '';
+
+                // 重新加载并渲染
+                await loadHistoryNodes();
+                renderHistoryNodes();
+            } catch(e) {
+                msg.textContent = '保存失败：' + (e.message || '错误'); msg.className = 'msg error';
+                console.error('保存回忆录节点失败:', e);
+            }
         }
 
         function editHistoryNode(idx) {
@@ -4202,6 +4307,7 @@
             document.getElementById('historyNodeImages').value = n.images || '';
             document.getElementById('historyNodeVideo').value = n.video || '';
             _historyEditIndex = idx;
+            _historyEditId = n.id || null;
             document.getElementById('historyNodeAddBtn').textContent = '保存修改';
             document.getElementById('historyNodeCancelBtn').classList.remove('hidden');
             document.getElementById('historyNodeMsg').textContent = '';
@@ -4209,6 +4315,7 @@
 
         function cancelEditHistoryNode() {
             _historyEditIndex = -1;
+            _historyEditId = null;
             document.getElementById('historyNodeDate').value = '';
             document.getElementById('historyNodeTitle').value = '';
             document.getElementById('historyNodeContent').value = '';
@@ -4219,13 +4326,24 @@
             document.getElementById('historyNodeMsg').textContent = '';
         }
 
-        function deleteHistoryNode(idx) {
+        async function deleteHistoryNode(idx) {
             if (!confirm('确定删除该时间节点吗？')) return;
             var nodes = getHistoryNodes();
-            nodes.splice(idx, 1);
-            saveHistoryNodes(nodes);
-            if (_historyEditIndex === idx) cancelEditHistoryNode();
-            renderHistoryNodes();
+            var n = nodes[idx];
+            if (!n) return;
+            try {
+                if (USE_SUPABASE && n.id) {
+                    await sbDelete('history_nodes', 'id', n.id);
+                } else {
+                    nodes.splice(idx, 1);
+                    localStorage.setItem('history_nodes', JSON.stringify(nodes));
+                }
+                if (_historyEditIndex === idx) cancelEditHistoryNode();
+                await loadHistoryNodes();
+                renderHistoryNodes();
+            } catch(e) {
+                alert('删除失败：' + (e.message || '错误'));
+            }
         }
 
         function renderHistoryNodes() {
@@ -4648,35 +4766,14 @@
                         subject: '晚自习系统 - 注册验证码'
                     });
                 } else {
-                    // 短信发送：支持多平台切换（spug | textbelt | httpsms）
-                    var smsProvider = 'spug'; // ← 修改此处切换平台
-                    if (smsProvider === 'spug') {
-                        // Spug 推送平台（推荐，国内稳定，个人开发者可用，¥0.08/条）
-                        // 注册: https://push.spug.cc → 创建验证码模板 → 替换下方模板ID
-                        var SPUG_SMS_TPL = 'YOUR_SPUG_TEMPLATE_ID';
-                        var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TPL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: '晚自习系统', code: code, targets: contact })
-                        });
-                        var smsResult = await smsResp.json();
-                        if (smsResult.code !== 0) throw new Error(smsResult.message || '短信发送失败');
-                    } else if (smsProvider === 'textbelt') {
-                        // Textbelt（无需注册，免费层每天1条，适合测试）
-                        var tbResp = await fetch('https://textbelt.com/text', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                phone: contact,
-                                message: '【晚自习系统】验证码：' + code + '，10分钟内有效。',
-                                key: 'textbelt'
-                            })
-                        });
-                        var tbResult = await tbResp.json();
-                        if (!tbResult.success) throw new Error(tbResult.error || '短信发送失败');
-                    } else if (smsProvider === 'httpsms') {
-                        throw new Error('httpSMS 需自行部署安卓网关，请参考 https://docs.httpsms.com');
-                    }
+                    // 短信发送：Spug 推送平台
+                    // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
+                    var smsUrl = 'https://push.spug.cc/sms/' + SPUG_SMS_TEMPLATE +
+                        '?to=' + encodeURIComponent(contact) +
+                        '&code=' + encodeURIComponent(code);
+                    var smsResp = await fetch(smsUrl);
+                    var smsResult = await smsResp.json();
+                    if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
                 }
 
                 // 若为新验证码则保存到数据库
@@ -4908,32 +5005,14 @@
             }
 
             try {
-                // 短信发送：支持多平台切换（spug | textbelt | httpsms）
-                var smsProvider = 'spug'; // ← 修改此处切换平台
-                if (smsProvider === 'spug') {
-                    var SPUG_SMS_TPL = 'YOUR_SPUG_TEMPLATE_ID';
-                    var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TPL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: '晚自习系统', code: code, targets: phone })
-                    });
-                    var smsResult = await smsResp.json();
-                    if (smsResult.code !== 0) throw new Error(smsResult.message || '短信发送失败');
-                } else if (smsProvider === 'textbelt') {
-                    var tbResp = await fetch('https://textbelt.com/text', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            phone: phone,
-                            message: '【晚自习系统】验证码：' + code + '，10分钟内有效。',
-                            key: 'textbelt'
-                        })
-                    });
-                    var tbResult = await tbResp.json();
-                    if (!tbResult.success) throw new Error(tbResult.error || '短信发送失败');
-                } else if (smsProvider === 'httpsms') {
-                    throw new Error('httpSMS 需自行部署安卓网关');
-                }
+                // 短信发送：Spug 推送平台
+                // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
+                var smsUrl = 'https://push.spug.cc/sms/' + SPUG_SMS_TEMPLATE +
+                    '?to=' + encodeURIComponent(phone) +
+                    '&code=' + encodeURIComponent(code);
+                var smsResp = await fetch(smsUrl);
+                var smsResult = await smsResp.json();
+                if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
 
                 hint.textContent = '验证码已发送至尾号' + phone.slice(-4) + '，请查看手机短信（10分钟有效）';
                 hint.className = 'verify-hint sent';
