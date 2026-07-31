@@ -2633,8 +2633,8 @@
 
         // Supabase REST API 封装（替代 SDK）
         // 登录等高频操作只查询必要字段
-        var SB_USER_SELECT_ALL = 'id,username,real_name,email,phone,password_hash,role,subject,permissions,is_admin,banned_ips,need_password_change';
-        var SB_USER_SELECT_LOGIN = 'username,password_hash,real_name,email,phone,role,subject,permissions,is_admin,need_password_change';
+        var SB_USER_SELECT_ALL = 'id,username,real_name,email,password_hash,role,subject,permissions,is_admin,banned_ips,need_password_change';
+        var SB_USER_SELECT_LOGIN = 'username,password_hash,real_name,email,role,subject,permissions,is_admin,need_password_change';
         var _sbUserCache = null;  // 内存缓存（TTL 30s）
         var _sbUserCacheTime = 0;
         var _sbUserCacheTTL = 30000; // 30秒
@@ -2650,7 +2650,15 @@
                 opts.body = JSON.stringify(body);
             }
             return fetch(url, opts).then(function(r) {
-                if (!r.ok) throw new Error('Supabase REST error: ' + r.status);
+                if (!r.ok) {
+                    return r.json().then(function(errBody) {
+                        var errMsg = (errBody && errBody.message) ? errBody.message : ('HTTP ' + r.status);
+                        throw new Error('Supabase REST error: ' + errMsg);
+                    }).catch(function(e) {
+                        if (e.message) throw e;
+                        throw new Error('Supabase REST error: HTTP ' + r.status);
+                    });
+                }
                 return r.json();
             });
         }
@@ -2659,7 +2667,17 @@
             if (selectCols) url += (filterCol ? '&' : '?') + 'select=' + selectCols;
             return fetch(url, {
                 headers: { 'Content-Type': 'application/json' }
-            }).then(function(r) { return r.json(); });
+            }).then(function(r) {
+                if (!r.ok) {
+                    return r.json().then(function(errBody) {
+                        var errMsg = (errBody && errBody.message) ? errBody.message : ('HTTP ' + r.status);
+                        throw new Error('Supabase GET error: ' + errMsg);
+                    }).catch(function() {
+                        throw new Error('Supabase GET error: HTTP ' + r.status);
+                    });
+                }
+                return r.json();
+            });
         }
         function sbGetSingle(table, filterCol, filterVal, selectCols) {
             return sbGet(table, filterCol, filterVal, selectCols).then(function(data) {
@@ -2677,7 +2695,18 @@
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates)
-            }).then(function(r) { return r.json(); });
+            }).then(function(r) {
+                if (!r.ok) {
+                    return r.json().then(function(errBody) {
+                        var errMsg = (errBody && errBody.message) ? errBody.message : ('HTTP ' + r.status);
+                        throw new Error('Supabase UPDATE error: ' + errMsg);
+                    }).catch(function(e) {
+                        if (e.message) throw e;
+                        throw new Error('Supabase UPDATE error: HTTP ' + r.status);
+                    });
+                }
+                return r.json();
+            });
         }
         function sbDelete(table, filterCol, filterVal) {
             var url = SUPABASE_URL + '/rest/v1/' + table + '?' + filterCol + '=eq.' + encodeURIComponent(filterVal);
@@ -2891,14 +2920,26 @@
                     };
                     if (!silent) dbShowStatus('创建用户 "' + rowData.username + '"…', 'writing');
                     try {
-                        const inserted = await sbInsert('users', rowData);
+                        var inserted;
+                        try {
+                            inserted = await sbInsert('users', rowData);
+                        } catch(insertErr) {
+                            // phone 列可能不存在，去掉 phone 后重试
+                            if (insertErr.message && insertErr.message.indexOf('phone') !== -1) {
+                                var rowDataNoPhone = Object.assign({}, rowData);
+                                delete rowDataNoPhone.phone;
+                                inserted = await sbInsert('users', rowDataNoPhone);
+                            } else {
+                                throw insertErr;
+                            }
+                        }
                         _sbInvalidateCache();
                         return {
                             id: inserted.id,
                             username: inserted.username,
                             realname: inserted.real_name,
                             email: inserted.email || '',
-                            phone: inserted.phone || '',
+                            phone: inserted.phone || userData.phone || '',
                             password: inserted.password_hash,
                             role: inserted.role,
                             subject: inserted.subject,
@@ -2927,9 +2968,22 @@
                     if (updates.banned_ips) dbUpdates.banned_ips = updates.banned_ips;
                     if (updates.realname) dbUpdates.real_name = updates.realname;
                     if (updates.need_password_change !== undefined) dbUpdates.need_password_change = updates.need_password_change;
+                    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
                     dbShowStatus('更新用户 "' + username + '"…', 'writing');
                     try {
-                        var result = await sbUpdate('users', 'username', username, dbUpdates);
+                        var result;
+                        try {
+                            result = await sbUpdate('users', 'username', username, dbUpdates);
+                        } catch(updateErr) {
+                            // phone 列可能不存在，去掉 phone 后重试
+                            if (updateErr.message && updateErr.message.indexOf('phone') !== -1) {
+                                var dbUpdatesNoPhone = Object.assign({}, dbUpdates);
+                                delete dbUpdatesNoPhone.phone;
+                                result = await sbUpdate('users', 'username', username, dbUpdatesNoPhone);
+                            } else {
+                                throw updateErr;
+                            }
+                        }
                         _sbInvalidateCache();
                         var data = result && result.length > 0 ? result[0] : null;
                         if (!data) return null;
@@ -2938,6 +2992,7 @@
                             username: data.username,
                             realname: data.real_name,
                             email: data.email,
+                            phone: data.phone || '',
                             password: data.password_hash,
                             role: data.role,
                             subject: data.subject,
