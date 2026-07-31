@@ -332,6 +332,9 @@
             margin-bottom: 1.2rem;
             white-space: pre-wrap;
         }
+        .timeline-content.rich-text {
+            white-space: normal;
+        }
         .timeline-video {
             width: 100%;
             aspect-ratio: 16/9;
@@ -362,6 +365,53 @@
         }
         .timeline-images img:hover {
             transform: scale(1.03);
+        }
+
+        /* 富文本内容样式（富文本编辑器插入的元素） */
+        .timeline-content a {
+            color: #667eea;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .timeline-content img {
+            max-width: 100%;
+            border-radius: 0.4rem;
+            margin: 0.3rem 0;
+        }
+        .timeline-content iframe {
+            max-width: 100%;
+            border-radius: 0.4rem;
+        }
+        .timeline-content > div:has(> a) {
+            margin: 0.5rem 0;
+        }
+        /* 超链接按钮样式 */
+        .timeline-content a[style*="display:inline-block"] {
+            display: inline-block !important;
+            text-decoration: none;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+        .timeline-content a[style*="display:inline-block"]:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+        /* 背景图片页面 - 让卡片更透明以显示背景 */
+        .memory-page[style*="background-image"] .memory-card {
+            background: rgba(0,0,0,0.45) !important;
+        }
+        .memory-page[style*="background-image"] {
+            position: relative;
+        }
+        .memory-page[style*="background-image"]::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 0;
+        }
+        .memory-page[style*="background-image"] > * {
+            position: relative;
+            z-index: 1;
         }
 
         /* 页码指示器 */
@@ -414,11 +464,85 @@
             .timeline-title { font-size: 1.2rem; }
             .memory-card { padding: 1.5rem; }
         }
+
+        /* ====== BGM 背景音乐控制图标 ====== */
+        #bgmToggle {
+            position: fixed;
+            top: 0.8rem;
+            right: 0.8rem;
+            z-index: 1100;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 50%;
+            display: none;            /* 进入回忆录后才显示 */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(20,20,40,0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.28);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+        #bgmToggle:hover {
+            background: rgba(40,40,70,0.6);
+            transform: scale(1.08);
+            box-shadow: 0 6px 22px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        #bgmToggle:active { transform: scale(0.96); }
+        #bgmToggle .bgm-note {
+            width: 1.3rem;
+            height: 1.3rem;
+            display: block;
+            transform-origin: 50% 50%;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+        }
+        /* 播放中：音符持续旋转 */
+        #bgmToggle.playing .bgm-note {
+            animation: bgmSpin 4s linear infinite;
+        }
+        /* 暂停时：音符归位（无动画即为正向 0deg） */
+        #bgmToggle .bgm-slash {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150%;
+            height: 2px;
+            background: #fff;
+            border-radius: 2px;
+            transform: translate(-50%, -50%) rotate(45deg); /* 左上至右下 */
+            box-shadow: 0 0 4px rgba(0,0,0,0.55);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+        }
+        #bgmToggle.paused .bgm-slash { opacity: 0.95; }
+        /* 播放光环呼吸效果 */
+        #bgmToggle.playing {
+            box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 0 0 rgba(135,206,250,0.5);
+            animation: bgmGlow 3s ease-in-out infinite;
+        }
+        @keyframes bgmSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+        @keyframes bgmGlow {
+            0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 0 0 rgba(135,206,250,0.0); }
+            50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 12px 2px rgba(135,206,250,0.35); }
+        }
     </style>
 </head>
 <body>
     <!-- 返回移动端 -->
     <a href="/" class="back-to-mobile">&#x2190; 返回移动端</a>
+
+    <!-- BGM 背景音乐控制（进入回忆录后显示） -->
+    <div id="bgmToggle" class="paused" title="背景音乐" role="button" aria-label="背景音乐开关">
+        <svg class="bgm-note" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3z"/></svg>
+        <span class="bgm-slash"></span>
+    </div>
 
     <!-- 加载层 -->
     <div id="loaderLayer">
@@ -468,7 +592,7 @@
         // 从 Supabase 加载回忆录时间节点
         async function loadHistoryNodesFromDB() {
             try {
-                var url = SUPABASE_URL + '/rest/v1/history_nodes?select=id,node_date,title,content,font_family,font_color,images,video&order=node_date.asc';
+                var url = SUPABASE_URL + '/rest/v1/history_nodes?select=id,node_date,title,content,font_family,font_color,images,video,background_image&order=node_date.asc';
                 var resp = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var rows = await resp.json();
@@ -482,13 +606,27 @@
                             fontFamily: r.font_family || '',
                             fontColor: r.font_color || '',
                             images: r.images || '',
-                            video: r.video || ''
+                            video: r.video || '',
+                            bgImage: r.background_image || ''
                         };
                     });
                 }
                 return [];
             } catch(e) {
                 console.warn('从数据库加载回忆录节点失败，回退到 localStorage:', e);
+                // 尝试不含 background_image 列的旧查询
+                try {
+                    var url2 = SUPABASE_URL + '/rest/v1/history_nodes?select=id,node_date,title,content,font_family,font_color,images,video&order=node_date.asc';
+                    var resp2 = await fetch(url2, { headers: { 'Content-Type': 'application/json' } });
+                    if (resp2.ok) {
+                        var rows2 = await resp2.json();
+                        if (rows2 && rows2.length) {
+                            return rows2.map(function(r) {
+                                return { id: r.id, date: r.node_date, title: r.title, content: r.content, fontFamily: r.font_family || '', fontColor: r.font_color || '', images: r.images || '', video: r.video || '', bgImage: '' };
+                            });
+                        }
+                    }
+                } catch(e3) {}
                 // 回退到 localStorage
                 try {
                     var saved = localStorage.getItem('history_nodes');
@@ -497,28 +635,315 @@
             }
         }
 
-        // 当前用户信息（从URL参数或localStorage获取）
+        // 当前用户信息（从移动端登录态读取）
         let userInfo = { name: '', role: '同学', isStudent: true };
         try {
-            var saved = localStorage.getItem('mobile_current_user');
-            if (saved) {
-                var u = JSON.parse(saved);
+            var u = null;
+            // 移动端 app 实际存储键为 mobile_auth_user；兼容历史/其它键名
+            var raw = localStorage.getItem('mobile_auth_user')
+                   || localStorage.getItem('mobile_current_user')
+                   || localStorage.getItem('study_timer_auth_user');
+            if (raw) u = JSON.parse(raw);
+            if (u) {
                 // 优先真实姓名，其次用户名，都没有则留空
-                userInfo.name = (u.realname && u.realname.trim()) || (u.username && u.username.trim()) || '';
+                userInfo.name = (u.realname && String(u.realname).trim()) || (u.username && String(u.username).trim()) || '';
+                // 学生 -> 同学，教师(及其它) -> 老师
                 userInfo.isStudent = (u.role === 'student');
                 userInfo.role = userInfo.isStudent ? '同学' : '老师';
             }
         } catch(e) {}
 
+        // ====== BGM 背景音乐系统 ======
+        const BGM_VOLUME = 0.25;     // 目标音量 25%
+        const BGM_FADE_MS = 6000;    // 淡入/淡出时长 6 秒
+        // 50 首契合"青春回忆"主题的免费 CC 音乐直链（Kevin MacLeod / incompetech，可直连播放）
+        const BGM_LIST = [
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Morning.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Evening.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Reunited.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Memory%20Lane.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreamy%20Flashback.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Crinoline%20Dreams.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Thinking%20of%20You.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Tranquility.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Water%20Lily.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Soporific.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lightless%20Dawn.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Eternal%20Hope.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Invariance.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Note%20One.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Note%20Two.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2001.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2002.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Night%20on%20the%20Docks.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Snow%20Queen.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Hidden%20Wonders.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Inspired.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Living%20Voyage.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Road%20Ahead.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mining%20by%20Moonlight.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Past%20the%20Edge.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Upbeat%20Forever.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Builder.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bumbly%20March.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wallpaper.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Five%20Armies.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Brain%20Dance.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Vibing%20Over%20Venus.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/End%20of%20the%20Era.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/George%20Street%20Shuffle.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Laid%20Back%20Guitars.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Life%20of%20Riley.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Light%20Awash.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Look%20Busy.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Master%20of%20the%20Feast.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Royal%20Banana.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Adventure.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Somewhere%20Sunny.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Super%20Friendly.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Take%20a%20Chance.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Welcome%20to%20the%20Show.mp3'
+        ];
+
+        let bgmAudio = null;
+        let bgmIndex = -1;
+        let bgmUserPaused = false;       // 用户手动暂停
+        let bgmVideoPaused = false;      // 因播放 Bilibili 视频而暂停
+        let bgmFadeTimer = null;
+        let bgmWaitingGesture = false;   // 自动播放被拦截，等待用户手势后启动
+        let bgmInited = false;
+        let bgmPreloadIndex = -1;         // 预加载阶段缓存的首曲索引
+
+        function bgmRandomIndex(exclude) {
+            if (BGM_LIST.length <= 1) return 0;
+            var i;
+            do { i = Math.floor(Math.random() * BGM_LIST.length); } while (i === exclude);
+            return i;
+        }
+
+        function bgmClearFade() {
+            if (bgmFadeTimer) { clearInterval(bgmFadeTimer); bgmFadeTimer = null; }
+        }
+
+        // 线性渐变到目标音量
+        function bgmFadeTo(target, duration, onDone) {
+            bgmClearFade();
+            if (!bgmAudio) { if (onDone) onDone(); return; }
+            var start = bgmAudio.volume;
+            var t0 = performance.now();
+            bgmFadeTimer = setInterval(function() {
+                var p = Math.min((performance.now() - t0) / duration, 1);
+                bgmAudio.volume = Math.max(0, Math.min(1, start + (target - start) * p));
+                if (p >= 1) { bgmClearFade(); if (onDone) onDone(); }
+            }, 40);
+        }
+
+        function bgmSetPlaying(on) {
+            var btn = document.getElementById('bgmToggle');
+            if (!btn) return;
+            if (on) { btn.classList.add('playing'); btn.classList.remove('paused'); }
+            else { btn.classList.remove('playing'); btn.classList.add('paused'); }
+        }
+
+        // 播放一首新的随机曲目（淡入 6s 至 25%）
+        function bgmPlayNew() {
+            if (!bgmAudio) return;
+            if (bgmVideoPaused) return; // 视频播放中不打扰
+            bgmIndex = (bgmPreloadIndex >= 0) ? bgmPreloadIndex : bgmRandomIndex(bgmIndex);
+            bgmPreloadIndex = -1;
+            bgmAudio.src = BGM_LIST[bgmIndex];
+            bgmAudio.volume = 0;
+            bgmUserPaused = false;
+            var onOk = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
+            var onFail = function() { bgmWaitingGesture = true; bgmArmGesture(); bgmSetPlaying(false); };
+            var p = bgmAudio.play();
+            if (p && p.then) p.then(onOk).catch(onFail); else onOk();
+        }
+
+        // 淡出至 0 后暂停
+        function bgmPauseFade(onDone) {
+            if (!bgmAudio) { if (onDone) onDone(); return; }
+            bgmFadeTo(0, BGM_FADE_MS, function() {
+                try { bgmAudio.pause(); } catch(e) {}
+                if (onDone) onDone();
+            });
+        }
+
+        // 自动播放被拦截时：等待任意用户手势后启动
+        function bgmArmGesture() {
+            function fire(e) {
+                if (!bgmWaitingGesture) return;
+                // 图标自身的点击交由 bgmToggleClick 处理，避免 pointerdown 与 click 重复触发
+                if (e && e.target && e.target.closest && e.target.closest('#bgmToggle')) return;
+                bgmWaitingGesture = false;
+                if (!bgmAudio) return;
+                var ok = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
+                var p = bgmAudio.play();
+                if (p && p.then) p.then(ok).catch(function(){}); else ok();
+                document.removeEventListener('pointerdown', fire);
+                document.removeEventListener('keydown', fire);
+                document.removeEventListener('touchstart', fire);
+            }
+            document.addEventListener('pointerdown', fire);
+            document.addEventListener('keydown', fire);
+            document.addEventListener('touchstart', fire);
+        }
+
+        // 点击图标：播放/暂停切换
+        function bgmToggleClick() {
+            if (!bgmAudio) { initBGM(); return; }
+            var wantPlay = bgmAudio.paused || bgmUserPaused || bgmWaitingGesture;
+            if (wantPlay) {
+                bgmWaitingGesture = false;
+                bgmUserPaused = false;
+                bgmVideoPaused = false;
+                var onOk = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
+                var onFail = function() { bgmWaitingGesture = true; bgmArmGesture(); bgmSetPlaying(false); };
+                var p = bgmAudio.play();
+                if (p && p.then) p.then(onOk).catch(onFail); else onOk();
+            } else {
+                bgmUserPaused = true;
+                bgmPauseFade(function() { bgmSetPlaying(false); });
+            }
+        }
+
+        // 视频开始播放 -> 暂停 BGM
+        function bgmOnVideoStart() {
+            if (bgmUserPaused) return;
+            if (bgmVideoPaused) return;
+            if (!bgmAudio || bgmAudio.paused) return;
+            bgmVideoPaused = true;
+            bgmFadeTo(0, BGM_FADE_MS, function() {
+                if (bgmVideoPaused && bgmAudio) { try { bgmAudio.pause(); } catch(e){} }
+            });
+            bgmSetPlaying(false);
+        }
+
+        // 视频结束/失焦 -> 恢复 BGM
+        function bgmOnVideoEnd() {
+            if (!bgmVideoPaused) return;
+            bgmVideoPaused = false;
+            if (bgmUserPaused) return;       // 尊重用户手动暂停
+            if (!bgmAudio) return;
+            var ok = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
+            var fail = function() { bgmWaitingGesture = true; bgmArmGesture(); };
+            var p = bgmAudio.play();
+            if (p && p.then) p.then(ok).catch(fail); else ok();
+        }
+
+        // 绑定 Bilibili 视频联动（iframe 无法直接监听，用焦点变化 + 点击近似处理）
+        function bgmBindVideoFocus() {
+            if (window._bgmFocusBound) return;
+            window._bgmFocusBound = true;
+            // 焦点进入 iframe（视频被操作）-> 暂停音乐
+            window.addEventListener('blur', function() {
+                setTimeout(function() {
+                    var ae = document.activeElement;
+                    if (ae && ae.tagName === 'IFRAME') bgmOnVideoStart();
+                }, 0);
+            });
+            // 焦点回到页面 -> 视频交互结束 -> 恢复音乐
+            window.addEventListener('focus', function() {
+                if (bgmVideoPaused) bgmOnVideoEnd();
+            });
+            // 兜底：点击视频容器区域
+            document.addEventListener('pointerdown', function(e) {
+                var t = e.target;
+                if (t && t.closest && t.closest('.timeline-video')) bgmOnVideoStart();
+            }, true);
+        }
+
+        // 初始化 BGM（进入回忆录后调用，确保不在加载阶段播放）
+        function initBGM() {
+            if (bgmInited) return;
+            bgmInited = true;
+            bgmAudio = new Audio();
+            bgmAudio.preload = 'auto';
+            bgmAudio.volume = 0;
+            bgmAudio.addEventListener('ended', function() {
+                if (bgmUserPaused) return;
+                bgmPlayNew(); // 一首结束自动播放新的随机曲
+            });
+            bgmAudio.addEventListener('error', function() {
+                if (bgmUserPaused) return;
+                setTimeout(function() { if (!bgmUserPaused) bgmPlayNew(); }, 1000); // 跳过坏链
+            });
+            var btn = document.getElementById('bgmToggle');
+            if (btn) {
+                btn.style.display = 'flex';
+                btn.addEventListener('click', bgmToggleClick);
+            }
+            bgmBindVideoFocus();
+            bgmPlayNew(); // 随机播放一首
+        }
+
         // ====== 预加载所有资源 ======
         let assetsLoaded = false;
+        let preloadedNodes = null;      // 预加载阶段获取的节点，供渲染复用
+
+        function preloadImage(url) {
+            return new Promise(function(resolve) {
+                var img = new Image();
+                img.onload = img.onerror = function() { resolve(); };
+                img.src = url;
+            });
+        }
+
+        // 真正预加载：从数据库获取所有 history_nodes 后，预加载图片、Bilibili 视频连接、BGM 音频
         function preloadAssets() {
             return new Promise(function(resolve) {
-                // 模拟资源加载（实际图片/视频可在此预加载）
-                setTimeout(function() {
-                    assetsLoaded = true;
-                    resolve();
-                }, 2500);
+                var done = false;
+                function finish() { if (done) return; done = true; assetsLoaded = true; resolve(); }
+                // 安全兜底：最多等待 6 秒，避免卡在加载阶段
+                setTimeout(finish, 6000);
+
+                loadHistoryNodesFromDB().then(function(nodes) {
+                    preloadedNodes = nodes || [];
+                    var tasks = [];
+                    // 1) 预加载所有图片 URL（images 字段）
+                    for (var i = 0; i < preloadedNodes.length; i++) {
+                        var imgs = preloadedNodes[i].images;
+                        if (imgs) {
+                            var urls = imgs.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+                            for (var k = 0; k < urls.length; k++) tasks.push(preloadImage(urls[k]));
+                        }
+                        // 1b) 预加载富文本内容中的图片
+                        var content = preloadedNodes[i].content || '';
+                        if (content.indexOf('<img') !== -1) {
+                            var imgRegex = /<img[^>]+src="([^"]+)"/gi;
+                            var match;
+                            while ((match = imgRegex.exec(content)) !== null) {
+                                tasks.push(preloadImage(match[1]));
+                            }
+                        }
+                        // 1c) 预加载背景图片
+                        if (preloadedNodes[i].bgImage) {
+                            tasks.push(preloadImage(preloadedNodes[i].bgImage));
+                        }
+                    }
+                    // 2) 预加载 Bilibili 视频：预热播放器与封面 CDN 连接（API 受 CORS 限制，用 preconnect 近似）
+                    if (!document.getElementById('bgmPreconnectPlayer')) {
+                        var pc1 = document.createElement('link');
+                        pc1.id = 'bgmPreconnectPlayer'; pc1.rel = 'preconnect'; pc1.href = 'https://player.bilibili.com';
+                        var pc2 = document.createElement('link');
+                        pc2.id = 'bgmPreconnectHdslb'; pc2.rel = 'preconnect'; pc2.href = 'https://i0.hdslb.com';
+                        document.head.appendChild(pc1);
+                        document.head.appendChild(pc2);
+                    }
+                    // 3) 预加载 BGM：提前缓存即将播放的第一首
+                    try {
+                        bgmPreloadIndex = bgmRandomIndex(-1);
+                        var a = new Audio();
+                        a.preload = 'auto';
+                        a.src = BGM_LIST[bgmPreloadIndex];
+                    } catch(e) {}
+                    Promise.all(tasks).then(finish).catch(finish);
+                }).catch(finish);
             });
         }
 
@@ -757,6 +1182,7 @@
             book.classList.add('active');
             initStarfield();
             renderMemoryPages();
+            initBGM();   // 进入回忆录后才启动背景音乐（不在加载阶段播放）
 
             // 页面滚动监听
             var pages = document.getElementById('memoryPages');
@@ -781,8 +1207,12 @@
             var daysToGaokao = Math.ceil((GAOKAO_DATE - now) / (1000 * 60 * 60 * 24));
             var peopleCount = userInfo.isStudent ? STUDENT_COUNT : TEACHER_COUNT;
 
-            // 从数据库读取时间节点数据
-            var nodes = await loadHistoryNodesFromDB();
+            // 优先复用预加载阶段已获取的节点数据，避免重复请求
+            var nodes = preloadedNodes;
+            preloadedNodes = null;
+            if (!nodes) {
+                nodes = await loadHistoryNodesFromDB();
+            }
             // 若没有数据，使用默认示例
             if (!nodes.length) {
                 nodes = [
@@ -821,6 +1251,11 @@
                         var titleFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
                         var contentStyle = node.fontColor ? 'color:' + node.fontColor + ';' : '';
                         var contentFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
+                        // 背景图片样式
+                        var bgStyle = '';
+                        if (node.bgImage) {
+                            bgStyle = 'background-image:url(' + node.bgImage + ');background-size:cover;background-position:center;';
+                        }
                         var videoHtml = '';
                         if (node.video) {
                             var bvid = extractBvid(node.video);
@@ -839,11 +1274,23 @@
                                 imagesHtml += '</div>';
                             }
                         }
-                        html += '<div class="memory-page timeline-page">' +
+                        // 内容渲染：检测是否为富文本（含HTML标签），是则直接渲染HTML（过滤script），否则转义
+                        var contentHtml = node.content || '';
+                        var isRichText = contentHtml.indexOf('<') !== -1 && contentHtml.indexOf('>') !== -1;
+                        if (isRichText) {
+                            // 基本安全过滤：移除 script 标签和 on 事件属性
+                            contentHtml = contentHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                                                     .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+                                                     .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+                                                     .replace(/javascript:/gi, '');
+                        } else {
+                            contentHtml = escapeHtml(contentHtml);
+                        }
+                        html += '<div class="memory-page timeline-page"' + (bgStyle ? ' style="' + bgStyle + '"' : '') + '>' +
                             '<div class="memory-card">' +
                             '<div class="timeline-date">' + escapeHtml(dateStr) + '</div>' +
                             '<div class="timeline-title" style="' + titleStyle + titleFont + '">' + escapeHtml(node.title || '') + '</div>' +
-                            '<div class="timeline-content" style="' + contentStyle + contentFont + '">' + escapeHtml(node.content || '') + '</div>' +
+                            '<div class="timeline-content' + (isRichText ? ' rich-text' : '') + '" style="' + contentStyle + contentFont + '">' + contentHtml + '</div>' +
                             imagesHtml +
                             videoHtml +
                             '</div></div>';
