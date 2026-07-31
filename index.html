@@ -3067,7 +3067,18 @@
                         var payload = {username: username, code: code, expires_at: expiresAt, used: false};
                         if (email) payload.email = email;
                         if (phone) payload.phone = phone;
-                        await sbRest('verify_codes', 'POST', payload);
+                        try {
+                            await sbRest('verify_codes', 'POST', payload);
+                        } catch(insertErr) {
+                            // phone 列可能不存在，去掉 phone 后重试
+                            if (insertErr.message && insertErr.message.indexOf('phone') !== -1) {
+                                var payloadNoPhone = Object.assign({}, payload);
+                                delete payloadNoPhone.phone;
+                                await sbRest('verify_codes', 'POST', payloadNoPhone);
+                            } else {
+                                throw insertErr;
+                            }
+                        }
                     } finally { dbHideStatus(); }
                     return;
                 }
