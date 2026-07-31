@@ -2648,9 +2648,11 @@
         let supabase = null;
         let USE_SUPABASE = SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co';
 
-        // ========== 短信验证码配置（Spug 推送平台） ==========
-        // 文档: https://push.spug.cc/guide/sms
-        // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
+        // ========== 短信验证码配置（Spug 推送平台 - 消息模板） ==========
+        // 文档: https://push.spug.cc/guide/send
+        // POST https://push.spug.cc/send/<TEMPLATE_CODE>
+        // 模板内容: 您的验证码是${code}，十分钟内有效，如非本人操作请忽略。
+        // 变量: code=验证码, targets=接收手机号
         var SPUG_SMS_TEMPLATE = 'Dw1GdmdgzE8l32qK';
 
         // Supabase REST API 封装（替代 SDK）
@@ -4766,12 +4768,13 @@
                         subject: '晚自习系统 - 注册验证码'
                     });
                 } else {
-                    // 短信发送：Spug 推送平台
-                    // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
-                    var smsUrl = 'https://push.spug.cc/sms/' + SPUG_SMS_TEMPLATE +
-                        '?to=' + encodeURIComponent(contact) +
-                        '&code=' + encodeURIComponent(code);
-                    var smsResp = await fetch(smsUrl);
+                    // 短信发送：Spug 推送平台（消息模板）
+                    // POST https://push.spug.cc/send/<TEMPLATE_CODE>
+                    var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TEMPLATE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code, targets: contact })
+                    });
                     var smsResult = await smsResp.json();
                     if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
                 }
@@ -5005,12 +5008,13 @@
             }
 
             try {
-                // 短信发送：Spug 推送平台
-                // GET https://push.spug.cc/sms/<TEMPLATE_CODE>?to=<手机号>&code=<验证码>
-                var smsUrl = 'https://push.spug.cc/sms/' + SPUG_SMS_TEMPLATE +
-                    '?to=' + encodeURIComponent(phone) +
-                    '&code=' + encodeURIComponent(code);
-                var smsResp = await fetch(smsUrl);
+                // 短信发送：Spug 推送平台（消息模板）
+                // POST https://push.spug.cc/send/<TEMPLATE_CODE>
+                var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TEMPLATE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, targets: phone })
+                });
                 var smsResult = await smsResp.json();
                 if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
 
