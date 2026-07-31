@@ -2697,6 +2697,10 @@
          *   used BOOLEAN NOT NULL DEFAULT false
          * );
          *
+         * -- 如表已存在且 email/phone 为 NOT NULL，执行以下语句改为可空：
+         * ALTER TABLE verify_codes ALTER COLUMN email DROP NOT NULL;
+         * ALTER TABLE verify_codes ALTER COLUMN phone DROP NOT NULL;
+         *
          * -- 3. 索引
          * CREATE INDEX idx_users_username ON users(username);
          * CREATE INDEX idx_users_email ON users(email);
@@ -3165,24 +3169,20 @@
                 if (USE_SUPABASE) {
                     dbShowStatus('保存验证码…', 'writing');
                     try {
-                        var payload = {username: username, code: code, expires_at: expiresAt, used: false, email: email || '', phone: phone || ''};
+                        // 始终保证 email 和 phone 不为 null（空字符串也满足 NOT NULL）
+                        var safeEmail = (email === null || email === undefined) ? '' : email;
+                        var safePhone = (phone === null || phone === undefined) ? '' : phone;
+                        var payload = {username: username, code: code, expires_at: expiresAt, used: false, email: safeEmail, phone: safePhone};
                         try {
                             await sbRest('verify_codes', 'POST', payload);
                         } catch(insertErr) {
-                            // phone 或 email 列可能不存在，逐步去掉后重试
+                            // phone 列可能不存在，去掉 phone 后重试（但保留 email）
                             var errMsg = insertErr.message || '';
-                            if (errMsg.indexOf('phone') !== -1 || errMsg.indexOf('email') !== -1) {
-                                var payloadSafe = {username: username, code: code, expires_at: expiresAt, used: false};
-                                try {
-                                    await sbRest('verify_codes', 'POST', payloadSafe);
-                                } catch(e2) {
-                                    // 仍然失败则只保存核心字段
-                                    if (e2.message && e2.message.indexOf('email') !== -1) {
-                                        await sbRest('verify_codes', 'POST', {username: username, code: code, expires_at: expiresAt, used: false, email: ''});
-                                    } else {
-                                        throw e2;
-                                    }
-                                }
+                            if (errMsg.indexOf('phone') !== -1) {
+                                await sbRest('verify_codes', 'POST', {username: username, code: code, expires_at: expiresAt, used: false, email: safeEmail});
+                            } else if (errMsg.indexOf('email') !== -1) {
+                                // email 列可能不存在，去掉 email 后重试（但保留 phone）
+                                await sbRest('verify_codes', 'POST', {username: username, code: code, expires_at: expiresAt, used: false, phone: safePhone});
                             } else {
                                 throw insertErr;
                             }
