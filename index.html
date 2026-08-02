@@ -2438,7 +2438,7 @@
     <div id="mainMenu" class="main-menu">
         <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">&#x1F4CB; 查看晚自习作业时间表</button>
         <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">&#x1F4E4; 发送通知至晚自习系统</button>
-        <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="window.location.href='/history'">&#x1F30C; 情怀：我们一起走过的日子</button>
+        <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">&#x1F30C; 情怀：我们一起走过的日子</button>
     </div>
 
     <!-- 个人中心视图 -->
@@ -7107,12 +7107,18 @@
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">&#x1F4AC; 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.6.0</div>
+    <div class="version-label">当前版本：v2.6.1</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>&#x1F4DC; 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">&times;</button></h2>
+
+            <h3>v2.6.1</h3>
+            <ul>
+                <li>修复"情怀"按钮未经过回忆录权限检查直接跳转的问题</li>
+                <li>修复验证码存储时email字段null约束违规问题</li>
+            </ul>
 
             <h3>v2.6.0</h3>
             <ul>
