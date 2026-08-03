@@ -611,9 +611,6 @@
                         };
                     });
                 }
-                // 数据库为空，自动写入两条默认节点
-                var seeded = await seedDefaultNodes();
-                if (seeded && seeded.length) return seeded;
                 return [];
             } catch(e) {
                 console.warn('从数据库加载回忆录节点失败，回退到 localStorage:', e);
@@ -636,54 +633,6 @@
                     return saved ? JSON.parse(saved) : [];
                 } catch(e2) { return []; }
             }
-        }
-
-        // 数据库为空时自动写入默认节点（使后台可修改/删除）
-        var DEFAULT_NODES = [
-            { node_date: '2026-03-14', title: '班级成立', content: '高二（13）班正式成立，来自不同班级的我们汇聚在一起，开始了新的征程。' },
-            { node_date: '2026-04-01', title: '第一次月考', content: '全年级第一次统一考试，13班整体表现优异，班级凝聚力初显。' }
-        ];
-
-        async function seedDefaultNodes() {
-            var results = [];
-            for (var i = 0; i < DEFAULT_NODES.length; i++) {
-                var d = DEFAULT_NODES[i];
-                try {
-                    var resp = await fetch(SUPABASE_URL + '/rest/v1/history_nodes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-                        body: JSON.stringify({
-                            node_date: d.node_date,
-                            title: d.title,
-                            content: d.content,
-                            font_family: '',
-                            font_color: '',
-                            images: '',
-                            video: '',
-                            background_image: ''
-                        })
-                    });
-                    if (resp.ok) {
-                        var row = await resp.json();
-                        if (row && row[0]) {
-                            results.push({
-                                id: row[0].id,
-                                date: row[0].node_date,
-                                title: row[0].title,
-                                content: row[0].content,
-                                fontFamily: '',
-                                fontColor: '',
-                                images: '',
-                                video: '',
-                                bgImage: ''
-                            });
-                        }
-                    }
-                } catch(e) {
-                    console.warn('写入默认节点失败:', e);
-                }
-            }
-            return results;
         }
 
         // 当前用户信息（从移动端登录态读取）
@@ -1263,13 +1212,6 @@
             preloadedNodes = null;
             if (!nodes) {
                 nodes = await loadHistoryNodesFromDB();
-            }
-            // 若仍没有数据（数据库不可用且 localStorage 也为空），使用临时默认数据
-            if (!nodes.length) {
-                nodes = [
-                    { date: '2026-03-14', title: '班级成立', content: '高二（13）班正式成立，来自不同班级的我们汇聚在一起，开始了新的征程。', fontFamily: '', fontColor: '', video: '', bgImage: '' },
-                    { date: '2026-04-01', title: '第一次月考', content: '全年级第一次统一考试，13班整体表现优异，班级凝聚力初显。', fontFamily: '', fontColor: '', video: '', bgImage: '' }
-                ];
             }
 
             var html = '';
