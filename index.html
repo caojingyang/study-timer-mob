@@ -1904,12 +1904,12 @@
                 <!-- 步骤1：输入用户名查询 -->
                 <div id="recoverStep1">
                     <h3>&#x1F511; 密码找回</h3>
-                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请输入用户名查询账号信息</p>
+                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请输入用户名</p>
                     <div class="form-group">
                         <label>用户名</label>
                         <input type="text" id="recUsername" placeholder="请输入用户名">
                     </div>
-                    <button class="btn-primary" onclick="queryUserForReset()">查询</button>
+                    <button class="btn-primary" onclick="queryUserForReset()">重置密码</button>
                     <div class="msg" id="recMsg"></div>
 
                     <!-- 查询结果：选择重置方式 -->
@@ -4875,7 +4875,21 @@
                 document.getElementById('registerStep2').classList.add('hidden');
                 _regAutoSent = false;
             }
-            if(mode === 'recover') document.getElementById('recoverForm').classList.remove('hidden');
+            if(mode === 'recover') {
+                document.getElementById('recoverForm').classList.remove('hidden');
+                // 隐藏上次查询结果，重置状态
+                var resetMethodArea = document.getElementById('resetMethodArea');
+                if (resetMethodArea) resetMethodArea.classList.add('hidden');
+                var resetEmailSent = document.getElementById('resetEmailSent');
+                if (resetEmailSent) resetEmailSent.classList.add('hidden');
+                var resetVerifyHint = document.getElementById('resetVerifyHint');
+                if (resetVerifyHint) { resetVerifyHint.textContent = ''; resetVerifyHint.className = 'verify-hint'; }
+                var resetSendCodeBtn = document.getElementById('resetSendCodeBtn');
+                if (resetSendCodeBtn) { resetSendCodeBtn.disabled = false; resetSendCodeBtn.textContent = '发送验证码'; }
+                _resetTargetUser = null;
+                if (_resetCountdownTimer) { clearInterval(_resetCountdownTimer); _resetCountdownTimer = null; }
+                if (_resetLinkCountdownTimer) { clearInterval(_resetLinkCountdownTimer); _resetLinkCountdownTimer = null; }
+            }
             ['loginMsg','regMsg','recMsg','recResetMsg','linkResetMsg'].forEach(function(id) { var el = document.getElementById(id); if(el) { el.textContent = ''; el.className = 'msg'; } });
             // 重置密码找回身份选择
             recSelectedRole = '';
