@@ -984,7 +984,6 @@
             color: #3b82f6;
             background: #eff6ff;
         }
-        #regEmailRequired { color: #1e293b; }
         .reg-optional-hint {
             color: #94a3b8;
             font-size: 0.75rem;
@@ -1832,66 +1831,73 @@
             </div>
             <!-- 注册表单 -->
             <div id="registerForm" class="hidden">
-                <h3>&#x1F4DD; 用户注册</h3>
-                <!-- 身份选择 -->
-                <div class="role-selector">
-                    <div class="role-btn active" onclick="selectRole(this,'teacher')" data-role="teacher">教师</div>
-                    <div class="role-btn" onclick="selectRole(this,'student')" data-role="student">学生</div>
-                </div>
-                <div class="form-group hidden" id="regRealnameGroup">
-                    <label>真实姓名 *</label>
-                    <input type="text" id="regRealname" placeholder="请输入真实姓名">
-                    <div class="reg-hint" id="regRealnameHint" style="font-size:0.72rem;color:#f59e0b;margin-top:0.25rem;">&#x26A0; 请如实填写真实姓名，此信息将用于后期功能权限授予（如回忆录访问等）</div>
-                </div>
-                <div class="form-group">
-                    <label>用户名 *</label>
-                    <input type="text" id="regUsername" placeholder="请输入用户名">
-                </div>
-                <!-- 联系方式 -->
-                <div class="form-group">
-                    <label>联系方式 *</label>
-                    <div class="contact-type-selector" id="contactTypeSelector">
-                        <div class="contact-type-btn active" onclick="selectContactType(this,'email')" data-type="email">邮箱</div>
-                        <div class="contact-type-btn" onclick="selectContactType(this,'phone')" data-type="phone">手机号</div>
+                <!-- 步骤1：选择身份 -->
+                <div id="registerStep1">
+                    <h3>&#x1F4DD; 用户注册</h3>
+                    <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请选择您的身份</p>
+                    <div class="role-selector">
+                        <div class="role-btn active" onclick="selectRole(this,'teacher')" data-role="teacher">教师</div>
+                        <div class="role-btn" onclick="selectRole(this,'student')" data-role="student">学生</div>
                     </div>
-                    <input type="email" id="regEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;" onblur="autoSendRegVerifyCode()">
-                    <input type="tel" id="regPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;" onblur="autoSendRegVerifyCode()">
-                </div>
-                <!-- 验证码 -->
-                <div class="form-group">
-                    <label>验证码 *</label>
-                    <div class="verify-code-row">
-                        <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6">
-                        <button class="btn-secondary" id="sendCodeBtn" onclick="sendRegisterVerifyCode()">发送验证码</button>
+                    <button class="btn-primary" onclick="goToRegisterStep2()">下一步</button>
+                    <div style="text-align:center;margin-top:0.6rem;">
+                        <button class="btn-text" onclick="showAuth('login')">已有账号？去登录</button>
                     </div>
-                    <div class="verify-hint" id="verifyHint"></div>
                 </div>
-                <div class="form-group">
-                    <label>密码 * <span class="pwd-hint">(至少6位，含字母、数字、特殊字符中至少两项)</span></label>
-                    <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)">
-                    <div class="password-strength" id="passwordStrength"></div>
+                <!-- 步骤2：填写信息 -->
+                <div id="registerStep2" class="hidden">
+                    <h3 id="regStep2Title">&#x1F4DD; 用户注册</h3>
+                    <div class="form-group hidden" id="regRealnameGroup">
+                        <label>真实姓名 *</label>
+                        <input type="text" id="regRealname" placeholder="请输入真实姓名">
+                        <div class="reg-hint" id="regRealnameHint" style="font-size:0.72rem;color:#f59e0b;margin-top:0.25rem;">&#x26A0; 请如实填写真实姓名，此信息将用于后期功能权限授予（如回忆录访问等）</div>
+                    </div>
+                    <div class="form-group">
+                        <label>用户名 *</label>
+                        <input type="text" id="regUsername" placeholder="请输入用户名">
+                    </div>
+                    <!-- 联系方式（智能识别） -->
+                    <div class="form-group">
+                        <label>手机号 / 邮箱 *</label>
+                        <input type="text" id="regContact" placeholder="请输入手机号或邮箱" onblur="autoSendRegVerifyCode()" oninput="onRegContactInput()">
+                        <div class="verify-hint" id="contactHint"></div>
+                    </div>
+                    <!-- 验证码 -->
+                    <div class="form-group">
+                        <label>验证码 *</label>
+                        <div class="verify-code-row">
+                            <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6">
+                            <button class="btn-secondary" id="sendCodeBtn" onclick="sendRegisterVerifyCode()">发送验证码</button>
+                        </div>
+                        <div class="verify-hint" id="verifyHint"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>密码 * <span class="pwd-hint">(至少6位，含字母、数字、特殊字符中至少两项)</span></label>
+                        <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)">
+                        <div class="password-strength" id="passwordStrength"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>确认密码 *</label>
+                        <input type="password" id="regPasswordConfirm" placeholder="再次输入密码">
+                    </div>
+                    <div class="form-group" id="regSubjectGroup">
+                        <label>任教学科</label>
+                        <select id="regSubject">
+                            <option value="">请选择学科</option>
+                            <option value="语文">语文</option>
+                            <option value="数学">数学</option>
+                            <option value="英语">英语</option>
+                            <option value="物理">物理</option>
+                            <option value="化学">化学</option>
+                            <option value="生物">生物</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="doRegister()">注册</button>
+                    <div style="text-align:center;margin-top:0.6rem;">
+                        <button class="btn-text" onclick="goToRegisterStep1()">返回上一步</button>
+                    </div>
+                    <div class="msg" id="regMsg"></div>
                 </div>
-                <div class="form-group">
-                    <label>确认密码 *</label>
-                    <input type="password" id="regPasswordConfirm" placeholder="再次输入密码">
-                </div>
-                <div class="form-group" id="regSubjectGroup">
-                    <label>任教学科</label>
-                    <select id="regSubject">
-                        <option value="">请选择学科</option>
-                        <option value="语文">语文</option>
-                        <option value="数学">数学</option>
-                        <option value="英语">英语</option>
-                        <option value="物理">物理</option>
-                        <option value="化学">化学</option>
-                        <option value="生物">生物</option>
-                    </select>
-                </div>
-                <button class="btn-primary" onclick="doRegister()">注册</button>
-                <div style="text-align:center;margin-top:0.6rem;">
-                    <button class="btn-text" onclick="showAuth('login')">已有账号？去登录</button>
-                </div>
-                <div class="msg" id="regMsg"></div>
             </div>
             <!-- 密码找回表单 -->
             <div id="recoverForm" class="hidden">
@@ -4793,14 +4799,38 @@
         const LS_SENT_KEY = 'mobile_sent_history';
         // currentUser 已在脚本开头声明
         let regRole = 'teacher'; // 注册时的角色选择
-        // 默认隐藏邮箱必填标记、显示选填提示（教师注册时邮箱选填）
+        let regContactType = 'phone'; // 智能识别后的联系方式类型
+
+        // 智能识别手机号/邮箱
+        function detectContactType(contact) {
+            if (/^1[3-9]\d{9}$/.test(contact)) return 'phone';
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return 'email';
+            return null;
+        }
+
+        // 注册步骤切换：步骤1（身份选择）→ 步骤2（信息填写）
+        function goToRegisterStep2() {
+            document.getElementById('registerStep1').classList.add('hidden');
+            document.getElementById('registerStep2').classList.remove('hidden');
+            // 根据身份调整表单
+            if (regRole === 'student') {
+                document.getElementById('regSubjectGroup').classList.add('hidden');
+                document.getElementById('regRealnameGroup').classList.remove('hidden');
+                document.getElementById('regStep2Title').textContent = '学生注册';
+            } else {
+                document.getElementById('regSubjectGroup').classList.remove('hidden');
+                document.getElementById('regRealnameGroup').classList.add('hidden');
+                document.getElementById('regStep2Title').textContent = '教师注册';
+            }
+        }
+
+        function goToRegisterStep1() {
+            document.getElementById('registerStep2').classList.add('hidden');
+            document.getElementById('registerStep1').classList.remove('hidden');
+        }
         document.addEventListener('DOMContentLoaded', async function() {
-            var star = document.getElementById('regEmailRequired');
-            var optional = document.getElementById('regEmailOptional');
-            if (star) star.style.display = 'none';
-            if (optional) optional.style.display = '';
             // 注册输入框输入时自动清除错误边框
-            ['regRealname','regUsername','regEmail','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
+            ['regRealname','regUsername','regContact','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
                 var el = document.getElementById(id);
                 if (el) el.addEventListener('input', function() { this.classList.remove('input-error'); });
             });
@@ -4839,7 +4869,12 @@
             document.getElementById('recoverStep2').classList.add('hidden');
             document.getElementById('recoverStep3').classList.add('hidden');
             if(mode === 'login') document.getElementById('loginForm').classList.remove('hidden');
-            if(mode === 'register') document.getElementById('registerForm').classList.remove('hidden');
+            if(mode === 'register') {
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('registerStep1').classList.remove('hidden');
+                document.getElementById('registerStep2').classList.add('hidden');
+                _regAutoSent = false;
+            }
             if(mode === 'recover') document.getElementById('recoverForm').classList.remove('hidden');
             ['loginMsg','regMsg','recMsg','recResetMsg','linkResetMsg'].forEach(function(id) { var el = document.getElementById(id); if(el) { el.textContent = ''; el.className = 'msg'; } });
             // 重置密码找回身份选择
@@ -4860,45 +4895,46 @@
         }
         // 注意：已删除 authOverlay 上的 click 事件监听器，点击遮罩不再关闭弹窗
 
-        // 身份选择（注册表单）
+        // 身份选择（注册表单步骤1）
         function selectRole(el, role) {
             document.querySelectorAll('.role-btn').forEach(function(b){ b.classList.remove('active'); });
             el.classList.add('active');
             regRole = role;
-            // 学生显示真实姓名，隐藏学科；教师隐藏真实姓名，显示学科
-            if (role === 'student') {
-                document.getElementById('regSubjectGroup').classList.add('hidden');
-                document.getElementById('regRealnameGroup').classList.remove('hidden');
-            } else {
-                document.getElementById('regSubjectGroup').classList.remove('hidden');
-                document.getElementById('regRealnameGroup').classList.add('hidden');
-            }
         }
 
-        // 联系方式类型选择（注册表单）
-        let regContactType = 'email';
-        function selectContactType(el, type) {
-            document.querySelectorAll('#contactTypeSelector .contact-type-btn').forEach(function(b){ b.classList.remove('active'); });
-            el.classList.add('active');
-            regContactType = type;
-            if (type === 'email') {
-                document.getElementById('regEmail').classList.remove('hidden');
-                document.getElementById('regPhone').classList.add('hidden');
-            } else {
-                document.getElementById('regEmail').classList.add('hidden');
-                document.getElementById('regPhone').classList.remove('hidden');
-            }
-            // 切换后若已填写有效联系方式，自动发送验证码
-            setTimeout(function(){ autoSendRegVerifyCode(); }, 300);
-        }
-
-        // 注册验证码自动发送（blur时触发）
+        // 联系方式输入时重置自动发送状态
         var _regAutoSent = false;
+        function onRegContactInput() {
+            _regAutoSent = false;
+            var hint = document.getElementById('contactHint');
+            if (hint) { hint.textContent = ''; hint.className = 'verify-hint'; }
+            var verifyHint = document.getElementById('verifyHint');
+            if (verifyHint) { verifyHint.textContent = ''; verifyHint.className = 'verify-hint'; }
+        }
+
+        // 注册验证码自动发送（blur时触发，智能识别手机号/邮箱）
         function autoSendRegVerifyCode() {
-            var contact = regContactType === 'email' ? document.getElementById('regEmail').value.trim() : document.getElementById('regPhone').value.trim();
-            if (!contact) return;
-            if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return;
-            if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) return;
+            var contactEl = document.getElementById('regContact');
+            var contact = contactEl ? contactEl.value.trim() : '';
+            var hint = document.getElementById('contactHint');
+            if (!contact) {
+                if (hint) { hint.textContent = ''; hint.className = 'verify-hint'; }
+                return;
+            }
+            var type = detectContactType(contact);
+            if (!type) {
+                if (hint) {
+                    hint.textContent = '请输入正确的手机号或邮箱';
+                    hint.className = 'verify-hint error';
+                }
+                regContactType = null;
+                return;
+            }
+            regContactType = type;
+            if (hint) {
+                hint.textContent = '已识别为' + (type === 'email' ? '邮箱' : '手机号') + '，正在发送验证码…';
+                hint.className = 'verify-hint';
+            }
             // 避免重复自动发送
             if (_regAutoSent) return;
             _regAutoSent = true;
@@ -5053,7 +5089,7 @@
             return true;
         }
         function clearRegErrors() {
-            ['regRealname','regUsername','regEmail','regPhone','regVerifyCode','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
+            ['regRealname','regUsername','regContact','regVerifyCode','regPassword','regPasswordConfirm','regSubject'].forEach(function(id){
                 var el = document.getElementById(id);
                 if (el) el.classList.remove('input-error');
             });
@@ -5114,33 +5150,23 @@
         async function sendRegisterVerifyCode(autoSend) {
             var btn = document.getElementById('sendCodeBtn');
             var hint = document.getElementById('verifyHint');
-            var contact = regContactType === 'email' ? document.getElementById('regEmail').value.trim() : document.getElementById('regPhone').value.trim();
+            var contactEl = document.getElementById('regContact');
+            var contact = contactEl ? contactEl.value.trim() : '';
 
-            if (!autoSend) {
-                if (!contact) {
-                    hint.textContent = '请先填写' + (regContactType === 'email' ? '邮箱' : '手机号');
+            // 智能识别联系方式类型
+            var type = detectContactType(contact);
+            if (!type) {
+                if (!autoSend) {
+                    hint.textContent = contact ? '请输入正确的手机号或邮箱' : '请先填写手机号或邮箱';
                     hint.className = 'verify-hint error';
-                    return;
                 }
-                if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-                    hint.textContent = '邮箱格式不正确';
-                    hint.className = 'verify-hint error';
-                    return;
-                }
-                if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
-                    hint.textContent = '手机号格式不正确';
-                    hint.className = 'verify-hint error';
-                    return;
-                }
-            } else if (!contact) {
-                return; // 自动发送时若联系信息未填则静默返回
+                return;
             }
+            regContactType = type;
 
             btn.disabled = true;
-            if (!autoSend) {
-                hint.textContent = '正在发送…';
-                hint.className = 'verify-hint';
-            }
+            hint.textContent = '正在发送…';
+            hint.className = 'verify-hint';
 
             var username = document.getElementById('regUsername').value.trim() || 'temp_' + Date.now();
             var code, expiresAt;
@@ -5206,8 +5232,7 @@
                 clearRegErrors();
                 var realname = document.getElementById('regRealname').value.trim();
                 var username = document.getElementById('regUsername').value.trim();
-                var email = document.getElementById('regEmail').value.trim();
-                var phone = document.getElementById('regPhone').value.trim();
+                var contact = document.getElementById('regContact').value.trim();
                 var pw = document.getElementById('regPassword').value;
                 var pwConfirm = document.getElementById('regPasswordConfirm').value;
                 var subject = document.getElementById('regSubject').value;
@@ -5215,7 +5240,8 @@
                 msg.textContent = '';
                 msg.className = 'msg';
 
-                var contact = regContactType === 'email' ? email : phone;
+                // 智能识别联系方式类型
+                regContactType = detectContactType(contact);
                 var contactLabel = regContactType === 'email' ? '邮箱' : '手机号';
 
                 // 自上往下依次验证
@@ -5226,13 +5252,10 @@
                     return markRegError('regUsername', '请填写用户名');
                 }
                 if (!contact) {
-                    return markRegError(regContactType === 'email' ? 'regEmail' : 'regPhone', '请填写' + contactLabel);
+                    return markRegError('regContact', '请填写手机号或邮箱');
                 }
-                if (regContactType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-                    return markRegError('regEmail', '邮箱格式不正确');
-                }
-                if (regContactType === 'phone' && !/^1[3-9]\d{9}$/.test(contact)) {
-                    return markRegError('regPhone', '手机号格式不正确');
+                if (!regContactType) {
+                    return markRegError('regContact', '请输入正确的手机号或邮箱');
                 }
                 if (!pw) {
                     return markRegError('regPassword', '请填写密码');
@@ -5297,9 +5320,12 @@
                     permissions: permissions,
                     is_admin: isAdmin
                 });
-                msg.textContent = '注册成功！请登录。'; msg.className = 'msg success';
-                dbShowStatus('注册成功', 'success');
-                setTimeout(function(){ showAuth('login'); }, 1500);
+                msg.innerHTML = '&#x2705; 注册成功！请立即登录。'; msg.className = 'msg success';
+                dbShowStatus('注册成功！请立即登录', 'success');
+                // 预填用户名到登录表单，方便用户直接登录
+                var loginUsername = document.getElementById('loginUsername');
+                if (loginUsername) loginUsername.value = username;
+                setTimeout(function(){ showAuth('login'); }, 2000);
             } catch(e) {
                 var msgEl = document.getElementById('regMsg');
                 if (msgEl) {
