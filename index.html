@@ -10,6 +10,20 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        html {
+            touch-action: manipulation;
+        }
+
+        /* 全局按钮触摸优化 */
+        button, .role-btn, .contact-type-btn, .menu-btn, select, input[type="submit"], input[type="button"] {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .admin-btn-primary, .admin-btn-secondary, .admin-btn-sm, .admin-btn-del, .admin-btn-edit, .admin-btn-cancel, .admin-modal-close {
+            transition: all 0.05s ease !important;
         }
 
         body {
@@ -822,6 +836,7 @@
             margin-top: 0.35rem;
         }
         .auth-panel .btn-primary:hover { opacity: 0.9; }
+        .auth-panel .btn-primary:active { transform: scale(0.96); opacity: 0.85; }
         .auth-panel .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -833,7 +848,10 @@
             font-size: 0.8rem;
             cursor: pointer;
             text-decoration: underline;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
+        .auth-panel .btn-text:active { opacity: 0.6; }
         .auth-panel .msg {
             font-size: 0.8rem;
             text-align: center;
@@ -867,6 +885,7 @@
             background: #eff6ff;
             color: #2563eb;
         }
+        .role-btn:active { transform: scale(0.95); }
 
         /* 联系方式类型选择 */
         .contact-type-selector {
@@ -892,6 +911,7 @@
             background: #eff6ff;
             color: #2563eb;
         }
+        .contact-type-btn:active { transform: scale(0.95); }
 
         /* 验证码输入行 */
         .verify-code-row {
@@ -906,7 +926,18 @@
             padding: 0.45rem 0.7rem;
             font-size: 0.8rem;
             white-space: nowrap;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.05s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
+        .verify-code-row .btn-secondary:active { transform: scale(0.94); opacity: 0.85; }
+        .verify-code-row .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
         .verify-hint {
             font-size: 0.75rem;
             color: #6b7280;
@@ -957,6 +988,33 @@
         .btn-send-code:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        .btn-send-code:active { transform: scale(0.94); }
+
+        /* 回忆录编辑器工具栏按钮优化 */
+        #historyNodeModal button,
+        #historyNodeModal select,
+        #historyNodeModal input[type="color"] {
+            transition: transform 0.05s ease, background-color 0.05s ease !important;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #historyNodeModal button:active {
+            transform: scale(0.92) !important;
+            opacity: 0.8;
+        }
+        #historyNodeModal button[type="button"]:active {
+            background: #475569 !important;
+        }
+        #historyNodeModal select:active,
+        #historyNodeModal input[type="color"]:active {
+            transform: scale(0.95);
+        }
+        /* 编辑区触摸优化 */
+        #hnEditor {
+            touch-action: pan-y;
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         /* 密码找回身份选择 */
@@ -2086,6 +2144,14 @@
                             <button class="admin-btn-primary" style="margin-top:0;" onclick="adminBatchPerm()">应用</button>
                             <div class="msg" id="adminPermMsg" style="font-size:0.78rem;width:100%;margin-top:0.3rem;min-height:1rem;"></div>
                         </div>
+
+                        <!-- 批量删除用户 -->
+                        <div class="admin-batch-bar" style="margin-top:0.6rem;border-top:2px solid #ef4444;">
+                            <h4 style="color:#ef4444;">批量删除用户</h4>
+                            <p style="font-size:0.75rem;color:#6b7280;width:100%;margin-bottom:0.3rem;">勾选上方用户后点击删除，需验证管理员密码并二次确认</p>
+                            <button class="admin-btn-del" style="margin-top:0;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;border:none;border-radius:0.6rem;" onclick="adminBatchDeleteStart()">批量删除选中用户</button>
+                            <div class="msg" id="adminDeleteMsg" style="font-size:0.78rem;width:100%;margin-top:0.3rem;min-height:1rem;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -2314,44 +2380,28 @@
                     </div>
                 </div>
 
-                <!-- 花名册管理（可折叠） -->
-                <div class="admin-section" id="sectionRoster">
-                    <div class="admin-section-header" onclick="toggleAdminSection('sectionRoster')">
-                        <h3>&#x1F4D6; 花名册管理</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-                    </div>
-                    <div class="admin-section-body">
-                        <p class="admin-hint">管理13班花名册。在花名册中的学生可访问回忆录页面。可批量导入或逐个添加。</p>
-                        <div class="admin-form-row">
-                            <div class="admin-form-group">
-                                <label>姓名 *</label>
-                                <input type="text" class="admin-form-input" id="rosterName" placeholder="学生真实姓名">
-                            </div>
-                            <div class="admin-form-group">
-                                <label>班级分组</label>
-                                <select class="admin-form-select" id="rosterGroup">
-                                    <option value="13班">13班</option>
-                                    <option value="非13班">非13班</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button class="admin-btn-primary" onclick="addRosterEntry()">添加</button>
-                        <div class="msg" id="rosterMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
-                        <div style="margin-top:0.8rem;">
-                            <label style="font-size:0.8rem;color:#475563;">批量导入（每行一个姓名，默认13班）</label>
-                            <textarea class="admin-textarea" id="rosterBatchInput" placeholder="张三&#10;李四&#10;王五" style="min-height:80px;margin-top:0.3rem;"></textarea>
-                            <button class="admin-btn-secondary" onclick="batchAddRoster()" style="margin-top:0.3rem;">批量导入</button>
-                        </div>
-                        <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
-                            <input type="text" class="admin-form-input" id="rosterSearch" placeholder="搜索姓名..." oninput="renderRoster()" style="flex:1;">
-                            <select class="admin-form-select" id="rosterFilter" onchange="renderRoster()" style="width:100px;">
-                                <option value="">全部</option>
-                                <option value="13班">13班</option>
-                                <option value="非13班">非13班</option>
-                            </select>
-                        </div>
-                        <div style="margin-top:0.8rem;" id="rosterList"></div>
-                    </div>
+                <!-- 花名册管理已移除 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量删除用户密码验证弹窗 -->
+    <div class="admin-modal-overlay" id="batchDeleteModal">
+        <div class="admin-modal" style="max-width:24rem;">
+            <h3>
+                <button class="admin-modal-close" onclick="closeBatchDeleteModal()">&times;</button>
+                &#x1F6A8; 批量删除用户
+            </h3>
+            <div style="padding:0 1.5rem 1.5rem;">
+                <p id="batchDeleteUserList" style="font-size:0.8rem;color:#374151;margin-bottom:0.8rem;background:#fef2f2;padding:0.6rem;border-radius:0.4rem;border:1px solid #fecaca;"></p>
+                <div class="form-group">
+                    <label style="font-size:0.82rem;color:#374151;font-weight:600;">管理员密码 *</label>
+                    <input type="password" id="batchDeleteAdminPwd" placeholder="请输入当前管理员密码" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;margin-top:0.25rem;">
+                </div>
+                <div class="msg" id="batchDeleteMsg" style="font-size:0.78rem;min-height:1rem;margin-top:0.4rem;"></div>
+                <div style="display:flex;gap:0.6rem;margin-top:0.8rem;justify-content:flex-end;">
+                    <button class="admin-btn-cancel" onclick="closeBatchDeleteModal()">取消</button>
+                    <button class="admin-btn-del" id="batchDeleteConfirmBtn" style="padding:0.5rem 1.2rem;font-size:0.82rem;font-weight:700;border:none;border-radius:0.5rem;" onclick="adminBatchDeleteExecute()">确认删除</button>
                 </div>
             </div>
         </div>
@@ -2743,17 +2793,6 @@
          *
          * -- 如表已存在，执行以下语句添加新列：
          * ALTER TABLE history_nodes ADD COLUMN IF NOT EXISTS background_image TEXT DEFAULT '';
-         *
-         * -- 6. 花名册表
-         * CREATE TABLE IF NOT EXISTS student_roster (
-         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-         *   real_name TEXT NOT NULL,
-         *   class_group TEXT NOT NULL DEFAULT '13班',
-         *   created_at TIMESTAMPTZ DEFAULT now()
-         * );
-         * CREATE INDEX IF NOT EXISTS idx_roster_name ON student_roster(real_name);
-         * ALTER TABLE student_roster ENABLE ROW LEVEL SECURITY;
-         * CREATE POLICY "Allow all on student_roster" ON student_roster FOR ALL USING (true) WITH CHECK (true);
          */
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
@@ -4134,6 +4173,120 @@
             }
         }
 
+        // ====== 批量删除用户（含管理员密码验证 + 2次确认）======
+        var _batchDeleteUsernames = [];
+
+        function adminBatchDeleteStart() {
+            var msg = document.getElementById('adminDeleteMsg');
+            var checks = document.querySelectorAll('.admin-user-check:checked');
+            if (checks.length === 0) {
+                msg.textContent = '请先勾选要删除的用户';
+                msg.className = 'msg error';
+                return;
+            }
+            _batchDeleteUsernames = [];
+            for (var i = 0; i < checks.length; i++) {
+                _batchDeleteUsernames.push(checks[i].dataset.username);
+            }
+            // 防止删除自己
+            if (_batchDeleteUsernames.indexOf(currentUser.username) >= 0) {
+                msg.textContent = '不能删除当前登录的管理员账号';
+                msg.className = 'msg error';
+                return;
+            }
+            // 第一次确认
+            if (!confirm('确定要删除选中的 ' + _batchDeleteUsernames.length + ' 个用户吗？\n\n此操作不可撤销，将永久删除这些用户的所有数据。')) {
+                return;
+            }
+            // 显示密码验证弹窗
+            var listEl = document.getElementById('batchDeleteUserList');
+            listEl.textContent = '即将删除以下 ' + _batchDeleteUsernames.length + ' 个用户：\n' + _batchDeleteUsernames.join('、');
+            listEl.style.whiteSpace = 'pre-wrap';
+            document.getElementById('batchDeleteAdminPwd').value = '';
+            var msgEl = document.getElementById('batchDeleteMsg');
+            msgEl.textContent = ''; msgEl.className = 'msg';
+            document.getElementById('batchDeleteModal').classList.add('active');
+        }
+
+        function closeBatchDeleteModal() {
+            document.getElementById('batchDeleteModal').classList.remove('active');
+            _batchDeleteUsernames = [];
+        }
+
+        async function adminBatchDeleteExecute() {
+            var pwd = document.getElementById('batchDeleteAdminPwd').value;
+            var msgEl = document.getElementById('batchDeleteMsg');
+            var btn = document.getElementById('batchDeleteConfirmBtn');
+
+            if (!pwd) {
+                msgEl.textContent = '请输入管理员密码';
+                msgEl.className = 'msg error';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '验证中…';
+            msgEl.textContent = ''; msgEl.className = 'msg';
+
+            try {
+                // 验证管理员密码
+                var adminUser = await DB.findByUsername(currentUser.username);
+                if (!adminUser) {
+                    msgEl.textContent = '无法获取管理员信息';
+                    msgEl.className = 'msg error';
+                    btn.disabled = false;
+                    btn.textContent = '确认删除';
+                    return;
+                }
+                var hash = await sha256(pwd);
+                if (hash !== adminUser.password) {
+                    msgEl.textContent = '管理员密码错误';
+                    msgEl.className = 'msg error';
+                    btn.disabled = false;
+                    btn.textContent = '确认删除';
+                    return;
+                }
+
+                // 第二次确认
+                if (!confirm('最后确认：即将永久删除 ' + _batchDeleteUsernames.length + ' 个用户及其所有数据，此操作不可撤销！\n\n确定继续吗？')) {
+                    btn.disabled = false;
+                    btn.textContent = '确认删除';
+                    return;
+                }
+
+                // 执行删除
+                btn.textContent = '删除中…';
+                var deleted = 0, failed = 0;
+                for (var i = 0; i < _batchDeleteUsernames.length; i++) {
+                    try {
+                        await DB.deleteUser(_batchDeleteUsernames[i]);
+                        deleted++;
+                    } catch(e) {
+                        console.error('删除用户失败:', _batchDeleteUsernames[i], e);
+                        failed++;
+                    }
+                }
+
+                _sbInvalidateCache();
+                renderAdminUserTable();
+                closeBatchDeleteModal();
+
+                var resultMsg = document.getElementById('adminDeleteMsg');
+                resultMsg.textContent = '成功删除 ' + deleted + ' 个用户' + (failed > 0 ? '，失败 ' + failed + ' 个' : '');
+                resultMsg.className = 'msg ' + (failed > 0 ? 'error' : 'success');
+
+                // 取消全选
+                var checkAll = document.getElementById('adminCheckAll');
+                if (checkAll) checkAll.checked = false;
+            } catch(e) {
+                msgEl.textContent = '操作失败：' + (e.message || '网络错误');
+                msgEl.className = 'msg error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '确认删除';
+            }
+        }
+
         // IP 封禁
         async function adminAddBan() {
             var ip = document.getElementById('adminBanIP').value.trim();
@@ -4620,164 +4773,13 @@
             return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        // ====== 花名册管理 ======
-        var _rosterCache = [];
+        // ====== 花名册管理已移除 ======
 
-        async function loadRoster() {
-            if (USE_SUPABASE) {
-                try {
-                    var rows = await sbGet('student_roster', null, null, 'id,real_name,class_group');
-                    _rosterCache = rows || [];
-                } catch(e) {
-                    console.warn('加载花名册失败:', e);
-                    _rosterCache = [];
-                }
-            } else {
-                _rosterCache = JSON.parse(localStorage.getItem('mobile_roster') || '[]');
-            }
-            return _rosterCache;
-        }
-
-        // 检查用户是否有回忆录访问权限
-        async function checkHistoryPermission(user) {
-            if (!user) return false;
-            // 教师默认有权限
-            var role = user.user_metadata ? user.user_metadata.role : (user.role || 'teacher');
-            if (role === 'teacher') return true;
-            // 学生需在花名册中
-            var realname = (user.realname || '').trim();
-            if (!realname) return false;
-            await loadRoster();
-            var found = _rosterCache.find(function(r) { return r.real_name === realname; });
-            return !!found;
-        }
-
-        async function addRosterEntry() {
-            var name = document.getElementById('rosterName').value.trim();
-            var group = document.getElementById('rosterGroup').value;
-            var msg = document.getElementById('rosterMsg');
-            if (!name) { msg.textContent = '请输入姓名'; msg.className = 'msg error'; return; }
-
-            try {
-                if (USE_SUPABASE) {
-                    await sbInsert('student_roster', { real_name: name, class_group: group });
-                } else {
-                    _rosterCache.push({ id: Date.now().toString(), real_name: name, class_group: group });
-                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
-                }
-                msg.textContent = '添加成功'; msg.className = 'msg success';
-                document.getElementById('rosterName').value = '';
-                await loadRoster();
-                renderRoster();
-            } catch(e) {
-                msg.textContent = '添加失败：' + (e.message || '错误'); msg.className = 'msg error';
-            }
-        }
-
-        async function batchAddRoster() {
-            var text = document.getElementById('rosterBatchInput').value.trim();
-            var msg = document.getElementById('rosterMsg');
-            if (!text) { msg.textContent = '请输入姓名'; msg.className = 'msg error'; return; }
-            var names = text.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
-            msg.textContent = '导入中…'; msg.className = 'msg';
-            var added = 0, failed = 0;
-            try {
-                for (var i = 0; i < names.length; i++) {
-                    try {
-                        if (USE_SUPABASE) {
-                            await sbInsert('student_roster', { real_name: names[i], class_group: '13班' });
-                        } else {
-                            _rosterCache.push({ id: Date.now() + i, real_name: names[i], class_group: '13班' });
-                        }
-                        added++;
-                    } catch(e) { failed++; }
-                }
-                if (!USE_SUPABASE) localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
-                await loadRoster();
-                renderRoster();
-                msg.textContent = '成功导入 ' + added + ' 人' + (failed > 0 ? '，失败 ' + failed + ' 人' : ''); msg.className = 'msg success';
-                document.getElementById('rosterBatchInput').value = '';
-            } catch(e) {
-                msg.textContent = '导入失败：' + (e.message || '错误'); msg.className = 'msg error';
-            }
-        }
-
-        async function deleteRosterEntry(id) {
-            if (!confirm('确定删除该条目吗？')) return;
-            try {
-                if (USE_SUPABASE) {
-                    await sbDelete('student_roster', 'id', id);
-                } else {
-                    _rosterCache = _rosterCache.filter(function(r) { return r.id !== id; });
-                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
-                }
-                await loadRoster();
-                renderRoster();
-            } catch(e) {
-                alert('删除失败：' + (e.message || '错误'));
-            }
-        }
-
-        async function changeRosterGroup(id, newGroup) {
-            try {
-                if (USE_SUPABASE) {
-                    await sbUpdate('student_roster', 'id', id, { class_group: newGroup });
-                } else {
-                    var item = _rosterCache.find(function(r) { return r.id === id; });
-                    if (item) item.class_group = newGroup;
-                    localStorage.setItem('mobile_roster', JSON.stringify(_rosterCache));
-                }
-                await loadRoster();
-                renderRoster();
-            } catch(e) {
-                alert('修改失败：' + (e.message || '错误'));
-            }
-        }
-
-        function renderRoster() {
-            var container = document.getElementById('rosterList');
-            if (!container) return;
-            var search = (document.getElementById('rosterSearch') ? document.getElementById('rosterSearch').value : '').trim().toLowerCase();
-            var filter = document.getElementById('rosterFilter') ? document.getElementById('rosterFilter').value : '';
-            var list = _rosterCache.filter(function(r) {
-                if (search && r.real_name.toLowerCase().indexOf(search) === -1) return false;
-                if (filter && r.class_group !== filter) return false;
-                return true;
-            });
-            if (!list.length) {
-                container.innerHTML = '<p style="font-size:0.82rem;color:#94a3b8;">暂无花名册数据</p>';
-                return;
-            }
-            // 统计
-            var count13 = _rosterCache.filter(function(r) { return r.class_group === '13班'; }).length;
-            var countOther = _rosterCache.filter(function(r) { return r.class_group === '非13班'; }).length;
-            var html = '<p style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem;">共 ' + _rosterCache.length + ' 人（13班 ' + count13 + ' 人，非13班 ' + countOther + ' 人）</p>';
-            html += '<table class="admin-table"><thead><tr><th>姓名</th><th>班级</th><th>操作</th></tr></thead><tbody>';
-            for (var i = 0; i < list.length; i++) {
-                var r = list[i];
-                html += '<tr>' +
-                    '<td>' + escapeHtml(r.real_name) + '</td>' +
-                    '<td><select class="admin-form-select" style="width:90px;" onchange="changeRosterGroup(\'' + r.id + '\', this.value)">' +
-                        '<option value="13班"' + (r.class_group === '13班' ? ' selected' : '') + '>13班</option>' +
-                        '<option value="非13班"' + (r.class_group === '非13班' ? ' selected' : '') + '>非13班</option>' +
-                    '</select></td>' +
-                    '<td><button class="admin-btn-sm admin-btn-del" onclick="deleteRosterEntry(\'' + r.id + '\')">删除</button></td>' +
-                    '</tr>';
-            }
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-
-        // 进入回忆录页面（带权限检查）
+        // 进入回忆录页面
         async function goToHistory() {
             if (!currentUser) {
                 alert('请先登录');
                 showAuth('login');
-                return;
-            }
-            var hasPermission = await checkHistoryPermission(currentUser);
-            if (!hasPermission) {
-                alert('您暂时没有回忆录访问权限。\n\n教师默认拥有访问权限。\n学生需真实姓名在花名册中方可访问。\n\n如有疑问请联系管理员。');
                 return;
             }
             window.location.href = '/history';
@@ -7184,8 +7186,6 @@
                 <li>回忆录页面新增BGM背景音乐系统：50首主题音乐随机播放，支持淡入淡出、音符图标控制、视频联动</li>
                 <li>回忆录加载阶段预加载所有图片和视频资源</li>
                 <li>回忆录时间节点数据存储到Supabase数据库，支持多设备同步</li>
-                <li>新增回忆录权限系统：教师默认拥有，学生按花名册授予</li>
-                <li>新增花名册管理功能：学生分为13班和非13班</li>
                 <li>登录后检测默认密码强制修改</li>
                 <li>学生注册时提示真实姓名涉及后期权限授予</li>
                 <li>修复验证码存储兼容性问题</li>
