@@ -1015,6 +1015,8 @@
             touch-action: pan-y;
             -webkit-user-select: text;
             user-select: text;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* 密码找回身份选择 */
@@ -4755,17 +4757,19 @@
         }
 
         function hnInsertBilibiliVideo(bvid) {
+            // 只填充视频链接字段，由前端 history.html 负责渲染 iframe
+            // 不再往编辑器内容中插入 iframe，避免视频重复显示
+            var videoField = document.getElementById('hnVideo');
+            videoField.value = 'https://www.bilibili.com/video/' + bvid;
+
+            // 在编辑器中插入占位提示（非 iframe，不会被前端当作视频渲染）
             var editor = document.getElementById('hnEditor');
             editor.focus();
-            var html = '<div style="margin:0.5rem 0;"><div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:0.4rem;overflow:hidden;background:#000;">' +
-                '<iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>' +
-                '</div></div><br>';
-            document.execCommand('insertHTML', false, html);
-            // 同时填充视频链接字段
-            var videoField = document.getElementById('hnVideo');
-            if (!videoField.value) {
-                videoField.value = 'https://www.bilibili.com/video/' + bvid;
-            }
+            var placeholder = '<div style="margin:0.5rem 0;padding:0.6rem 0.8rem;background:#1a1a2e;border:1px dashed #a855f7;border-radius:0.4rem;color:#d8b4fe;font-size:0.8rem;">🎬 B站视频：' + escapeHtml(bvid) + '（保存后将自动显示播放器）</div><br>';
+            document.execCommand('insertHTML', false, placeholder);
+
+            // 隐藏占位符提示
+            document.getElementById('hnEditorPlaceholder').style.display = 'none';
         }
 
         function escapeAttr(s) {
