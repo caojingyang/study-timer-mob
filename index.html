@@ -6179,29 +6179,58 @@
             var startHour = parseInt(parts[0]);
             var startMinute = parseInt(parts[1]);
 
+            // 课间休息时间（20:20 ~ 20:30）
+            var breakStart = 20 * 60 + 20;
+            var breakEnd = 20 * 60 + 30;
+
             // 构建表格 HTML
             var html = '<table class="schedule-table">';
             html += '<thead><tr><th>序号</th><th>科目</th><th>完成时间</th><th>用时</th></tr></thead>';
             html += '<tbody>';
 
-            // 第一行的完成时间就是开始时间 + 第一项用时
-            var cumulativeMinutes = 0;
+            var hwStart = startHour * 60 + startMinute;
+            var breakInserted = false;
+
             for (var i = 0; i < homeworkList.length; i++) {
                 var item = homeworkList[i];
                 var timeMinutes = item.time || 0;
-                cumulativeMinutes += timeMinutes;
+                var hwEnd = hwStart + timeMinutes;
 
-                // 计算完成时间：开始时间 + 累计分钟
-                var totalMinutes = startHour * 60 + startMinute + cumulativeMinutes;
-                var endHour = Math.floor(totalMinutes / 60) % 24;
-                var endMin = totalMinutes % 60;
-                var endTimeStr = pad(endHour) + ':' + pad(endMin);
+                // 作业跨越 20:20-20:30 下课时间，结束时间顺延（按实际重叠时长）
+                if (hwStart < breakEnd && hwEnd > breakStart) {
+                    var overlap = Math.min(hwEnd, breakEnd) - Math.max(hwStart, breakStart);
+                    if (overlap > 0) {
+                        // 在表格中插入课间休息行
+                        if (!breakInserted) {
+                            html += '<tr class="schedule-row" style="background:#fef3c7;">';
+                            html += '<td style="color:#92400e;">—</td>';
+                            html += '<td style="color:#92400e;font-weight:600;">☕ 课间休息</td>';
+                            html += '<td style="color:#92400e;">20:20 - 20:30</td>';
+                            html += '<td style="color:#92400e;">10分钟</td>';
+                            html += '</tr>';
+                            breakInserted = true;
+                        }
+                        hwEnd += overlap;
+                    }
+                }
 
-                // 开始时间（当前项的开始 = 上一项的结束）
-                var prevTotalMinutes = startHour * 60 + startMinute + (cumulativeMinutes - timeMinutes);
-                var prevHour = Math.floor(prevTotalMinutes / 60) % 24;
-                var prevMin = prevTotalMinutes % 60;
-                var startTimeFormatted = pad(prevHour) + ':' + pad(prevMin);
+                // 如果课间休息在两项作业之间（上一项在 20:20 前结束，下一项在 20:30 后开始）
+                if (!breakInserted && hwStart >= breakEnd) {
+                    html += '<tr class="schedule-row" style="background:#fef3c7;">';
+                    html += '<td style="color:#92400e;">—</td>';
+                    html += '<td style="color:#92400e;font-weight:600;">☕ 课间休息</td>';
+                    html += '<td style="color:#92400e;">20:20 - 20:30</td>';
+                    html += '<td style="color:#92400e;">10分钟</td>';
+                    html += '</tr>';
+                    breakInserted = true;
+                }
+
+                var startH = Math.floor(hwStart / 60) % 24;
+                var startM = hwStart % 60;
+                var endH = Math.floor(hwEnd / 60) % 24;
+                var endM = hwEnd % 60;
+                var startTimeFormatted = pad(startH) + ':' + pad(startM);
+                var endTimeStr = pad(endH) + ':' + pad(endM);
 
                 html += '<tr class="schedule-row">';
                 html += '<td>' + (i + 1) + '</td>';
@@ -6209,6 +6238,8 @@
                 html += '<td>' + startTimeFormatted + ' - ' + endTimeStr + '</td>';
                 html += '<td>' + timeMinutes + '分钟</td>';
                 html += '</tr>';
+
+                hwStart = hwEnd;
             }
 
             html += '</tbody></table>';
