@@ -2137,6 +2137,8 @@
                                 <option value="viewSchedule">查看时间表</option>
                                 <option value="modifySchedule">修改时间表</option>
                                 <option value="sendNotification">发送通知</option>
+                                <option value="viewMemory">回忆录查看</option>
+                                <option value="editMemory">回忆录编辑</option>
                                 <option value="isAdmin">管理员</option>
                             </select>
                             <select id="adminPermAction">
@@ -2220,6 +2222,8 @@
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermView" checked> 查看时间表</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermModify" checked> 修改时间表</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermSend" checked> 发送通知</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermViewMemory" checked> 回忆录查看</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermEditMemory"> 回忆录编辑</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermAdmin"> 管理员</label>
                             </div>
                         </div>
@@ -2478,6 +2482,8 @@
                     <label class="admin-perm-check"><input type="checkbox" id="editPermView"> 查看时间表</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermModify"> 修改时间表</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermSend"> 发送通知</label>
+                    <label class="admin-perm-check"><input type="checkbox" id="editPermViewMemory"> 回忆录查看</label>
+                    <label class="admin-perm-check"><input type="checkbox" id="editPermEditMemory"> 回忆录编辑</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermAdmin"> 管理员</label>
                 </div>
             </div>
@@ -3577,8 +3583,17 @@
                 renderAdminBanList();
                 renderBannedDevices();
                 renderAppeals();
-                await loadHistoryNodes();
-                renderHistoryNodes();
+                // 回忆录管理仅对拥有 editMemory 权限的管理员可见（未设置时默认允许，兼容旧管理员）
+                var adminPerms = (u && u.permissions) || {};
+                var canEditMemory = adminPerms.editMemory !== false;
+                var historySection = document.getElementById('sectionHistory');
+                if (historySection) {
+                    historySection.style.display = canEditMemory ? '' : 'none';
+                }
+                if (canEditMemory) {
+                    await loadHistoryNodes();
+                    renderHistoryNodes();
+                }
             }
         }
 
@@ -3604,12 +3619,12 @@
                 if (existingNames.has(uname)) { errors.push('第' + (i+1) + '行用户名已存在'); continue; }
                 var permissions = {};
                 if (role === '教师') {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, viewMemory: true, editMemory: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, viewMemory: true, editMemory: false };
                 }
                 var isAdmin = (uname.toLowerCase() === 'starbusk');
-                if (isAdmin) permissions.isAdmin = true;
+                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; }
                 pendingUsers.push({
                     username: uname,
                     realname: realname,
@@ -3697,6 +3712,8 @@
             if (perms.viewSchedule) tags.push('<span class="admin-user-tag perm">查看</span>');
             if (perms.modifySchedule) tags.push('<span class="admin-user-tag perm">修改</span>');
             if (perms.sendNotification) tags.push('<span class="admin-user-tag perm">发送</span>');
+            if (perms.viewMemory) tags.push('<span class="admin-user-tag perm">回忆录查看</span>');
+            if (perms.editMemory) tags.push('<span class="admin-user-tag perm">回忆录编辑</span>');
             if (perms.isAdmin) tags.push('<span class="admin-user-tag admin-tag">管理</span>');
             return tags.join('') || '<span style="color:#94a3b8;">无</span>';
         }
@@ -3735,6 +3752,8 @@
                 if (perms.viewSchedule) html += '<span class="admin-user-tag perm">查看</span>';
                 if (perms.modifySchedule) html += '<span class="admin-user-tag perm">修改</span>';
                 if (perms.sendNotification) html += '<span class="admin-user-tag perm">发送</span>';
+                if (perms.viewMemory) html += '<span class="admin-user-tag perm">回忆录查看</span>';
+                if (perms.editMemory) html += '<span class="admin-user-tag perm">回忆录编辑</span>';
                 if (perms.isAdmin) html += '<span class="admin-user-tag admin-tag">管理</span>';
 
                 html += '</div>' +
@@ -3868,7 +3887,9 @@
             var permissions = {
                 viewSchedule: document.getElementById('singlePermView').checked,
                 modifySchedule: document.getElementById('singlePermModify').checked,
-                sendNotification: document.getElementById('singlePermSend').checked
+                sendNotification: document.getElementById('singlePermSend').checked,
+                viewMemory: document.getElementById('singlePermViewMemory').checked,
+                editMemory: document.getElementById('singlePermEditMemory').checked
             };
             if (document.getElementById('singlePermAdmin').checked) permissions.isAdmin = true;
 
@@ -3917,6 +3938,8 @@
             document.getElementById('editPermView').checked = !!perms.viewSchedule;
             document.getElementById('editPermModify').checked = !!perms.modifySchedule;
             document.getElementById('editPermSend').checked = !!perms.sendNotification;
+            document.getElementById('editPermViewMemory').checked = !!perms.viewMemory;
+            document.getElementById('editPermEditMemory').checked = !!perms.editMemory;
             document.getElementById('editPermAdmin').checked = !!(perms.isAdmin || u.is_admin);
             document.getElementById('editModalMsg').textContent = '';
 
@@ -4093,7 +4116,9 @@
             var permissions = {
                 viewSchedule: document.getElementById('editPermView').checked,
                 modifySchedule: document.getElementById('editPermModify').checked,
-                sendNotification: document.getElementById('editPermSend').checked
+                sendNotification: document.getElementById('editPermSend').checked,
+                viewMemory: document.getElementById('editPermViewMemory').checked,
+                editMemory: document.getElementById('editPermEditMemory').checked
             };
             if (document.getElementById('editPermAdmin').checked) permissions.isAdmin = true;
 
@@ -4786,6 +4811,12 @@
                 showAuth('login');
                 return;
             }
+            // 检查回忆录查看权限（未设置时默认允许，兼容旧用户）
+            var perms = currentUser.permissions || {};
+            if (perms.viewMemory === false && !perms.isAdmin) {
+                alert('您没有回忆录查看权限');
+                return;
+            }
             window.location.href = '/history';
         }
 
@@ -5376,13 +5407,13 @@
                 // 根据角色设置权限
                 var permissions;
                 if (regRole === 'student') {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, viewMemory: true, editMemory: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, viewMemory: true, editMemory: false };
                 }
 
                 var isAdmin = (username.toLowerCase() === 'starbusk');
-                if (isAdmin) permissions.isAdmin = true;
+                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; }
 
                 await DB.createUser({
                     username: username,
@@ -7243,12 +7274,21 @@
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">&#x1F4AC; 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.6.5</div>
+    <div class="version-label">当前版本：v2.6.6</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>&#x1F4DC; 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">&times;</button></h2>
+
+            <h3>v2.6.6</h3>
+            <ul>
+                <li>新增回忆录权限系统：分为"查看"和"编辑"两种权限</li>
+                <li>非管理员用户默认授予回忆录查看权限，管理员默认授予编辑权限</li>
+                <li>后台可批量或单独管理用户的回忆录查看/编辑权限</li>
+                <li>无查看权限的用户无法进入回忆录页面</li>
+                <li>后台回忆录管理仅对拥有编辑权限的管理员可见</li>
+            </ul>
 
             <h3>v2.6.5</h3>
             <ul>
