@@ -4843,6 +4843,10 @@
                 var el = document.getElementById(id);
                 if (el) el.addEventListener('input', function() { this.classList.remove('input-error'); });
             });
+
+            // 自动清理数据库中的过期数据
+            cleanupExpiredData();
+
             // 检测 URL 中的重置 token
             var resetToken = new URLSearchParams(window.location.search).get('reset');
             if (resetToken) {
@@ -4860,6 +4864,54 @@
                 }
             }
         });
+
+        // 自动清理过期数据：验证码、密码重置链接、过期通知历史
+        async function cleanupExpiredData() {
+            if (!USE_SUPABASE) return;
+            try {
+                var now = new Date();
+                var nowIso = now.toISOString();
+
+                // 1. 清理过期验证码（verify_codes 表）
+                try {
+                    var codes = await sbGet('verify_codes');
+                    if (codes && codes.length > 0) {
+                        for (var i = 0; i < codes.length; i++) {
+                            if (codes[i].expires_at && new Date(codes[i].expires_at) < now) {
+                                await sbDelete('verify_codes', 'id', codes[i].id);
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('清理过期验证码失败:', e); }
+
+                // 2. 清理过期密码重置链接（reset_tokens 表）
+                try {
+                    var tokens = await sbGet('reset_tokens');
+                    if (tokens && tokens.length > 0) {
+                        for (var j = 0; j < tokens.length; j++) {
+                            if (tokens[j].expires_at && new Date(tokens[j].expires_at) < now) {
+                                await sbDelete('reset_tokens', 'id', tokens[j].id);
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('清理过期重置链接失败:', e); }
+
+                // 3. 清理超过90天的发送通知历史（notification_history 表）
+                try {
+                    var cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+                    var history = await sbGet('notification_history');
+                    if (history && history.length > 0) {
+                        for (var k = 0; k < history.length; k++) {
+                            if (history[k].created_at && history[k].created_at < cutoff) {
+                                await sbDelete('notification_history', 'id', history[k].id);
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('清理过期通知历史失败:', e); }
+            } catch(e) {
+                console.error('自动清理过期数据失败:', e);
+            }
+        }
         let verifyCode = ''; // 密码找回验证码
 
         // SHA-256 哈希
@@ -7191,12 +7243,17 @@
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">&#x1F4AC; 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.6.3</div>
+    <div class="version-label">当前版本：v2.6.4</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>&#x1F4DC; 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">&times;</button></h2>
+
+            <h3>v2.6.4</h3>
+            <ul>
+                <li>每次打开移动端时自动清理过期数据：手机验证码、邮箱验证码、密码重置链接、超过90天的通知历史</li>
+            </ul>
 
             <h3>v2.6.3</h3>
             <ul>
