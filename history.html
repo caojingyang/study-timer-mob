@@ -636,7 +636,7 @@
         }
 
         // 当前用户信息（从移动端登录态读取）
-        let userInfo = { name: '', role: '同学', isStudent: true };
+        let userInfo = { name: '', role: '同学', isStudent: true, permissions: {} };
         try {
             var u = null;
             // 移动端 app 实际存储键为 mobile_auth_user；兼容历史/其它键名
@@ -650,6 +650,8 @@
                 // 学生 -> 同学，教师(及其它) -> 老师
                 userInfo.isStudent = (u.role === 'student');
                 userInfo.role = userInfo.isStudent ? '同学' : '老师';
+                // 读取权限信息
+                userInfo.permissions = u.permissions || {};
             }
         } catch(e) {}
 
@@ -657,6 +659,11 @@
         // 未登录用户直接访问 /history 时，拦截并跳回移动端
         if (!userInfo.name) {
             alert('请先登录后再访问回忆录');
+            window.location.href = '/';
+        }
+        // 检查回忆录查看权限（未设置时默认允许，兼容旧用户；管理员自动拥有所有权限）
+        if (userInfo.name && userInfo.permissions.viewMemory === false && !userInfo.permissions.isAdmin) {
+            alert('您没有回忆录查看权限');
             window.location.href = '/';
         }
 
