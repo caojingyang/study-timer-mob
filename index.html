@@ -6183,6 +6183,10 @@
             var breakStart = 20 * 60 + 20;
             var breakEnd = 20 * 60 + 30;
 
+            var fmtTime = function(totalMin) {
+                return pad(Math.floor(totalMin / 60) % 24) + ':' + pad(totalMin % 60);
+            };
+
             // 构建表格 HTML
             var html = '<table class="schedule-table">';
             html += '<thead><tr><th>序号</th><th>科目</th><th>完成时间</th><th>用时</th></tr></thead>';
@@ -6196,48 +6200,48 @@
                 var timeMinutes = item.time || 0;
                 var hwEnd = hwStart + timeMinutes;
 
-                // 作业跨越 20:20-20:30 下课时间，结束时间顺延（按实际重叠时长）
-                if (hwStart < breakEnd && hwEnd > breakStart) {
-                    var overlap = Math.min(hwEnd, breakEnd) - Math.max(hwStart, breakStart);
-                    if (overlap > 0) {
-                        // 在表格中插入课间休息行
-                        if (!breakInserted) {
-                            html += '<tr class="schedule-row" style="background:#fef3c7;">';
-                            html += '<td style="color:#92400e;">—</td>';
-                            html += '<td style="color:#92400e;font-weight:600;">☕ 课间休息</td>';
-                            html += '<td style="color:#92400e;">20:20 - 20:30</td>';
-                            html += '<td style="color:#92400e;">10分钟</td>';
-                            html += '</tr>';
-                            breakInserted = true;
-                        }
-                        hwEnd += overlap;
-                    }
-                }
-
-                // 如果课间休息在两项作业之间（上一项在 20:20 前结束，下一项在 20:30 后开始）
-                if (!breakInserted && hwStart >= breakEnd) {
-                    html += '<tr class="schedule-row" style="background:#fef3c7;">';
-                    html += '<td style="color:#92400e;">—</td>';
-                    html += '<td style="color:#92400e;font-weight:600;">☕ 课间休息</td>';
-                    html += '<td style="color:#92400e;">20:20 - 20:30</td>';
-                    html += '<td style="color:#92400e;">10分钟</td>';
-                    html += '</tr>';
+                // 检查是否跨越下课时间（作业在下课前开始，且会持续到下课期间）
+                if (hwStart < breakStart && hwEnd > breakStart) {
+                    // 跨下课项目：完成时间分三行显示
+                    var overlap = Math.min(hwEnd, breakEnd) - breakStart;
+                    hwEnd += overlap;
+                    var timeCellHtml = '<div style="font-size:0.72rem;line-height:1.7;">' +
+                        '<div style="color:#475569;font-weight:500;">' + fmtTime(hwStart) + ' - ' + fmtTime(breakStart) + '</div>' +
+                        '<div style="color:#92400e;font-weight:600;">☕ 课间休息 ' + fmtTime(breakStart) + ' - ' + fmtTime(breakEnd) + '</div>' +
+                        '<div style="color:#475569;font-weight:500;">' + fmtTime(breakEnd) + ' - ' + fmtTime(hwEnd) + '</div>' +
+                        '</div>';
                     breakInserted = true;
+
+                    html += '<tr class="schedule-row">';
+                    html += '<td>' + (i + 1) + '</td>';
+                    html += '<td>' + escapeHtml(item.subject) + '</td>';
+                    html += '<td>' + timeCellHtml + '</td>';
+                    html += '<td>' + timeMinutes + '分钟</td>';
+                    html += '</tr>';
+                } else {
+                    // 非跨下课项目：检查是否需要插入课间休息独立行
+                    if (!breakInserted && hwStart >= breakStart) {
+                        // 如果作业在下课期间开始，顺延到下课后
+                        if (hwStart < breakEnd) {
+                            hwStart = breakEnd;
+                            hwEnd = hwStart + timeMinutes;
+                        }
+                        html += '<tr class="schedule-row" style="background:#fef3c7;">';
+                        html += '<td style="color:#92400e;">—</td>';
+                        html += '<td style="color:#92400e;font-weight:600;">☕ 课间休息</td>';
+                        html += '<td style="color:#92400e;">' + fmtTime(breakStart) + ' - ' + fmtTime(breakEnd) + '</td>';
+                        html += '<td style="color:#92400e;">10分钟</td>';
+                        html += '</tr>';
+                        breakInserted = true;
+                    }
+
+                    html += '<tr class="schedule-row">';
+                    html += '<td>' + (i + 1) + '</td>';
+                    html += '<td>' + escapeHtml(item.subject) + '</td>';
+                    html += '<td>' + fmtTime(hwStart) + ' - ' + fmtTime(hwEnd) + '</td>';
+                    html += '<td>' + timeMinutes + '分钟</td>';
+                    html += '</tr>';
                 }
-
-                var startH = Math.floor(hwStart / 60) % 24;
-                var startM = hwStart % 60;
-                var endH = Math.floor(hwEnd / 60) % 24;
-                var endM = hwEnd % 60;
-                var startTimeFormatted = pad(startH) + ':' + pad(startM);
-                var endTimeStr = pad(endH) + ':' + pad(endM);
-
-                html += '<tr class="schedule-row">';
-                html += '<td>' + (i + 1) + '</td>';
-                html += '<td>' + escapeHtml(item.subject) + '</td>';
-                html += '<td>' + startTimeFormatted + ' - ' + endTimeStr + '</td>';
-                html += '<td>' + timeMinutes + '分钟</td>';
-                html += '</tr>';
 
                 hwStart = hwEnd;
             }
