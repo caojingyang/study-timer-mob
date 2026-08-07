@@ -653,6 +653,13 @@
             }
         } catch(e) {}
 
+        // ====== 登录态与权限验证 ======
+        // 未登录用户直接访问 /history 时，拦截并跳回移动端
+        if (!userInfo.name) {
+            alert('请先登录后再访问回忆录');
+            window.location.href = '/';
+        }
+
         // ====== BGM 背景音乐系统 ======
         const BGM_VOLUME = 0.25;     // 目标音量 25%
         const BGM_FADE_MS = 6000;    // 淡入/淡出时长 6 秒
@@ -1319,8 +1326,10 @@
             return div.innerHTML;
         }
 
-        // 启动
-        runLoader();
+        // 启动（仅在已登录时执行，未登录已在上方拦截跳转）
+        if (userInfo.name) {
+            runLoader();
+        }
     </script>
 </body>
 </html>
