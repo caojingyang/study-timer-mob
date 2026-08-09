@@ -121,9 +121,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 2rem;
+            overflow: hidden;
+            padding: 0;
             opacity: 0;
             transition: opacity 1s ease;
         }
@@ -131,12 +130,24 @@
             display: flex;
             opacity: 1;
         }
-        .poem-inner {
-            margin: auto 0;
+        .poem-scroll-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            padding: 2rem 0;
+            justify-content: center;
+        }
+        .poem-scroll-inner {
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+            animation: poemScrollUp 40s linear infinite;
+        }
+        @keyframes poemScrollUp {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(-100%); }
         }
         .poem-lines {
             text-align: center;
@@ -151,8 +162,14 @@
             font-weight: bold;
             text-shadow: 0 0 15px rgba(255,215,0,0.4);
         }
+        .poem-footer {
+            flex-shrink: 0;
+            padding: 1.2rem 0 2rem;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+        }
         .explore-btn {
-            margin-top: 2.5rem;
             padding: 0.85rem 2.2rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -465,6 +482,136 @@
             .memory-card { padding: 1.5rem; }
         }
 
+        /* ====== 编辑按钮 ====== */
+        #editToggleBtn {
+            position: fixed;
+            top: 0.8rem;
+            right: 4rem;
+            z-index: 1100;
+            padding: 0.4rem 1rem;
+            background: rgba(102,126,234,0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 2rem;
+            color: #fff;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+        }
+        #editToggleBtn:hover {
+            background: rgba(102,126,234,1);
+            transform: translateY(-1px);
+        }
+        #editToggleBtn.editing {
+            background: rgba(220,38,38,0.85);
+        }
+
+        /* 编辑模式工具栏 */
+        .edit-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            background: rgba(15,15,30,0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .edit-toolbar.active {
+            display: flex;
+        }
+        .edit-toolbar-row {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .edit-tool-btn {
+            padding: 0.35rem 0.8rem;
+            background: rgba(51,65,85,0.8);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 0.4rem;
+            color: #e2e8f0;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .edit-tool-btn:hover {
+            background: rgba(71,85,105,0.9);
+        }
+        .edit-tool-btn.save-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            font-weight: 600;
+        }
+        .edit-tool-btn.delete-btn {
+            background: rgba(220,38,38,0.7);
+            border: 1px solid rgba(239,68,68,0.5);
+        }
+
+        /* 编辑模式：内容区域可编辑 */
+        .memory-card.editing .timeline-date,
+        .memory-card.editing .timeline-title,
+        .memory-card.editing .timeline-content {
+            outline: 1px dashed rgba(102,126,234,0.5);
+            outline-offset: 2px;
+            cursor: text;
+        }
+        .memory-card.editing .timeline-date:focus,
+        .memory-card.editing .timeline-title:focus,
+        .memory-card.editing .timeline-content:focus {
+            outline: 2px solid rgba(102,126,234,0.8);
+            background: rgba(102,126,234,0.08);
+            border-radius: 0.3rem;
+        }
+
+        /* 编辑模式：节点排序按钮 */
+        .node-reorder {
+            display: none;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+        }
+        .memory-card.editing .node-reorder {
+            display: flex;
+        }
+        .reorder-btn {
+            padding: 0.25rem 0.6rem;
+            background: rgba(51,65,85,0.8);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 0.3rem;
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+        .reorder-btn:hover {
+            background: rgba(71,85,105,0.9);
+        }
+        .reorder-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 添加新节点页面 */
+        .add-node-page {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .add-node-page.active {
+            display: flex;
+        }
+
         /* ====== BGM 背景音乐控制图标 ====== */
         #bgmToggle {
             position: fixed;
@@ -532,6 +679,64 @@
             0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 0 0 rgba(135,206,250,0.0); }
             50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 12px 2px rgba(135,206,250,0.35); }
         }
+
+        /* ====== 版本号 & 更新历史 ====== */
+        .version-label {
+            position: fixed;
+            bottom: 0.3rem;
+            left: 0.5rem;
+            z-index: 1000;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+        }
+        .changelog-btn {
+            position: fixed;
+            bottom: 0.3rem;
+            right: 0.5rem;
+            z-index: 1000;
+            padding: 0.3rem 0.7rem;
+            background: rgba(30,30,50,0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 1rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .changelog-btn:hover { background: rgba(50,50,80,0.9); color: #fff; }
+        .changelog-overlay {
+            position: fixed; inset: 0; z-index: 2000;
+            background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .changelog-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
+        .changelog-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 1rem;
+            max-width: 90vw; max-height: 80vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            color: #e0e0e0;
+        }
+        .changelog-panel h2 {
+            font-size: 1.1rem; color: #fff; margin-bottom: 1rem;
+            position: sticky; top: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding-bottom: 0.5rem;
+        }
+        .changelog-close {
+            float: right; background: none; border: none;
+            color: #aaa; font-size: 1.3rem; cursor: pointer;
+        }
+        .changelog-panel h3 { font-size: 0.95rem; color: #667eea; margin-top: 0.8rem; }
+        .changelog-panel ul { padding-left: 1.2rem; margin: 0.3rem 0; }
+        .changelog-panel li { font-size: 0.8rem; line-height: 1.6; color: #b0b0b0; }
     </style>
 </head>
 <body>
@@ -542,6 +747,23 @@
     <div id="bgmToggle" class="paused" title="背景音乐" role="button" aria-label="背景音乐开关">
         <svg class="bgm-note" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3z"/></svg>
         <span class="bgm-slash"></span>
+    </div>
+
+    <!-- 编辑按钮（仅有编辑权限的用户可见） -->
+    <button id="editToggleBtn" onclick="toggleEditMode()">编辑</button>
+
+    <!-- 编辑模式工具栏 -->
+    <div class="edit-toolbar" id="editToolbar">
+        <div class="edit-toolbar-row">
+            <button class="edit-tool-btn" onclick="editInsertImage()">📷 插入图片</button>
+            <button class="edit-tool-btn" onclick="editInsertBilibili()">🎬 B站视频</button>
+            <button class="edit-tool-btn" onclick="editAddNode()">➕ 添加节点</button>
+            <button class="edit-tool-btn delete-btn" onclick="editDeleteCurrentNode()">🗑 删除节点</button>
+        </div>
+        <div class="edit-toolbar-row">
+            <button class="edit-tool-btn save-btn" onclick="editSaveAll()">💾 保存</button>
+            <button class="edit-tool-btn" onclick="cancelEditMode()">取消</button>
+        </div>
     </div>
 
     <!-- 加载层 -->
@@ -557,8 +779,12 @@
 
     <!-- 诗句层 -->
     <div id="poemLayer">
-        <div class="poem-inner">
-            <div class="poem-lines" id="poemLines"></div>
+        <div class="poem-scroll-area">
+            <div class="poem-scroll-inner">
+                <div class="poem-lines" id="poemLines"></div>
+            </div>
+        </div>
+        <div class="poem-footer">
             <button class="explore-btn" onclick="startWarp()">&#x2728; 探索时光记忆</button>
         </div>
     </div>
@@ -997,27 +1223,15 @@
             var layer = document.getElementById('poemLayer');
             var container = document.getElementById('poemLines');
             container.innerHTML = '';
-            layer.classList.add('active');
 
-            // 逐行显示诗句
-            var idx = 0;
-            function showNextLine() {
-                if (idx >= poems.length) return;
-                var line = poems[idx];
+            // 一次性填充所有诗句，由 CSS 动画 poemScrollUp 控制滚动展示
+            for (var i = 0; i < poems.length; i++) {
                 var p = document.createElement('div');
-                p.style.opacity = '0';
-                p.style.transform = 'translateY(12px)';
-                p.style.transition = 'all 0.8s ease';
-                p.innerHTML = line || '&nbsp;';
+                p.innerHTML = poems[i] || '&nbsp;';
                 container.appendChild(p);
-                // 强制重排
-                p.offsetHeight;
-                p.style.opacity = '1';
-                p.style.transform = 'translateY(0)';
-                idx++;
-                setTimeout(showNextLine, line === '' ? 400 : 700);
             }
-            showNextLine();
+
+            layer.classList.add('active');
         }
 
         // ====== 时光穿梭动画 ======
@@ -1198,10 +1412,20 @@
             renderMemoryPages();
             initBGM();   // 进入回忆录后才启动背景音乐（不在加载阶段播放）
 
-            // 页面滚动监听
+            // 显示编辑按钮（仅有编辑权限的用户）
+            var canEdit = userInfo.permissions.editMemory === true || userInfo.permissions.isAdmin;
+            var editBtn = document.getElementById('editToggleBtn');
+            if (canEdit) {
+                editBtn.style.display = 'block';
+            }
+
+            // 单节点滑动导航
             var pages = document.getElementById('memoryPages');
             var dots = document.getElementById('pageDots');
             var hint = document.getElementById('swipeHint');
+            var isScrolling = false;
+            var scrollTimer = null;
+
             pages.addEventListener('scroll', function() {
                 var idx = Math.round(pages.scrollTop / window.innerHeight);
                 var dotEls = dots.querySelectorAll('.page-dot');
@@ -1209,7 +1433,54 @@
                     d.classList.toggle('active', i === idx);
                 });
                 if (idx > 0) hint.style.display = 'none';
+
+                // 节流：滚动停止后吸附到最近的页面
+                if (scrollTimer) clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(function() {
+                    var snapIdx = Math.round(pages.scrollTop / window.innerHeight);
+                    var targetTop = snapIdx * window.innerHeight;
+                    if (Math.abs(pages.scrollTop - targetTop) > 5) {
+                        pages.scrollTo({ top: targetTop, behavior: 'smooth' });
+                    }
+                }, 100);
             });
+
+            // 触摸事件：每次滑动仅切换一个节点
+            var touchStartY = 0;
+            var touchEndY = 0;
+            pages.addEventListener('touchstart', function(e) {
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            pages.addEventListener('touchend', function(e) {
+                touchEndY = e.changedTouches[0].clientY;
+                var diff = touchStartY - touchEndY;
+                if (Math.abs(diff) > 50) {
+                    var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
+                    var maxIdx = pages.children.length - 1;
+                    if (diff > 0 && currentIdx < maxIdx) {
+                        // 上滑 -> 下一个节点
+                        scrollToPage(currentIdx + 1);
+                    } else if (diff < 0 && currentIdx > 0) {
+                        // 下滑 -> 上一个节点
+                        scrollToPage(currentIdx - 1);
+                    }
+                }
+            }, { passive: true });
+
+            // 鼠标滚轮：每次仅切换一个节点
+            var wheelTimer = null;
+            pages.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                if (wheelTimer) return;
+                var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
+                var maxIdx = pages.children.length - 1;
+                if (e.deltaY > 30 && currentIdx < maxIdx) {
+                    scrollToPage(currentIdx + 1);
+                } else if (e.deltaY < -30 && currentIdx > 0) {
+                    scrollToPage(currentIdx - 1);
+                }
+                wheelTimer = setTimeout(function() { wheelTimer = null; }, 500);
+            }, { passive: false });
         }
 
         // ====== 渲染回忆录页面 ======
@@ -1227,6 +1498,8 @@
             if (!nodes) {
                 nodes = await loadHistoryNodesFromDB();
             }
+            // 存储到全局供编辑模式使用
+            window._memoryNodes = nodes;
 
             var html = '';
             var dotsHtml = '';
@@ -1254,55 +1527,62 @@
             for (var i = 0; i < nodes.length; i++) {
                 var node = nodes[i];
                 var dateStr = node.date || '';
-                var titleStyle = node.fontColor ? 'color:' + node.fontColor + ';' : '';
-                        var titleFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
-                        var contentStyle = node.fontColor ? 'color:' + node.fontColor + ';' : '';
-                        var contentFont = node.fontFamily ? 'font-family:' + node.fontFamily + ';' : '';
-                        // 背景图片样式
-                        var bgStyle = '';
-                        if (node.bgImage) {
-                            bgStyle = 'background-image:url(' + node.bgImage + ');background-size:cover;background-position:center;';
+                var videoHtml = '';
+                if (node.video) {
+                    var bvid = extractBvid(node.video);
+                    if (bvid) {
+                        videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
+                    }
+                }
+                var imagesHtml = '';
+                if (node.images) {
+                    var imgUrls = node.images.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+                    if (imgUrls.length) {
+                        imagesHtml = '<div class="timeline-images">';
+                        for (var k = 0; k < imgUrls.length; k++) {
+                            imagesHtml += '<img src="' + escapeHtml(imgUrls[k]) + '" alt="" loading="lazy">';
                         }
-                        var videoHtml = '';
-                        if (node.video) {
-                            var bvid = extractBvid(node.video);
-                            if (bvid) {
-                                videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
-                            }
-                        }
-                        var imagesHtml = '';
-                        if (node.images) {
-                            var imgUrls = node.images.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
-                            if (imgUrls.length) {
-                                imagesHtml = '<div class="timeline-images">';
-                                for (var k = 0; k < imgUrls.length; k++) {
-                                    imagesHtml += '<img src="' + escapeHtml(imgUrls[k]) + '" alt="" loading="lazy">';
-                                }
-                                imagesHtml += '</div>';
-                            }
-                        }
-                        // 内容渲染：检测是否为富文本（含HTML标签），是则直接渲染HTML（过滤script），否则转义
-                        var contentHtml = node.content || '';
-                        var isRichText = contentHtml.indexOf('<') !== -1 && contentHtml.indexOf('>') !== -1;
-                        if (isRichText) {
-                            // 基本安全过滤：移除 script 标签和 on 事件属性
-                            contentHtml = contentHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                                                     .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
-                                                     .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
-                                                     .replace(/javascript:/gi, '');
-                        } else {
-                            contentHtml = escapeHtml(contentHtml);
-                        }
-                        html += '<div class="memory-page timeline-page"' + (bgStyle ? ' style="' + bgStyle + '"' : '') + '>' +
-                            '<div class="memory-card">' +
-                            '<div class="timeline-date">' + escapeHtml(dateStr) + '</div>' +
-                            '<div class="timeline-title" style="' + titleStyle + titleFont + '">' + escapeHtml(node.title || '') + '</div>' +
-                            '<div class="timeline-content' + (isRichText ? ' rich-text' : '') + '" style="' + contentStyle + contentFont + '">' + contentHtml + '</div>' +
-                            imagesHtml +
-                            videoHtml +
-                            '</div></div>';
+                        imagesHtml += '</div>';
+                    }
+                }
+                // 内容渲染：检测是否为富文本（含HTML标签），是则直接渲染HTML（过滤script），否则转义
+                var contentHtml = node.content || '';
+                var isRichText = contentHtml.indexOf('<') !== -1 && contentHtml.indexOf('>') !== -1;
+                if (isRichText) {
+                    contentHtml = contentHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                                             .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+                                             .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+                                             .replace(/javascript:/gi, '');
+                } else {
+                    contentHtml = escapeHtml(contentHtml);
+                }
+                html += '<div class="memory-page timeline-page" data-node-index="' + i + '">' +
+                    '<div class="memory-card" data-node-id="' + (node.id || '') + '">' +
+                    '<div class="node-reorder">' +
+                        '<button class="reorder-btn" onclick="editMoveNode(' + i + ', -1)"' + (i === 0 ? ' disabled' : '') + '>↑ 上移</button>' +
+                        '<button class="reorder-btn" onclick="editMoveNode(' + i + ', 1)"' + (i === nodes.length - 1 ? ' disabled' : '') + '>↓ 下移</button>' +
+                    '</div>' +
+                    '<div class="timeline-date" contenteditable="false">' + escapeHtml(dateStr) + '</div>' +
+                    '<div class="timeline-title" contenteditable="false">' + escapeHtml(node.title || '') + '</div>' +
+                    '<div class="timeline-content' + (isRichText ? ' rich-text' : '') + '" contenteditable="false">' + contentHtml + '</div>' +
+                    imagesHtml +
+                    videoHtml +
+                    '</div></div>';
                 dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (i+1) + ')"></div>';
             }
+
+            // 添加新节点页面（编辑模式时上滑到最后一个节点后显示）
+            html += '<div class="memory-page add-node-page" id="addNodePage">' +
+                '<div class="memory-card">' +
+                '<div class="node-reorder">' +
+                    '<button class="reorder-btn" onclick="editMoveNode(' + nodes.length + ', -1)">↑ 上移</button>' +
+                '</div>' +
+                '<div class="timeline-date" contenteditable="false" data-placeholder="点击设置日期"></div>' +
+                '<div class="timeline-title" contenteditable="false" data-placeholder="点击输入标题"></div>' +
+                '<div class="timeline-content" contenteditable="false" data-placeholder="点击输入内容..."></div>' +
+                '<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:1rem;">➕ 新时间节点</div>' +
+                '</div></div>';
+            dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (nodes.length + 1) + ')"></div>';
 
             container.innerHTML = html;
             dots.innerHTML = dotsHtml;
@@ -1333,10 +1613,416 @@
             return div.innerHTML;
         }
 
+        function escapeAttr(s) {
+            if (!s) return '';
+            return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ====== 编辑模式 ======
+        var isEditMode = false;
+
+        function toggleEditMode() {
+            var canEdit = userInfo.permissions.editMemory === true || userInfo.permissions.isAdmin;
+            if (!canEdit) {
+                alert('您没有回忆录编辑权限');
+                return;
+            }
+            // 若已在编辑模式，则保存并退出
+            if (isEditMode) {
+                editSaveAll();
+                return;
+            }
+            isEditMode = true;
+            var editBtn = document.getElementById('editToggleBtn');
+            var toolbar = document.getElementById('editToolbar');
+
+            // 保存原始日期（用于排序后检测日期变更）
+            var nodes = window._memoryNodes || [];
+            nodes.forEach(function(n) { n._originalDate = n.date; });
+
+            // 切换为编辑模式渲染
+            renderMemoryPagesForEdit();
+            editBtn.textContent = '保存';
+            editBtn.classList.add('editing');
+            toolbar.classList.add('active');
+        }
+
+        // 取消编辑模式（不保存）
+        function cancelEditMode() {
+            if (!isEditMode) return;
+            if (!confirm('确定取消编辑？未保存的更改将丢失。')) return;
+            isEditMode = false;
+            var editBtn = document.getElementById('editToggleBtn');
+            var toolbar = document.getElementById('editToolbar');
+            editBtn.textContent = '编辑';
+            editBtn.classList.remove('editing');
+            toolbar.classList.remove('active');
+            location.reload();
+        }
+
+        // 日期点击处理器：弹出日期选择器
+        function editDateClickHandler(e) {
+            var el = e.target;
+            var currentVal = el.textContent.trim();
+            var input = document.createElement('input');
+            input.type = 'date';
+            input.value = currentVal;
+            input.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:0.3rem;color:#f1f5f9;font-size:0.9rem;padding:0.2rem 0.4rem;';
+            el.innerHTML = '';
+            el.appendChild(input);
+            input.focus();
+            input.addEventListener('blur', function() {
+                el.textContent = input.value || currentVal;
+            });
+            input.addEventListener('change', function() {
+                el.textContent = input.value;
+            });
+        }
+
+        // 插入图片
+        function editInsertImage() {
+            var imgUrl = prompt('请输入图片URL：');
+            if (!imgUrl) return;
+            var focused = document.activeElement;
+            if (focused && focused.classList && focused.classList.contains('timeline-content')) {
+                document.execCommand('insertHTML', false, '<img src="' + escapeAttr(imgUrl.trim()) + '" style="max-width:100%;border-radius:0.4rem;margin:0.3rem 0;" alt="图片"><br>');
+            } else {
+                alert('请先点击要插入图片的内容区域');
+            }
+        }
+
+        // 插入B站视频
+        function editInsertBilibili() {
+            var videoUrl = prompt('请输入B站视频链接或BV号（如 BV1xx411x7xx）：');
+            if (!videoUrl) return;
+            var bvid = extractBvid(videoUrl) || (videoUrl.match(/^[A-Za-z0-9]+$/) ? videoUrl : null);
+            if (!bvid) {
+                alert('无法识别B站视频，请输入完整链接或BV号');
+                return;
+            }
+            // 将视频存储到当前节点的video字段
+            var focused = document.activeElement;
+            var card = focused ? focused.closest('.memory-card') : null;
+            if (card) {
+                card.setAttribute('data-video', 'https://www.bilibili.com/video/' + bvid);
+                // 在内容后插入视频iframe
+                var existingVideo = card.querySelector('.timeline-video');
+                if (existingVideo) existingVideo.remove();
+                var videoDiv = document.createElement('div');
+                videoDiv.className = 'timeline-video';
+                videoDiv.innerHTML = '<iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe>';
+                card.appendChild(videoDiv);
+            } else {
+                alert('请先点击一个节点内容区域');
+            }
+        }
+
+        // 添加新节点
+        function editAddNode() {
+            // 滚动到添加节点页面
+            var pages = document.getElementById('memoryPages');
+            var addPage = document.getElementById('addNodePage');
+            if (addPage) {
+                var idx = Array.prototype.indexOf.call(pages.children, addPage);
+                scrollToPage(idx);
+                // 聚焦到标题
+                setTimeout(function() {
+                    var titleEl = addPage.querySelector('.timeline-title');
+                    if (titleEl) titleEl.focus();
+                }, 500);
+            }
+        }
+
+        // 删除当前节点
+        function editDeleteCurrentNode() {
+            var pages = document.getElementById('memoryPages');
+            var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
+            var pageEl = pages.children[currentIdx];
+            if (!pageEl) return;
+            var nodeIdx = pageEl.getAttribute('data-node-index');
+            if (nodeIdx === null) {
+                alert('当前页面不可删除');
+                return;
+            }
+            nodeIdx = parseInt(nodeIdx);
+            if (!confirm('确定删除该时间节点吗？')) return;
+            var nodes = window._memoryNodes || [];
+            var node = nodes[nodeIdx];
+            if (!node) return;
+
+            // 从数据库删除
+            if (node.id) {
+                var url = SUPABASE_URL + '/rest/v1/history_nodes?id=eq.' + encodeURIComponent(node.id);
+                fetch(url, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+                    .then(function() { alert('节点已删除'); location.reload(); })
+                    .catch(function(e) { alert('删除失败：' + (e.message || '错误')); });
+            } else {
+                // localStorage 模式
+                nodes.splice(nodeIdx, 1);
+                localStorage.setItem('history_nodes', JSON.stringify(nodes));
+                alert('节点已删除');
+                location.reload();
+            }
+        }
+
+        // 移动节点排序
+        function editMoveNode(idx, direction) {
+            var nodes = window._memoryNodes || [];
+            var newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= nodes.length) return;
+
+            // 交换节点位置
+            var temp = nodes[idx];
+            nodes[idx] = nodes[newIdx];
+            nodes[newIdx] = temp;
+
+            // 交换日期以保持数据库排序（数据库按 node_date 排序）
+            var tempDate = nodes[idx].date;
+            nodes[idx].date = nodes[newIdx].date;
+            nodes[newIdx].date = tempDate;
+
+            window._memoryNodes = nodes;
+            // 标记需要保存排序
+            window._needsSaveOrder = true;
+
+            // 重新渲染
+            renderMemoryPagesForEdit();
+        }
+
+        // 编辑模式下重新渲染（保持编辑状态）
+        function renderMemoryPagesForEdit() {
+            var nodes = window._memoryNodes || [];
+            var container = document.getElementById('memoryPages');
+            var dots = document.getElementById('pageDots');
+            var now = new Date();
+            var daysPassed = Math.floor((now - CLASS_START) / (1000 * 60 * 60 * 24));
+            var daysToGaokao = Math.ceil((GAOKAO_DATE - now) / (1000 * 60 * 60 * 24));
+            var peopleCount = userInfo.isStudent ? STUDENT_COUNT : TEACHER_COUNT;
+
+            var html = '';
+            var dotsHtml = '';
+
+            // 第1页
+            var greetingHtml = '亲爱的';
+            if (userInfo.name) greetingHtml += '<span class="name">' + escapeHtml(userInfo.name) + '</span>';
+            greetingHtml += '<span class="role">' + userInfo.role + '</span>：';
+            html += '<div class="memory-page stats-page"><div class="memory-card"><div class="stats-greeting">' +
+                greetingHtml + '<br>13班已陪你走过<span class="rolling-number" id="numDays">0</span>天<br>' +
+                '<span class="rolling-number" id="numPeople">0</span>位同学与你并肩奋斗<br>' +
+                '距离高考还有<span class="rolling-number" id="numGaokao">0</span>天<br></div>' +
+                '<div class="stats-ending">让我们一起为着理想大学而奋斗！</div></div></div>';
+            dotsHtml += '<div class="page-dot active" onclick="scrollToPage(0)"></div>';
+
+            for (var i = 0; i < nodes.length; i++) {
+                var node = nodes[i];
+                var videoHtml = '';
+                if (node.video) {
+                    var bvid = extractBvid(node.video);
+                    if (bvid) videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
+                }
+                var imagesHtml = '';
+                if (node.images) {
+                    var imgUrls = node.images.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+                    if (imgUrls.length) {
+                        imagesHtml = '<div class="timeline-images">';
+                        for (var k = 0; k < imgUrls.length; k++) imagesHtml += '<img src="' + escapeHtml(imgUrls[k]) + '" alt="" loading="lazy">';
+                        imagesHtml += '</div>';
+                    }
+                }
+                var contentHtml = node.content || '';
+                var isRichText = contentHtml.indexOf('<') !== -1 && contentHtml.indexOf('>') !== -1;
+                if (isRichText) {
+                    contentHtml = contentHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                                             .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+                                             .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+                                             .replace(/javascript:/gi, '');
+                } else {
+                    contentHtml = escapeHtml(contentHtml);
+                }
+                html += '<div class="memory-page timeline-page" data-node-index="' + i + '">' +
+                    '<div class="memory-card editing" data-node-id="' + (node.id || '') + '">' +
+                    '<div class="node-reorder">' +
+                        '<button class="reorder-btn" onclick="editMoveNode(' + i + ', -1)"' + (i === 0 ? ' disabled' : '') + '>↑ 上移</button>' +
+                        '<button class="reorder-btn" onclick="editMoveNode(' + i + ', 1)"' + (i === nodes.length - 1 ? ' disabled' : '') + '>↓ 下移</button>' +
+                    '</div>' +
+                    '<div class="timeline-date" contenteditable="true">' + escapeHtml(node.date || '') + '</div>' +
+                    '<div class="timeline-title" contenteditable="true">' + escapeHtml(node.title || '') + '</div>' +
+                    '<div class="timeline-content' + (isRichText ? ' rich-text' : '') + '" contenteditable="true">' + contentHtml + '</div>' +
+                    imagesHtml + videoHtml + '</div></div>';
+                dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (i+1) + ')"></div>';
+            }
+
+            // 添加节点页面
+            html += '<div class="memory-page add-node-page active" id="addNodePage">' +
+                '<div class="memory-card editing">' +
+                '<div class="node-reorder"><button class="reorder-btn" onclick="editMoveNode(' + nodes.length + ', -1)">↑ 上移</button></div>' +
+                '<div class="timeline-date" contenteditable="true" data-placeholder="点击设置日期"></div>' +
+                '<div class="timeline-title" contenteditable="true" data-placeholder="点击输入标题"></div>' +
+                '<div class="timeline-content" contenteditable="true" data-placeholder="点击输入内容..."></div>' +
+                '<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:1rem;">➕ 新时间节点</div>' +
+                '</div></div>';
+            dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (nodes.length + 1) + ')"></div>';
+
+            container.innerHTML = html;
+            dots.innerHTML = dotsHtml;
+
+            // 重新绑定日期点击事件
+            var dateEls = container.querySelectorAll('.timeline-date');
+            dateEls.forEach(function(el) {
+                el.addEventListener('click', editDateClickHandler);
+            });
+
+            // 触发数字滚动
+            setTimeout(function() {
+                animateRollingNumber(document.getElementById('numDays'), daysPassed, 2000);
+                animateRollingNumber(document.getElementById('numPeople'), peopleCount, 2000);
+                animateRollingNumber(document.getElementById('numGaokao'), daysToGaokao, 2000);
+            }, 300);
+        }
+
+        // 保存所有编辑
+        async function editSaveAll() {
+            var nodes = window._memoryNodes || [];
+            var pages = document.getElementById('memoryPages');
+            var pageEls = pages.querySelectorAll('.timeline-page');
+            var addPage = document.getElementById('addNodePage');
+            var saved = 0;
+            var errors = [];
+
+            // 保存已有节点的修改
+            for (var i = 0; i < pageEls.length; i++) {
+                var card = pageEls[i].querySelector('.memory-card');
+                if (!card) continue;
+                var nodeIdx = parseInt(pageEls[i].getAttribute('data-node-index'));
+                var node = nodes[nodeIdx];
+                if (!node) continue;
+
+                var dateEl = card.querySelector('.timeline-date');
+                var titleEl = card.querySelector('.timeline-title');
+                var contentEl = card.querySelector('.timeline-content');
+                var videoData = card.getAttribute('data-video');
+
+                var updates = {};
+                if (dateEl) {
+                    var newDate = dateEl.textContent.trim();
+                    var originalDate = node._originalDate || node.date;
+                    if (newDate && newDate !== originalDate) updates.node_date = newDate;
+                }
+                if (titleEl) {
+                    var newTitle = titleEl.textContent.trim();
+                    if (newTitle !== node.title) updates.title = newTitle;
+                }
+                if (contentEl) {
+                    var newContent = contentEl.innerHTML.trim();
+                    if (newContent !== node.content) updates.content = newContent;
+                }
+                if (videoData !== null) {
+                    var currentVideo = card.getAttribute('data-video') || '';
+                    if (currentVideo !== (node.video || '')) updates.video = currentVideo;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    try {
+                        if (node.id) {
+                            var url = SUPABASE_URL + '/rest/v1/history_nodes?id=eq.' + encodeURIComponent(node.id);
+                            var resp = await fetch(url, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updates)
+                            });
+                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                            saved++;
+                        }
+                    } catch(e) {
+                        errors.push('节点 ' + (nodeIdx + 1) + ' 保存失败: ' + (e.message || '错误'));
+                    }
+                }
+            }
+
+            // 检查添加节点页面
+            if (addPage) {
+                var addCard = addPage.querySelector('.memory-card');
+                if (addCard) {
+                    var addDate = addCard.querySelector('.timeline-date');
+                    var addTitle = addCard.querySelector('.timeline-title');
+                    var addContent = addCard.querySelector('.timeline-content');
+                    var addVideo = addCard.getAttribute('data-video') || '';
+
+                    var dateVal = addDate ? addDate.textContent.trim() : '';
+                    var titleVal = addTitle ? addTitle.textContent.trim() : '';
+                    var contentVal = addContent ? addContent.innerHTML.trim() : '';
+
+                    if (dateVal && titleVal && contentVal && contentVal !== '<br>') {
+                        try {
+                            var newRow = {
+                                node_date: dateVal,
+                                title: titleVal,
+                                content: contentVal,
+                                font_family: '',
+                                font_color: '',
+                                images: '',
+                                video: addVideo
+                            };
+                            var insertResp = await fetch(SUPABASE_URL + '/rest/v1/history_nodes', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(newRow)
+                            });
+                            if (!insertResp.ok) throw new Error('HTTP ' + insertResp.status);
+                            saved++;
+                        } catch(e) {
+                            errors.push('新增节点保存失败: ' + (e.message || '错误'));
+                        }
+                    }
+                }
+            }
+
+            // 排序变更已通过日期交换在上面的节点保存中处理
+            if (window._needsSaveOrder) {
+                window._needsSaveOrder = false;
+            }
+
+            if (errors.length > 0) {
+                alert('保存完成，但有 ' + errors.length + ' 个错误：\n' + errors.join('\n'));
+            } else if (saved > 0) {
+                alert('保存成功（' + saved + ' 个节点已更新）');
+            } else {
+                alert('没有需要保存的更改');
+            }
+
+            // 退出编辑模式并重新加载
+            isEditMode = false;
+            location.reload();
+        }
+
         // 启动（仅在已登录时执行，未登录已在上方拦截跳转）
         if (userInfo.name) {
             runLoader();
         }
     </script>
+
+    <!-- 版本号标注 -->
+    <div class="version-label">回忆录 v1.0.0</div>
+
+    <!-- 更新历史按钮 -->
+    <button class="changelog-btn" onclick="document.getElementById('changelogOverlay').classList.remove('hidden')">📜 更新历史</button>
+
+    <!-- 更新历史弹窗 -->
+    <div id="changelogOverlay" class="changelog-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+        <div class="changelog-panel">
+            <h2>📜 回忆录 — 更新历史<button class="changelog-close" onclick="document.getElementById('changelogOverlay').classList.add('hidden')">&times;</button></h2>
+
+            <h3>v1.0.0</h3>
+            <ul>
+                <li>回忆录编辑功能从后台移至查看页面，右上角"编辑"按钮可直接在查看界面编辑</li>
+                <li>编辑模式支持：编辑时间/标题/内容、插入图片、B站视频、节点排序、添加新节点</li>
+                <li>删除背景图片功能和字体样式编辑功能</li>
+                <li>首页"探索时光记忆"按钮固定底部，诗句文字自动向上滚动</li>
+                <li>时间节点滑动每次仅切换一个节点，避免跳过</li>
+                <li>编辑模式下点击"保存"按钮保存更改，支持取消编辑</li>
+                <li>无编辑权限用户点击编辑按钮时进行提示</li>
+            </ul>
+        </div>
+    </div>
 </body>
 </html>
