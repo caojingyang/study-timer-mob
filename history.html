@@ -896,58 +896,66 @@
         // ====== BGM 背景音乐系统 ======
         const BGM_VOLUME = 0.25;     // 目标音量 25%
         const BGM_FADE_MS = 6000;    // 淡入/淡出时长 6 秒
-        // 50 首契合"青春回忆"主题的免费 CC 音乐直链（Kevin MacLeod / incompetech，可直连播放）
+        // 适合回忆录的轻音乐（钢琴/抒情/怀旧/宁静风格），均来自 CC BY 4.0 免费音乐
         const BGM_LIST = [
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Morning.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Evening.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Reunited.mp3',
+            // Kevin MacLeod (incompetech.com) — CC BY 4.0
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Peace%20of%20Mind.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreams%20Become%20Real.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heartwarming.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Relaxing%20Piano%20Music.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Winter%20Reflections.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/On%20the%20Passing%20of%20Time.mp3',
             'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Memory%20Lane.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreamy%20Flashback.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Crinoline%20Dreams.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Thinking%20of%20You.mp3',
             'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Tranquility.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Water%20Lily.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Soporific.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lightless%20Dawn.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Eternal%20Hope.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Invariance.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Note%20One.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Note%20Two.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Serene.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bathed%20in%20the%20Light.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bittersweet.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Almost%20Bliss.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Autumn%20Day.mp3',
             'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2001.mp3',
             'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2002.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Night%20on%20the%20Docks.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Snow%20Queen.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Hidden%20Wonders.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Inspired.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Living%20Voyage.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Road%20Ahead.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mining%20by%20Moonlight.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Past%20the%20Edge.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Upbeat%20Forever.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Builder.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bumbly%20March.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wallpaper.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Five%20Armies.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Brain%20Dance.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Vibing%20Over%20Venus.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/End%20of%20the%20Era.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/George%20Street%20Shuffle.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Laid%20Back%20Guitars.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Life%20of%20Riley.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Light%20Awash.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Look%20Busy.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Master%20of%20the%20Feast.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Royal%20Banana.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Adventure.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Somewhere%20Sunny.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Super%20Friendly.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Take%20a%20Chance.mp3',
-            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Welcome%20to%20the%20Show.mp3'
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Private%20Reflection.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lasting%20Hope.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Longing%20and%20Concern.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Willow%20and%20the%20Light.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreamy%20Flashback.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fireflies%20and%20Stardust.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Luminous%20Rain.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Moonlight%20Hall.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/At%20Rest.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Echoes%20of%20Time.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Water%20Lily.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Nightdreams.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Beauty%20Flow.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cherry%20Blossom.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clear%20Waters.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Garden%20Music.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Inner%20Light.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lost%20Frontier.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Morning.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Naraina.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Organic%20Meditations%20One.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Piano%20Between.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Piece%20for%20Disaffected%20Piano%20One.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Soaring.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Starry.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Summer%20Day.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Parting.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Village%20Dawn.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/When%20The%20Wind%20Blows.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Windswept.mp3',
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/With%20the%20Sea.mp3',
+            // Scott Buckley (scottbuckley.com.au) — CC BY 4.0
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2025/03/Amberlight.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2025/05/EchoesOfHome.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2026/07/HomeWasYou.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2026/06/WithTheseHands.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2025/07/Penumbra.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2026/02/MemoriesOfStone.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2025/12/Wildflowers.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2024/03/Simplicity.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2025/04/Incredulity.mp3',
+            'https://www.scottbuckley.com.au/library/wp-content/uploads/2026/05/Unraveling.mp3'
         ];
 
         let bgmAudio = null;
@@ -1660,25 +1668,30 @@
             editBtn.textContent = '编辑';
             editBtn.classList.remove('editing');
             toolbar.classList.remove('active');
-            location.reload();
+            // 重新渲染查看模式（不刷新页面）
+            renderMemoryPages();
         }
 
-        // 日期点击处理器：弹出日期选择器
+        // 日期点击处理器：弹出文本输入（支持 月/日 或 日期范围）
         function editDateClickHandler(e) {
             var el = e.target;
+            // 若已存在 input 则不重复创建
+            if (el.querySelector('input')) return;
             var currentVal = el.textContent.trim();
             var input = document.createElement('input');
-            input.type = 'date';
+            input.type = 'text';
             input.value = currentVal;
-            input.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:0.3rem;color:#f1f5f9;font-size:0.9rem;padding:0.2rem 0.4rem;';
+            input.placeholder = '如 2026-03-14 或 2026-03 ~ 2026-06';
+            input.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:0.3rem;color:#f1f5f9;font-size:0.9rem;padding:0.2rem 0.4rem;width:90%;max-width:280px;';
             el.innerHTML = '';
             el.appendChild(input);
             input.focus();
             input.addEventListener('blur', function() {
-                el.textContent = input.value || currentVal;
+                var val = input.value.trim();
+                el.textContent = val || currentVal;
             });
-            input.addEventListener('change', function() {
-                el.textContent = input.value;
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
             });
         }
 
@@ -1794,14 +1807,20 @@
             if (node.id) {
                 var url = SUPABASE_URL + '/rest/v1/history_nodes?id=eq.' + encodeURIComponent(node.id);
                 fetch(url, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
-                    .then(function() { alert('节点已删除'); location.reload(); })
+                    .then(function() {
+                        alert('节点已删除');
+                        // 从本地数组移除并重新渲染编辑模式
+                        nodes.splice(nodeIdx, 1);
+                        window._memoryNodes = nodes;
+                        renderMemoryPagesForEdit();
+                    })
                     .catch(function(e) { alert('删除失败：' + (e.message || '错误')); });
             } else {
                 // localStorage 模式
                 nodes.splice(nodeIdx, 1);
                 localStorage.setItem('history_nodes', JSON.stringify(nodes));
                 alert('节点已删除');
-                location.reload();
+                renderMemoryPagesForEdit();
             }
         }
 
@@ -1896,9 +1915,9 @@
             html += '<div class="memory-page add-node-page active" id="addNodePage">' +
                 '<div class="memory-card editing">' +
                 '<div class="node-reorder"><button class="reorder-btn" onclick="editMoveNode(' + nodes.length + ', -1)">↑ 上移</button></div>' +
-                '<div class="timeline-date" contenteditable="true" data-placeholder="点击设置日期"></div>' +
+                '<div class="timeline-date" contenteditable="true" data-placeholder="点击设置时间（如 2026-03-14 或 2026-03 ~ 2026-06）"></div>' +
                 '<div class="timeline-title" contenteditable="true" data-placeholder="点击输入标题"></div>' +
-                '<div class="timeline-content" contenteditable="true" data-placeholder="点击输入内容..."></div>' +
+                '<div class="timeline-content" contenteditable="true" data-placeholder="点击输入内容（有图片/视频时可空）..."></div>' +
                 '<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:1rem;">➕ 新时间节点</div>' +
                 '</div></div>';
             dotsHtml += '<div class="page-dot" onclick="scrollToPage(' + (nodes.length + 1) + ')"></div>';
@@ -1942,19 +1961,25 @@
                 var contentEl = card.querySelector('.timeline-content');
                 var videoData = card.getAttribute('data-video');
 
+                // 检查日期和标题是否填写
+                var newDate = dateEl ? dateEl.textContent.trim() : '';
+                var newTitle = titleEl ? titleEl.textContent.trim() : '';
+                if (!newDate) {
+                    errors.push('节点 ' + (nodeIdx + 1) + ' 缺少时间');
+                    continue;
+                }
+                if (!newTitle) {
+                    errors.push('节点 ' + (nodeIdx + 1) + ' 缺少标题');
+                    continue;
+                }
+
                 var updates = {};
-                if (dateEl) {
-                    var newDate = dateEl.textContent.trim();
-                    var originalDate = node._originalDate || node.date;
-                    if (newDate && newDate !== originalDate) updates.node_date = newDate;
-                }
-                if (titleEl) {
-                    var newTitle = titleEl.textContent.trim();
-                    if (newTitle !== node.title) updates.title = newTitle;
-                }
+                var originalDate = node._originalDate || node.date;
+                if (newDate !== originalDate) updates.node_date = newDate;
+                if (newTitle !== node.title) updates.title = newTitle;
                 if (contentEl) {
                     var newContent = contentEl.innerHTML.trim();
-                    if (newContent !== node.content) updates.content = newContent;
+                    if (newContent !== (node.content || '')) updates.content = newContent;
                 }
                 if (videoData !== null) {
                     var currentVideo = card.getAttribute('data-video') || '';
@@ -1987,31 +2012,46 @@
                     var addTitle = addCard.querySelector('.timeline-title');
                     var addContent = addCard.querySelector('.timeline-content');
                     var addVideo = addCard.getAttribute('data-video') || '';
+                    // 检查是否有插入的图片
+                    var addImages = addContent ? addContent.querySelectorAll('img').length : 0;
 
                     var dateVal = addDate ? addDate.textContent.trim() : '';
                     var titleVal = addTitle ? addTitle.textContent.trim() : '';
                     var contentVal = addContent ? addContent.innerHTML.trim() : '';
 
-                    if (dateVal && titleVal && contentVal && contentVal !== '<br>') {
-                        try {
-                            var newRow = {
-                                node_date: dateVal,
-                                title: titleVal,
-                                content: contentVal,
-                                font_family: '',
-                                font_color: '',
-                                images: '',
-                                video: addVideo
-                            };
-                            var insertResp = await fetch(SUPABASE_URL + '/rest/v1/history_nodes', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(newRow)
-                            });
-                            if (!insertResp.ok) throw new Error('HTTP ' + insertResp.status);
-                            saved++;
-                        } catch(e) {
-                            errors.push('新增节点保存失败: ' + (e.message || '错误'));
+                    // 时间和标题必填；内容在有视频或图片时可空
+                    var hasContent = contentVal && contentVal !== '<br>';
+                    var hasMedia = addVideo || addImages > 0;
+
+                    if (dateVal || titleVal || hasContent || hasMedia) {
+                        // 有任何输入时进行校验
+                        if (!dateVal) {
+                            errors.push('新节点缺少时间');
+                        } else if (!titleVal) {
+                            errors.push('新节点缺少标题');
+                        } else if (!hasContent && !hasMedia) {
+                            errors.push('新节点需要添加内容、图片或视频');
+                        } else {
+                            try {
+                                var newRow = {
+                                    node_date: dateVal,
+                                    title: titleVal,
+                                    content: hasContent ? contentVal : '',
+                                    font_family: '',
+                                    font_color: '',
+                                    images: '',
+                                    video: addVideo
+                                };
+                                var insertResp = await fetch(SUPABASE_URL + '/rest/v1/history_nodes', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(newRow)
+                                });
+                                if (!insertResp.ok) throw new Error('HTTP ' + insertResp.status);
+                                saved++;
+                            } catch(e) {
+                                errors.push('新增节点保存失败: ' + (e.message || '错误'));
+                            }
                         }
                     }
                 }
@@ -2030,9 +2070,23 @@
                 alert('没有需要保存的更改');
             }
 
-            // 退出编辑模式并重新加载
+            // 退出编辑模式，重新加载节点数据并渲染（不刷新整个页面）
             isEditMode = false;
-            location.reload();
+            var editBtn = document.getElementById('editToggleBtn');
+            var toolbar = document.getElementById('editToolbar');
+            editBtn.textContent = '编辑';
+            editBtn.classList.remove('editing');
+            toolbar.classList.remove('active');
+
+            // 重新从数据库加载并渲染
+            try {
+                var freshNodes = await loadHistoryNodesFromDB();
+                window._memoryNodes = freshNodes;
+                await renderMemoryPages();
+            } catch(e) {
+                // 加载失败则刷新页面
+                location.reload();
+            }
         }
 
         // 启动（仅在已登录时执行，未登录已在上方拦截跳转）
