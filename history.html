@@ -755,14 +755,14 @@
     <!-- 编辑模式工具栏 -->
     <div class="edit-toolbar" id="editToolbar">
         <div class="edit-toolbar-row">
-            <button class="edit-tool-btn" onclick="editInsertImage()">📷 插入图片</button>
-            <button class="edit-tool-btn" onclick="editInsertBilibili()">🎬 B站视频</button>
-            <button class="edit-tool-btn" onclick="editAddNode()">➕ 添加节点</button>
-            <button class="edit-tool-btn delete-btn" onclick="editDeleteCurrentNode()">🗑 删除节点</button>
+            <button class="edit-tool-btn" onmousedown="event.preventDefault()" onclick="editInsertImage()">📷 插入图片</button>
+            <button class="edit-tool-btn" onmousedown="event.preventDefault()" onclick="editInsertBilibili()">🎬 B站视频</button>
+            <button class="edit-tool-btn" onmousedown="event.preventDefault()" onclick="editAddNode()">➕ 添加节点</button>
+            <button class="edit-tool-btn delete-btn" onmousedown="event.preventDefault()" onclick="editDeleteCurrentNode()">🗑 删除节点</button>
         </div>
         <div class="edit-toolbar-row">
-            <button class="edit-tool-btn save-btn" onclick="editSaveAll()">💾 保存</button>
-            <button class="edit-tool-btn" onclick="cancelEditMode()">取消</button>
+            <button class="edit-tool-btn save-btn" onmousedown="event.preventDefault()" onclick="editSaveAll()">💾 保存</button>
+            <button class="edit-tool-btn" onmousedown="event.preventDefault()" onclick="cancelEditMode()">取消</button>
         </div>
     </div>
 
@@ -1682,15 +1682,53 @@
             });
         }
 
+        // 获取当前可见页面的卡片（基于滚动位置）
+        function getCurrentVisibleCard() {
+            var pages = document.getElementById('memoryPages');
+            var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
+            var pageEl = pages.children[currentIdx];
+            if (!pageEl) return null;
+            return pageEl.querySelector('.memory-card') || null;
+        }
+
         // 插入图片
         function editInsertImage() {
+            // 保存当前选区（prompt 会丢失焦点）
+            var savedRange = null;
+            try {
+                var sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) savedRange = sel.getRangeAt(0).cloneRange();
+            } catch(e) {}
+
             var imgUrl = prompt('请输入图片URL：');
             if (!imgUrl) return;
-            var focused = document.activeElement;
-            if (focused && focused.classList && focused.classList.contains('timeline-content')) {
+
+            // 优先使用保存的选区所在的内容区域
+            var contentEl = null;
+            if (savedRange) {
+                var container = savedRange.commonAncestorContainer;
+                var el = container.nodeType === 1 ? container : container.parentNode;
+                if (el && el.closest && el.closest('.timeline-content')) {
+                    contentEl = el.closest('.timeline-content');
+                }
+            }
+            // 回退到当前可见卡片的 content
+            if (!contentEl) {
+                var card = getCurrentVisibleCard();
+                if (card) contentEl = card.querySelector('.timeline-content');
+            }
+            if (contentEl) {
+                contentEl.focus();
+                if (savedRange) {
+                    try {
+                        var sel2 = window.getSelection();
+                        sel2.removeAllRanges();
+                        sel2.addRange(savedRange);
+                    } catch(e) {}
+                }
                 document.execCommand('insertHTML', false, '<img src="' + escapeAttr(imgUrl.trim()) + '" style="max-width:100%;border-radius:0.4rem;margin:0.3rem 0;" alt="图片"><br>');
             } else {
-                alert('请先点击要插入图片的内容区域');
+                alert('未找到可编辑的内容区域');
             }
         }
 
@@ -1703,9 +1741,8 @@
                 alert('无法识别B站视频，请输入完整链接或BV号');
                 return;
             }
-            // 将视频存储到当前节点的video字段
-            var focused = document.activeElement;
-            var card = focused ? focused.closest('.memory-card') : null;
+            // 使用当前可见页面的卡片
+            var card = getCurrentVisibleCard();
             if (card) {
                 card.setAttribute('data-video', 'https://www.bilibili.com/video/' + bvid);
                 // 在内容后插入视频iframe
@@ -1716,7 +1753,7 @@
                 videoDiv.innerHTML = '<iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe>';
                 card.appendChild(videoDiv);
             } else {
-                alert('请先点击一个节点内容区域');
+                alert('未找到当前节点');
             }
         }
 
