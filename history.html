@@ -251,6 +251,7 @@
             overflow-x: hidden;
             scroll-snap-type: y mandatory;
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
         }
         .memory-page {
             width: 100%;
@@ -1063,23 +1064,23 @@
             }
         }
 
-        // 视频开始播放 -> 暂停 BGM
+        // 视频开始播放 -> 快速暂停 BGM（1秒淡出）
         function bgmOnVideoStart() {
             if (bgmUserPaused) return;
             if (bgmVideoPaused) return;
             if (!bgmAudio || bgmAudio.paused) return;
             bgmVideoPaused = true;
-            bgmFadeTo(0, BGM_FADE_MS, function() {
+            bgmSetPlaying(false);
+            bgmFadeTo(0, 1000, function() {  // 1秒快速淡出
                 if (bgmVideoPaused && bgmAudio) { try { bgmAudio.pause(); } catch(e){} }
             });
-            bgmSetPlaying(false);
         }
 
         // 视频结束/失焦 -> 恢复 BGM
         function bgmOnVideoEnd() {
             if (!bgmVideoPaused) return;
             bgmVideoPaused = false;
-            if (bgmUserPaused) return;       // 尊重用户手动暂停
+            if (bgmUserPaused) return;
             if (!bgmAudio) return;
             var ok = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
             var fail = function() { bgmWaitingGesture = true; bgmArmGesture(); };
@@ -1087,26 +1088,52 @@
             if (p && p.then) p.then(ok).catch(fail); else ok();
         }
 
-        // 绑定 Bilibili 视频联动（iframe 无法直接监听，用焦点变化 + 点击近似处理）
+        // 检测当前可见页面是否有视频，并联动 BGM
+        var bgmVideoCheckTimer = null;
+        function bgmStartVideoCheck() {
+            if (bgmVideoCheckTimer) return;
+            // 每 500ms 检查当前可见页面是否有视频 iframe
+            bgmVideoCheckTimer = setInterval(function() {
+                var pages = document.getElementById('memoryPages');
+                if (!pages) return;
+                var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
+                var pageEl = pages.children[currentIdx];
+                if (!pageEl) return;
+                var videoIframe = pageEl.querySelector('.timeline-video iframe');
+                if (videoIframe) {
+                    // 当前页面有视频 -> 暂停 BGM
+                    bgmOnVideoStart();
+                } else {
+                    // 当前页面无视频 -> 恢复 BGM
+                    bgmOnVideoEnd();
+                }
+            }, 500);
+        }
+
+        // 绑定 Bilibili 视频联动
         function bgmBindVideoFocus() {
             if (window._bgmFocusBound) return;
             window._bgmFocusBound = true;
-            // 焦点进入 iframe（视频被操作）-> 暂停音乐
+
+            // 方案1：定时检查当前可见页面是否有视频（主要方案，兼容移动端）
+            bgmStartVideoCheck();
+
+            // 方案2：点击视频容器时立即暂停
+            document.addEventListener('pointerdown', function(e) {
+                var t = e.target;
+                if (t && t.closest && t.closest('.timeline-video')) bgmOnVideoStart();
+            }, true);
+
+            // 方案3：焦点变化兜底（桌面端点击 iframe 时）
             window.addEventListener('blur', function() {
                 setTimeout(function() {
                     var ae = document.activeElement;
                     if (ae && ae.tagName === 'IFRAME') bgmOnVideoStart();
                 }, 0);
             });
-            // 焦点回到页面 -> 视频交互结束 -> 恢复音乐
             window.addEventListener('focus', function() {
-                if (bgmVideoPaused) bgmOnVideoEnd();
+                // 焦点回到页面时不立即恢复，交给定时检查判断
             });
-            // 兜底：点击视频容器区域
-            document.addEventListener('pointerdown', function(e) {
-                var t = e.target;
-                if (t && t.closest && t.closest('.timeline-video')) bgmOnVideoStart();
-            }, true);
         }
 
         // 初始化 BGM（进入回忆录后调用，确保不在加载阶段播放）
@@ -1434,45 +1461,49 @@
             var pages = document.getElementById('memoryPages');
             var dots = document.getElementById('pageDots');
             var hint = document.getElementById('swipeHint');
-            var isScrolling = false;
-            var scrollTimer = null;
 
+            // 滚动时更新指示器和提示
+            var scrollRafId = null;
             pages.addEventListener('scroll', function() {
-                var idx = Math.round(pages.scrollTop / window.innerHeight);
-                var dotEls = dots.querySelectorAll('.page-dot');
-                dotEls.forEach(function(d, i) {
-                    d.classList.toggle('active', i === idx);
+                if (scrollRafId) return;
+                scrollRafId = requestAnimationFrame(function() {
+                    scrollRafId = null;
+                    var idx = Math.round(pages.scrollTop / window.innerHeight);
+                    var dotEls = dots.querySelectorAll('.page-dot');
+                    dotEls.forEach(function(d, i) {
+                        d.classList.toggle('active', i === idx);
+                    });
+                    if (idx > 0) hint.style.display = 'none';
                 });
-                if (idx > 0) hint.style.display = 'none';
-
-                // 节流：滚动停止后吸附到最近的页面
-                if (scrollTimer) clearTimeout(scrollTimer);
-                scrollTimer = setTimeout(function() {
-                    var snapIdx = Math.round(pages.scrollTop / window.innerHeight);
-                    var targetTop = snapIdx * window.innerHeight;
-                    if (Math.abs(pages.scrollTop - targetTop) > 5) {
-                        pages.scrollTo({ top: targetTop, behavior: 'smooth' });
-                    }
-                }, 100);
-            });
+            }, { passive: true });
 
             // 触摸事件：每次滑动仅切换一个节点
             var touchStartY = 0;
-            var touchEndY = 0;
+            var touchStartTime = 0;
+            var isTouchScrolling = false;
             pages.addEventListener('touchstart', function(e) {
                 touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
+                isTouchScrolling = false;
             }, { passive: true });
+
+            pages.addEventListener('touchmove', function(e) {
+                // 标记正在触摸滚动，阻止 scroll snap 干扰
+                isTouchScrolling = true;
+            }, { passive: true });
+
             pages.addEventListener('touchend', function(e) {
+                if (isTouchScrolling) return; // 如果已跟随手指滚动，交由 scroll-snap 处理
                 touchEndY = e.changedTouches[0].clientY;
                 var diff = touchStartY - touchEndY;
-                if (Math.abs(diff) > 50) {
+                var duration = Date.now() - touchStartTime;
+                // 快速轻扫（短时间 + 足够距离）才触发单节点切换
+                if (Math.abs(diff) > 40 && duration < 500) {
                     var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
                     var maxIdx = pages.children.length - 1;
                     if (diff > 0 && currentIdx < maxIdx) {
-                        // 上滑 -> 下一个节点
                         scrollToPage(currentIdx + 1);
                     } else if (diff < 0 && currentIdx > 0) {
-                        // 下滑 -> 上一个节点
                         scrollToPage(currentIdx - 1);
                     }
                 }
@@ -1485,12 +1516,12 @@
                 if (wheelTimer) return;
                 var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
                 var maxIdx = pages.children.length - 1;
-                if (e.deltaY > 30 && currentIdx < maxIdx) {
+                if (e.deltaY > 20 && currentIdx < maxIdx) {
                     scrollToPage(currentIdx + 1);
-                } else if (e.deltaY < -30 && currentIdx > 0) {
+                } else if (e.deltaY < -20 && currentIdx > 0) {
                     scrollToPage(currentIdx - 1);
                 }
-                wheelTimer = setTimeout(function() { wheelTimer = null; }, 500);
+                wheelTimer = setTimeout(function() { wheelTimer = null; }, 400);
             }, { passive: false });
         }
 
@@ -1609,6 +1640,17 @@
         function scrollToPage(idx) {
             var pages = document.getElementById('memoryPages');
             pages.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
+            // 滚动后立即检查视频联动（不等 500ms 定时器）
+            setTimeout(function() {
+                var pageEl = pages.children[idx];
+                if (!pageEl) return;
+                var videoIframe = pageEl.querySelector('.timeline-video iframe');
+                if (videoIframe) {
+                    bgmOnVideoStart();
+                } else {
+                    bgmOnVideoEnd();
+                }
+            }, 300);
         }
 
         function extractBvid(url) {
