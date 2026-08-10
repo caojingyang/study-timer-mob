@@ -1005,10 +1005,11 @@
             if (p && p.then) p.then(onOk).catch(onFail); else onOk();
         }
 
-        // 淡出至 0 后暂停
-        function bgmPauseFade(onDone) {
+        // 淡出至 0 后暂停（用户手动暂停时使用短淡出 800ms，视频联动使用长淡出）
+        function bgmPauseFade(onDone, fast) {
             if (!bgmAudio) { if (onDone) onDone(); return; }
-            bgmFadeTo(0, BGM_FADE_MS, function() {
+            var dur = fast ? 800 : BGM_FADE_MS;
+            bgmFadeTo(0, dur, function() {
                 try { bgmAudio.pause(); } catch(e) {}
                 if (onDone) onDone();
             });
@@ -1042,13 +1043,15 @@
                 bgmWaitingGesture = false;
                 bgmUserPaused = false;
                 bgmVideoPaused = false;
-                var onOk = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); bgmSetPlaying(true); };
+                bgmSetPlaying(true);  // 立即更新图标为播放状态
+                var onOk = function() { bgmFadeTo(BGM_VOLUME, BGM_FADE_MS); };
                 var onFail = function() { bgmWaitingGesture = true; bgmArmGesture(); bgmSetPlaying(false); };
                 var p = bgmAudio.play();
                 if (p && p.then) p.then(onOk).catch(onFail); else onOk();
             } else {
                 bgmUserPaused = true;
-                bgmPauseFade(function() { bgmSetPlaying(false); });
+                bgmSetPlaying(false);  // 立即更新图标为暂停状态
+                bgmPauseFade(null, true);  // 短淡出后暂停
             }
         }
 
