@@ -735,6 +735,67 @@
         .status-error { color: #ef4444; }
         .status-pending { color: #94a3b8; }
 
+        /* ========== 发送文件至班级大屏 ========== */
+        .file-drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .file-drop-zone:hover { border-color: #f59e0b; background: #fffbeb; }
+        .file-drop-zone.dragover { border-color: #f59e0b; background: #fef3c7; transform: scale(1.01); }
+        .file-drop-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+        .file-drop-text { font-size: 0.9rem; font-weight: 600; color: #475569; }
+        .file-drop-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.3rem; }
+        .file-send-list { margin-top: 0.8rem; }
+        .file-send-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 0.8rem; margin-bottom: 0.4rem;
+            border: 1.5px solid #e2e8f0; border-radius: 0.5rem;
+            background: #fff; transition: border-color 0.2s;
+        }
+        .file-send-item.uploading { border-color: #3b82f6; }
+        .file-send-item.done { border-color: #16a34a; }
+        .file-send-item.error { border-color: #ef4444; }
+        .file-send-item-icon { font-size: 1.5rem; flex-shrink: 0; }
+        .file-send-item-info { flex: 1; min-width: 0; }
+        .file-send-item-name { font-size: 0.82rem; font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-send-item-size { font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem; }
+        .file-send-item-status { font-size: 0.72rem; font-weight: 600; flex-shrink: 0; }
+        .file-send-item-remove {
+            background: none; border: none; color: #ef4444;
+            font-size: 1.1rem; cursor: pointer; padding: 0.2rem 0.4rem;
+            flex-shrink: 0; line-height: 1;
+        }
+        .silent-toggle {
+            position: relative; display: inline-block; width: 44px; height: 24px;
+            flex-shrink: 0;
+        }
+        .silent-toggle input { opacity: 0; width: 0; height: 0; }
+        .silent-toggle-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #10b981; border-radius: 24px; transition: 0.3s;
+        }
+        .silent-toggle-slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s;
+        }
+        .silent-toggle input:checked + .silent-toggle-slider { background: #10b981; }
+        .silent-toggle input:checked + .silent-toggle-slider:before { transform: translateX(20px); }
+        .silent-toggle input:not(:checked) + .silent-toggle-slider { background: #d1d5db; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #fff; border-radius: 0.75rem; padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
         /* ========== 用户系统 ========== */
         .user-bar {
             position: fixed;
@@ -2137,6 +2198,7 @@
                                 <option value="viewSchedule">查看时间表</option>
                                 <option value="modifySchedule">修改时间表</option>
                                 <option value="sendNotification">发送通知</option>
+                                <option value="sendFile">发送文件</option>
                                 <option value="viewMemory">回忆录查看</option>
                                 <option value="editMemory">回忆录编辑</option>
                                 <option value="isAdmin">管理员</option>
@@ -2222,6 +2284,7 @@
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermView" checked> 查看时间表</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermModify" checked> 修改时间表</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermSend" checked> 发送通知</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSendFile" checked> 发送文件</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermViewMemory" checked onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录查看</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermEditMemory" onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录编辑</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermAdmin"> 管理员</label>
@@ -2396,6 +2459,7 @@
                     <label class="admin-perm-check"><input type="checkbox" id="editPermView"> 查看时间表</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermModify"> 修改时间表</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermSend"> 发送通知</label>
+                    <label class="admin-perm-check"><input type="checkbox" id="editPermSendFile"> 发送文件</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermViewMemory"> 回忆录查看</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermEditMemory" onchange="if(this.checked) document.getElementById('editPermViewMemory').checked=true;"> 回忆录编辑</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermAdmin"> 管理员</label>
@@ -2419,6 +2483,7 @@
     <div id="mainMenu" class="main-menu">
         <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">&#x1F4CB; 查看晚自习作业时间表</button>
         <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">&#x1F4E4; 发送通知至晚自习系统</button>
+        <button class="menu-btn" id="menuBtnSendFile" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;" onclick="showView('sendFileView')">&#x1F4E5; 发送文件至班级大屏</button>
         <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">&#x1F30C; 情怀：我们一起走过的日子</button>
     </div>
 
@@ -2646,6 +2711,83 @@
         </div>
     </div>
 
+    <!-- 发送文件至班级大屏视图 -->
+    <div id="sendFileView" class="view-container">
+        <button class="back-btn" onclick="showMainMenu()">&#x2190; 返回</button>
+
+        <div class="card-title" style="margin-bottom:0.8rem;font-size:1rem;"><span class="icon">&#x1F4E5;</span> 发送文件至班级大屏</div>
+
+        <!-- 协议警告 -->
+        <div id="sendFileProtocolWarning" class="protocol-warning hidden">
+            <span class="warn-icon">&#x26A0;&#xFE0F;</span>
+            <span>当前通过本地文件打开，发送功能无法使用。请通过 HTTP 服务器访问。</span>
+        </div>
+
+        <!-- 文件选择区 -->
+        <div class="card">
+            <div class="card-title"><span class="icon">&#x1F4C1;</span> 选择文件</div>
+            <div id="fileDropZone" class="file-drop-zone" onclick="document.getElementById('fileSendInput').click()">
+                <span class="file-drop-icon">&#x1F4E6;</span>
+                <div class="file-drop-text">点击选择文件或拖拽文件到此处</div>
+                <div class="file-drop-hint">支持多文件选择，单文件最大 1GB</div>
+            </div>
+            <input type="file" id="fileSendInput" multiple style="display:none;" onchange="handleFileSelect(event)">
+
+            <!-- 已选文件列表 -->
+            <div class="file-send-list" id="fileSendList" style="display:none;"></div>
+
+            <!-- 上传进度 -->
+            <div class="upload-progress" id="fileSendUploadProgress" style="display:none;">
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="fileSendProgressFill"></div>
+                </div>
+                <div class="upload-progress-text" id="fileSendProgressText">正在上传… 0%</div>
+                <div class="upload-progress-eta" id="fileSendProgressEta"></div>
+            </div>
+
+            <!-- 发送进度 -->
+            <div class="upload-progress" id="fileSendTransferProgress" style="display:none;">
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="fileTransferProgressFill" style="background:linear-gradient(90deg,#f59e0b,#ef4444);"></div>
+                </div>
+                <div class="upload-progress-text" id="fileTransferProgressText">正在发送至班级大屏… 0%</div>
+                <div class="upload-progress-eta" id="fileTransferProgressEta"></div>
+            </div>
+        </div>
+
+        <!-- 静默发送 -->
+        <div class="card" style="margin-top:0.8rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-size:0.9rem;font-weight:600;color:#374151;">&#x1F50A; 静默发送</div>
+                    <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;">开启后，文件将静默接收，不弹出提示窗口</div>
+                </div>
+                <label class="silent-toggle">
+                    <input type="checkbox" id="silentSendToggle" checked onchange="onSilentToggleChange(this)">
+                    <span class="silent-toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 发送按钮 -->
+        <button class="send-btn" id="sendFileBtn" onclick="sendFilesToScreen()" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);">&#x1F4E4; 立即发送</button>
+        <div class="status-bar" id="sendFileStatusBar"></div>
+    </div>
+
+    <!-- 静默发送关闭确认弹窗 -->
+    <div id="silentConfirmModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:360px;">
+            <div style="font-size:1rem;font-weight:700;color:#ef4444;margin-bottom:0.6rem;">&#x26A0;&#xFE0F; 确认关闭静默发送</div>
+            <div style="font-size:0.85rem;color:#6b7280;line-height:1.6;margin-bottom:1rem;">
+                非静默发送会在班级大屏上展示文件信息（发送者、文件名、大小等），可能干扰教师正常教学。确定要关闭静默发送吗？
+            </div>
+            <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
+                <button onclick="cancelSilentOff()" style="padding:0.5rem 1.2rem;border:none;border-radius:0.5rem;background:#e5e7eb;color:#6b7280;font-size:0.85rem;font-weight:600;cursor:pointer;">取消</button>
+                <button onclick="confirmSilentOff()" style="padding:0.5rem 1.2rem;border:none;border-radius:0.5rem;background:#ef4444;color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">确认关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         /*
          * ========== Supabase 数据库配置说明 ==========
@@ -2661,7 +2803,7 @@
          *   password_hash TEXT NOT NULL,
          *   role TEXT NOT NULL DEFAULT 'teacher' CHECK (role IN ('student', 'teacher')),
          *   subject TEXT,
-         *   permissions JSONB NOT NULL DEFAULT '{"viewSchedule":true,"modifySchedule":false,"sendNotification":false}',
+         *   permissions JSONB NOT NULL DEFAULT '{"viewSchedule":true,"modifySchedule":false,"sendNotification":false,"sendFile":false}',
          *   is_admin BOOLEAN NOT NULL DEFAULT false,
          *   banned_ips TEXT[] DEFAULT '{}',
          *   created_at TIMESTAMPTZ DEFAULT now()
@@ -2715,6 +2857,43 @@
          *
          * -- 如表已存在，执行以下语句添加新列：
          * ALTER TABLE history_nodes ADD COLUMN IF NOT EXISTS background_image TEXT DEFAULT '';
+         *
+         * -- 6. 大屏心跳表（用于检测班级大屏是否在线）
+         * CREATE TABLE IF NOT EXISTS screen_heartbeat (
+         *   id INTEGER PRIMARY KEY DEFAULT 1,
+         *   last_heartbeat TIMESTAMPTZ DEFAULT now(),
+         *   ip_address TEXT,
+         *   port INTEGER DEFAULT 8080
+         * );
+         * INSERT INTO screen_heartbeat (id, last_heartbeat) VALUES (1, now())
+         *   ON CONFLICT (id) DO NOTHING;
+         * ALTER TABLE screen_heartbeat ENABLE ROW LEVEL SECURITY;
+         * CREATE POLICY "Allow all on screen_heartbeat" ON screen_heartbeat FOR ALL USING (true) WITH CHECK (true);
+         *
+         * -- 7. 待接收文件表（大屏离线时保存文件信息）
+         * CREATE TABLE IF NOT EXISTS pending_files (
+         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         *   sender_username TEXT NOT NULL,
+         *   sender_realname TEXT,
+         *   file_name TEXT NOT NULL,
+         *   file_size BIGINT,
+         *   file_type TEXT DEFAULT '',
+         *   download_url TEXT NOT NULL,
+         *   share_url TEXT DEFAULT '',
+         *   silent BOOLEAN DEFAULT true,
+         *   created_at TIMESTAMPTZ DEFAULT now(),
+         *   downloaded BOOLEAN DEFAULT false
+         * );
+         * CREATE INDEX IF NOT EXISTS idx_pending_files_downloaded ON pending_files(downloaded);
+         * ALTER TABLE pending_files ENABLE ROW LEVEL SECURITY;
+         * CREATE POLICY "Allow all on pending_files" ON pending_files FOR ALL USING (true) WITH CHECK (true);
+         *
+         * -- 8. 为现有用户添加 sendFile 权限
+         * UPDATE users SET permissions = permissions || '{"sendFile": false}'::jsonb
+         *   WHERE NOT (permissions ? 'sendFile');
+         * -- 教师默认开启 sendFile 权限
+         * UPDATE users SET permissions = permissions || '{"sendFile": true}'::jsonb
+         *   WHERE role = 'teacher' AND permissions->>'sendFile' IS NULL;
          */
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
@@ -3522,9 +3701,9 @@
                 if (existingNames.has(uname)) { errors.push('第' + (i+1) + '行用户名已存在'); continue; }
                 var permissions = {};
                 if (role === '教师') {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false };
                 }
                 var isAdmin = (uname.toLowerCase() === 'starbusk');
                 if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; }
@@ -3615,6 +3794,7 @@
             if (perms.viewSchedule) tags.push('<span class="admin-user-tag perm">查看</span>');
             if (perms.modifySchedule) tags.push('<span class="admin-user-tag perm">修改</span>');
             if (perms.sendNotification) tags.push('<span class="admin-user-tag perm">发送</span>');
+            if (perms.sendFile) tags.push('<span class="admin-user-tag perm">发文件</span>');
             if (perms.viewMemory) tags.push('<span class="admin-user-tag perm">回忆录查看</span>');
             if (perms.editMemory) tags.push('<span class="admin-user-tag perm">回忆录编辑</span>');
             if (perms.isAdmin) tags.push('<span class="admin-user-tag admin-tag">管理</span>');
@@ -3655,6 +3835,7 @@
                 if (perms.viewSchedule) html += '<span class="admin-user-tag perm">查看</span>';
                 if (perms.modifySchedule) html += '<span class="admin-user-tag perm">修改</span>';
                 if (perms.sendNotification) html += '<span class="admin-user-tag perm">发送</span>';
+                if (perms.sendFile) html += '<span class="admin-user-tag perm">发文件</span>';
                 if (perms.viewMemory) html += '<span class="admin-user-tag perm">回忆录查看</span>';
                 if (perms.editMemory) html += '<span class="admin-user-tag perm">回忆录编辑</span>';
                 if (perms.isAdmin) html += '<span class="admin-user-tag admin-tag">管理</span>';
@@ -3791,6 +3972,7 @@
                 viewSchedule: document.getElementById('singlePermView').checked,
                 modifySchedule: document.getElementById('singlePermModify').checked,
                 sendNotification: document.getElementById('singlePermSend').checked,
+                sendFile: document.getElementById('singlePermSendFile').checked,
                 viewMemory: document.getElementById('singlePermViewMemory').checked,
                 editMemory: document.getElementById('singlePermEditMemory').checked
             };
@@ -3843,6 +4025,7 @@
             document.getElementById('editPermView').checked = !!perms.viewSchedule;
             document.getElementById('editPermModify').checked = !!perms.modifySchedule;
             document.getElementById('editPermSend').checked = !!perms.sendNotification;
+            document.getElementById('editPermSendFile').checked = !!perms.sendFile;
             document.getElementById('editPermViewMemory').checked = !!perms.viewMemory;
             document.getElementById('editPermEditMemory').checked = !!perms.editMemory;
             document.getElementById('editPermAdmin').checked = !!(perms.isAdmin || u.is_admin);
@@ -4022,6 +4205,7 @@
                 viewSchedule: document.getElementById('editPermView').checked,
                 modifySchedule: document.getElementById('editPermModify').checked,
                 sendNotification: document.getElementById('editPermSend').checked,
+                sendFile: document.getElementById('editPermSendFile').checked,
                 viewMemory: document.getElementById('editPermViewMemory').checked,
                 editMemory: document.getElementById('editPermEditMemory').checked
             };
@@ -5328,9 +5512,9 @@
                 // 根据角色设置权限
                 var permissions;
                 if (regRole === 'student') {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false };
                 }
 
                 var isAdmin = (username.toLowerCase() === 'starbusk');
@@ -5761,6 +5945,12 @@
                 menuNotify.style.display = '';
             } else {
                 menuNotify.style.display = 'none';
+            }
+            var menuSendFile = document.getElementById('menuBtnSendFile');
+            if (perms.sendFile) {
+                menuSendFile.style.display = '';
+            } else {
+                menuSendFile.style.display = 'none';
             }
         }
 
@@ -7185,6 +7375,391 @@
                 if (e.target === changelogOverlay) hideChangelog();
             });
         }
+        // ============ 发送文件至班级大屏 ============
+        let sendFileList = [];  // { id, file, status, progress, shareUrl, downloadUrl, xhr }
+        let sendFileCounter = 0;
+        const FILE_SEND_MAX_SIZE = 1024 * 1024 * 1024; // 1GB
+
+        // 文件选择
+        function handleFileSelect(event) {
+            var files = Array.from(event.target.files);
+            addFilesToSendList(files);
+            event.target.value = '';
+        }
+
+        function addFilesToSendList(files) {
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                if (file.size > FILE_SEND_MAX_SIZE) {
+                    showSendFileStatus('文件 ' + file.name + ' 超过 1GB 限制，已跳过', 'error');
+                    continue;
+                }
+                sendFileCounter++;
+                sendFileList.push({
+                    id: sendFileCounter,
+                    file: file,
+                    status: 'pending',
+                    progress: 0,
+                    shareUrl: null,
+                    downloadUrl: null,
+                    xhr: null
+                });
+            }
+            renderFileSendList();
+        }
+
+        // 拖拽上传
+        (function setupFileDropZone() {
+            document.addEventListener('DOMContentLoaded', function() {
+                var zone = document.getElementById('fileDropZone');
+                if (!zone) return;
+                zone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    zone.classList.add('dragover');
+                });
+                zone.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    zone.classList.remove('dragover');
+                });
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    zone.classList.remove('dragover');
+                    var files = Array.from(e.dataTransfer.files);
+                    addFilesToSendList(files);
+                });
+            });
+        })();
+
+        // 渲染文件列表
+        function renderFileSendList() {
+            var container = document.getElementById('fileSendList');
+            if (sendFileList.length === 0) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+            container.style.display = 'block';
+            var html = '';
+            var iconMap = {
+                'application/pdf': '&#x1F4C4;',
+                'application/msword': '&#x1F4DD;',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '&#x1F4DD;',
+                'application/vnd.ms-excel': '&#x1F4CA;',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '&#x1F4CA;',
+                'application/vnd.ms-powerpoint': '&#x1F4FD;&#xFE0F;',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation': '&#x1F4FD;&#xFE0F;',
+                'application/zip': '&#x1F4E6;',
+                'text/plain': '&#x1F4C3;'
+            };
+            for (var i = 0; i < sendFileList.length; i++) {
+                var item = sendFileList[i];
+                var file = item.file;
+                var icon = iconMap[file.type] || '&#x1F4CE;';
+                if (file.type.startsWith('image/')) icon = '&#x1F5BC;&#xFE0F;';
+                var statusHtml = '';
+                var itemClass = '';
+                if (item.status === 'uploading') {
+                    itemClass = 'uploading';
+                    statusHtml = '<span class="file-send-item-status" style="color:#3b82f6;">上传 ' + item.progress + '%</span>';
+                } else if (item.status === 'done') {
+                    itemClass = 'done';
+                    statusHtml = '<span class="file-send-item-status" style="color:#16a34a;">&#x2713; 已上传</span>';
+                } else if (item.status === 'error') {
+                    itemClass = 'error';
+                    statusHtml = '<span class="file-send-item-status" style="color:#ef4444;">&#x2717; 失败</span>';
+                } else if (item.status === 'sending') {
+                    itemClass = 'uploading';
+                    statusHtml = '<span class="file-send-item-status" style="color:#f59e0b;">发送中…</span>';
+                } else if (item.status === 'sent') {
+                    itemClass = 'done';
+                    statusHtml = '<span class="file-send-item-status" style="color:#16a34a;">&#x2713; 已发送</span>';
+                } else {
+                    statusHtml = '<span class="file-send-item-status" style="color:#94a3b8;">等待上传</span>';
+                }
+                html += '<div class="file-send-item ' + itemClass + '">' +
+                    '<span class="file-send-item-icon">' + icon + '</span>' +
+                    '<div class="file-send-item-info">' +
+                    '<div class="file-send-item-name">' + escapeHtml(file.name) + '</div>' +
+                    '<div class="file-send-item-size">' + formatFileSize(file.size) + '</div>' +
+                    '</div>' +
+                    statusHtml +
+                    '<button class="file-send-item-remove" onclick="removeFileSendItem(' + item.id + ')">&#x2715;</button>' +
+                    '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        function removeFileSendItem(id) {
+            var idx = sendFileList.findIndex(function(a) { return a.id === id; });
+            if (idx === -1) return;
+            if (sendFileList[idx].xhr) sendFileList[idx].xhr.abort();
+            sendFileList.splice(idx, 1);
+            renderFileSendList();
+        }
+
+        // 静默发送开关
+        function onSilentToggleChange(checkbox) {
+            if (!checkbox.checked) {
+                // 即将关闭静默，弹出确认
+                document.getElementById('silentConfirmModal').style.display = 'flex';
+            }
+        }
+        function cancelSilentOff() {
+            document.getElementById('silentConfirmModal').style.display = 'none';
+            document.getElementById('silentSendToggle').checked = true;
+        }
+        function confirmSilentOff() {
+            document.getElementById('silentConfirmModal').style.display = 'none';
+            document.getElementById('silentSendToggle').checked = false;
+        }
+
+        function showSendFileStatus(text, type) {
+            var bar = document.getElementById('sendFileStatusBar');
+            bar.textContent = text;
+            bar.className = 'status-bar status-' + (type || 'sending');
+        }
+
+        // 上传单个文件到 EasySend
+        function uploadFileToEasySend(item) {
+            return new Promise(function(resolve) {
+                item.status = 'uploading';
+                item.progress = 0;
+                renderFileSendList();
+
+                var formData = new FormData();
+                formData.append('files[]', item.file);
+                var xhr = new XMLHttpRequest();
+                item.xhr = xhr;
+
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        item.progress = Math.round(e.loaded / e.total * 100);
+                        renderFileSendList();
+                        // 更新全局进度
+                        var done = sendFileList.filter(function(a) { return a.status === 'done'; }).length;
+                        var total = sendFileList.length;
+                        var pct = Math.round(((done + item.progress / 100) / total) * 100);
+                        document.getElementById('fileSendProgressFill').style.width = pct + '%';
+                        document.getElementById('fileSendProgressText').textContent = '正在上传… ' + pct + '%';
+                        document.getElementById('fileSendProgressEta').textContent = '已完成 ' + done + '/' + total;
+                    }
+                };
+
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.success && data.share_url) {
+                                item.status = 'done';
+                                item.shareUrl = 'https://easysend.co' + data.share_url;
+                                if (data.files && data.files.length > 0) {
+                                    item.downloadUrl = 'https://easysend.co' + data.files[0].download_url;
+                                }
+                                item.progress = 100;
+                            } else {
+                                item.status = 'error';
+                            }
+                        } catch(e) { item.status = 'error'; }
+                    } else { item.status = 'error'; }
+                    item.xhr = null;
+                    renderFileSendList();
+                    resolve();
+                };
+
+                xhr.onerror = function() { item.status = 'error'; item.xhr = null; renderFileSendList(); resolve(); };
+                xhr.open('POST', 'https://easysend.co/api/v1/upload');
+                xhr.send(formData);
+            });
+        }
+
+        // 检查大屏是否在线
+        async function checkScreenOnline() {
+            try {
+                var data = await sbGet('screen_heartbeat', 'id', '1', 'last_heartbeat,ip_address,port');
+                if (data && data.length > 0) {
+                    var hb = data[0];
+                    var lastTime = new Date(hb.last_heartbeat).getTime();
+                    var now = Date.now();
+                    if (now - lastTime < 60000) {
+                        return { online: true, ip: hb.ip_address, port: hb.port || 8080 };
+                    }
+                }
+                return { online: false };
+            } catch(e) {
+                return { online: false };
+            }
+        }
+
+        // 保存待接收文件到数据库
+        async function savePendingFilesToDB(fileInfos, silent) {
+            if (!currentUser) return;
+            for (var i = 0; i < fileInfos.length; i++) {
+                var f = fileInfos[i];
+                await sbInsert('pending_files', {
+                    sender_username: currentUser.username,
+                    sender_realname: currentUser.realname || currentUser.username,
+                    file_name: f.name,
+                    file_size: f.size,
+                    file_type: f.type || '',
+                    download_url: f.downloadUrl || f.shareUrl,
+                    share_url: f.shareUrl || '',
+                    silent: silent
+                });
+            }
+        }
+
+        // 发送文件信息到大屏服务器
+        function sendToScreenServer(screenInfo, fileInfos, silent) {
+            return new Promise(function(resolve, reject) {
+                var payload = {
+                    sender: currentUser.username,
+                    realname: currentUser.realname || currentUser.username,
+                    silent: silent,
+                    files: fileInfos.map(function(f) {
+                        return { name: f.name, size: f.size, type: f.type, downloadUrl: f.downloadUrl, shareUrl: f.shareUrl };
+                    })
+                };
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', 'http://' + screenInfo.ip + ':' + screenInfo.port + '/api/receive-files');
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.timeout = 15000;
+
+                // 更新发送进度（模拟，因为POST只是发送文件信息，大屏端下载是后台进行）
+                var progress = 0;
+                var interval = setInterval(function() {
+                    progress += 10;
+                    if (progress > 90) progress = 90;
+                    document.getElementById('fileTransferProgressFill').style.width = progress + '%';
+                    document.getElementById('fileTransferProgressText').textContent = '正在发送至班级大屏… ' + progress + '%';
+                }, 300);
+
+                xhr.onload = function() {
+                    clearInterval(interval);
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        document.getElementById('fileTransferProgressFill').style.width = '100%';
+                        document.getElementById('fileTransferProgressText').textContent = '发送完成 ✓';
+                        // 标记所有文件为已发送
+                        for (var i = 0; i < sendFileList.length; i++) {
+                            sendFileList[i].status = 'sent';
+                        }
+                        renderFileSendList();
+                        resolve();
+                    } else {
+                        reject(new Error('HTTP ' + xhr.status));
+                    }
+                };
+                xhr.onerror = function() { clearInterval(interval); reject(new Error('网络错误')); };
+                xhr.ontimeout = function() { clearInterval(interval); reject(new Error('超时')); };
+                xhr.send(JSON.stringify(payload));
+            });
+        }
+
+        // 主发送函数
+        async function sendFilesToScreen() {
+            if (!currentUser) {
+                alert('请先登录');
+                showAuth('login');
+                return;
+            }
+            // 检查 sendFile 权限
+            var perms = currentUser.permissions || {};
+            if (perms.sendFile === false && !perms.isAdmin) {
+                alert('您没有发送文件权限');
+                return;
+            }
+            if (sendFileList.length === 0) {
+                showSendFileStatus('请先选择文件', 'error');
+                return;
+            }
+
+            var sendBtn = document.getElementById('sendFileBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = '处理中…';
+            var silent = document.getElementById('silentSendToggle').checked;
+
+            try {
+                // Step 1: 上传所有文件到 EasySend
+                var pendingItems = sendFileList.filter(function(a) { return a.status === 'pending' || a.status === 'error'; });
+                if (pendingItems.length > 0) {
+                    showSendFileStatus('正在上传文件…', 'sending');
+                    document.getElementById('fileSendUploadProgress').style.display = 'block';
+                    document.getElementById('fileSendProgressFill').style.width = '0%';
+                    for (var i = 0; i < pendingItems.length; i++) {
+                        await uploadFileToEasySend(pendingItems[i]);
+                    }
+                    document.getElementById('fileSendUploadProgress').style.display = 'none';
+                }
+
+                // 检查是否有上传成功的文件
+                var successItems = sendFileList.filter(function(a) { return a.status === 'done'; });
+                if (successItems.length === 0) {
+                    showSendFileStatus('所有文件上传失败，请重试', 'error');
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '📤 立即发送';
+                    return;
+                }
+
+                var fileInfos = successItems.map(function(a) {
+                    return {
+                        name: a.file.name,
+                        size: a.file.size,
+                        type: a.file.type,
+                        downloadUrl: a.downloadUrl,
+                        shareUrl: a.shareUrl
+                    };
+                });
+
+                // Step 2: 检查大屏是否在线
+                showSendFileStatus('正在检测班级大屏状态…', 'sending');
+                var screenInfo = await checkScreenOnline();
+
+                if (screenInfo.online) {
+                    // 在线：直接发送到大屏
+                    showSendFileStatus('班级大屏在线，正在发送…', 'sending');
+                    document.getElementById('fileSendTransferProgress').style.display = 'block';
+                    try {
+                        await sendToScreenServer(screenInfo, fileInfos, silent);
+                        document.getElementById('fileSendTransferProgress').style.display = 'none';
+                        showSendFileStatus('文件已成功发送至班级大屏 ✓', 'success');
+                        // 清空列表
+                        setTimeout(function() {
+                            sendFileList = [];
+                            renderFileSendList();
+                        }, 2000);
+                    } catch(e) {
+                        document.getElementById('fileSendTransferProgress').style.display = 'none';
+                        // 发送失败，降级为离线模式
+                        showSendFileStatus('发送失败，正在保存到数据库…', 'sending');
+                        await savePendingFilesToDB(fileInfos, silent);
+                        showSendFileStatus('发送失败，文件已保存，大屏下次上线时自动下载', 'success');
+                        setTimeout(function() {
+                            sendFileList = [];
+                            renderFileSendList();
+                        }, 2000);
+                    }
+                } else {
+                    // 离线：保存到数据库
+                    showSendFileStatus('班级大屏已离线，正在保存文件信息…', 'sending');
+                    await savePendingFilesToDB(fileInfos, silent);
+                    showSendFileStatus('班级大屏已离线，将于下次上线时自动下载', 'success');
+                    // 标记所有文件为已发送（离线模式）
+                    for (var j = 0; j < sendFileList.length; j++) {
+                        sendFileList[j].status = 'sent';
+                    }
+                    renderFileSendList();
+                    setTimeout(function() {
+                        sendFileList = [];
+                        renderFileSendList();
+                    }, 3000);
+                }
+            } catch(err) {
+                showSendFileStatus('操作失败：' + (err.message || '未知错误'), 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '📤 立即发送';
+            }
+        }
+
     </script>
 
     <!-- 更新历史按钮 -->
