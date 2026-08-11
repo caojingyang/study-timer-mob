@@ -143,11 +143,12 @@
             width: 100%;
             padding: 2rem;
             text-align: center;
-            animation: poemScrollUp 40s linear infinite;
+            animation: poemScrollUp 30s ease-out forwards;
         }
         @keyframes poemScrollUp {
-            0% { transform: translateY(100%); }
-            100% { transform: translateY(-100%); }
+            0% { transform: translateY(40%); }
+            85% { transform: translateY(calc(-100% + 6rem)); }
+            100% { transform: translateY(calc(-100% + 6rem)); }
         }
         .poem-lines {
             text-align: center;
@@ -680,64 +681,6 @@
             0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 0 0 rgba(135,206,250,0.0); }
             50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.4), 0 0 12px 2px rgba(135,206,250,0.35); }
         }
-
-        /* ====== 版本号 & 更新历史 ====== */
-        .version-label {
-            position: fixed;
-            bottom: 0.3rem;
-            left: 0.5rem;
-            z-index: 1000;
-            font-size: 0.65rem;
-            color: rgba(255,255,255,0.3);
-            pointer-events: none;
-        }
-        .changelog-btn {
-            position: fixed;
-            bottom: 0.3rem;
-            right: 0.5rem;
-            z-index: 1000;
-            padding: 0.3rem 0.7rem;
-            background: rgba(30,30,50,0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 1rem;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .changelog-btn:hover { background: rgba(50,50,80,0.9); color: #fff; }
-        .changelog-overlay {
-            position: fixed; inset: 0; z-index: 2000;
-            background: rgba(0,0,0,0.7);
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .changelog-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
-        .changelog-panel {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 1rem;
-            max-width: 90vw; max-height: 80vh;
-            overflow-y: auto;
-            padding: 1.5rem;
-            color: #e0e0e0;
-        }
-        .changelog-panel h2 {
-            font-size: 1.1rem; color: #fff; margin-bottom: 1rem;
-            position: sticky; top: 0;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            padding-bottom: 0.5rem;
-        }
-        .changelog-close {
-            float: right; background: none; border: none;
-            color: #aaa; font-size: 1.3rem; cursor: pointer;
-        }
-        .changelog-panel h3 { font-size: 0.95rem; color: #667eea; margin-top: 0.8rem; }
-        .changelog-panel ul { padding-left: 1.2rem; margin: 0.3rem 0; }
-        .changelog-panel li { font-size: 0.8rem; line-height: 1.6; color: #b0b0b0; }
     </style>
 </head>
 <body>
@@ -1240,7 +1183,7 @@
             '',
             '从2026年3月14日那天起，',
             '我们有了一个共同的名字——',
-            '<span class="highlight">高二（13）班</span>',
+            '<span class="highlight">3班</span>',
             '',
             '愿此去前程似锦，',
             '再相逢依旧如故。'
@@ -2136,29 +2079,5 @@
             runLoader();
         }
     </script>
-
-    <!-- 版本号标注 -->
-    <div class="version-label">回忆录 v1.0.0</div>
-
-    <!-- 更新历史按钮 -->
-    <button class="changelog-btn" onclick="document.getElementById('changelogOverlay').classList.remove('hidden')">📜 更新历史</button>
-
-    <!-- 更新历史弹窗 -->
-    <div id="changelogOverlay" class="changelog-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
-        <div class="changelog-panel">
-            <h2>📜 回忆录 — 更新历史<button class="changelog-close" onclick="document.getElementById('changelogOverlay').classList.add('hidden')">&times;</button></h2>
-
-            <h3>v1.0.0</h3>
-            <ul>
-                <li>回忆录编辑功能从后台移至查看页面，右上角"编辑"按钮可直接在查看界面编辑</li>
-                <li>编辑模式支持：编辑时间/标题/内容、插入图片、B站视频、节点排序、添加新节点</li>
-                <li>删除背景图片功能和字体样式编辑功能</li>
-                <li>首页"探索时光记忆"按钮固定底部，诗句文字自动向上滚动</li>
-                <li>时间节点滑动每次仅切换一个节点，避免跳过</li>
-                <li>编辑模式下点击"保存"按钮保存更改，支持取消编辑</li>
-                <li>无编辑权限用户点击编辑按钮时进行提示</li>
-            </ul>
-        </div>
-    </div>
 </body>
 </html>
