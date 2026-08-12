@@ -5731,7 +5731,8 @@
                 token = generateResetToken(username);
                 await DB.saveResetToken(username, email, token);
             }
-            resetUrl = 'https://wh12z213mob.pages.dev/?reset=' + token;
+            var basePath = window.location.pathname.replace(/index\.html$/, '');
+            resetUrl = window.location.origin + basePath + '?reset=' + token;
 
             try {
                 await emailjs.send('service_xny0rnb', 'template_vhni5qq', {
