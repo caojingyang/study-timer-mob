@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN" __gcrremoteframetoken="44f86fd3f525dbcca3a881d2e77a949e" class=""><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>高二（13）班晚自习系统移动端</title>
+    <!-- 预连接：提前建立TCP/TLS连接，减少登录请求延迟 -->
+    <link rel="preconnect" href="https://wh12z213mob.pages.dev">
+    <link rel="dns-prefetch" href="https://wh12z213mob.pages.dev">
     <style>
         * {
             margin: 0;
@@ -1900,15 +1902,15 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script>emailjs.init('_koqe8BOQxhI7btf3');</script>
-</head>
-<body>
+    <style id="trae-panel-enter-style">
+        @keyframes trae-panel-enter {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      </style></head>
+<body data-__gcrweb-annotatedpagecontent-processed="EF843D56FF7EBE77EF3BCEE1FEDCE83E">
     <!-- 加载遮罩层 -->
-    <div id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">加载中...</div>
-        <div class="loading-subtext">正在初始化系统，请稍候</div>
-    </div>
+    
 
     <!-- 数据库操作实时状态 -->
     <div class="db-status-toast" id="dbStatusToast">
@@ -1931,19 +1933,19 @@
     </div>
 
     <!-- 登录/注册弹窗 -->
-    <div class="auth-overlay hidden" id="authOverlay">
+    <div class="auth-overlay" id="authOverlay">
         <div class="auth-panel" id="authPanel">
             <!-- 登录表单 -->
-            <div id="loginForm">
-                <h3>&#x1F510; 用户登录</h3>
+            <div id="loginForm" class="">
+                <h3>🔐 用户登录</h3>
                 <div class="form-group">
                     <label>用户名</label>
-                    <input type="text" id="loginUsername" placeholder="请输入用户名" oninput="onLoginUsernameInput()">
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" oninput="onLoginUsernameInput()" __gcruniqueid="1">
                 </div>
                 <div class="admin-hint" id="adminAppealHint" style="display:none;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:0.78rem;padding:0.5rem 0.7rem;border-radius:0.4rem;margin-bottom:0.5rem;"></div>
                 <div class="form-group">
                     <label>密码</label>
-                    <input type="password" id="loginPassword" placeholder="请输入密码">
+                    <input type="password" id="loginPassword" placeholder="请输入密码" __gcruniqueid="2">
                 </div>
                 <button class="btn-primary" onclick="doLogin()">登录</button>
                 <div style="text-align:center;margin-top:0.6rem;">
@@ -1957,7 +1959,7 @@
             <div id="registerForm" class="hidden">
                 <!-- 步骤1：选择身份 -->
                 <div id="registerStep1">
-                    <h3>&#x1F4DD; 用户注册</h3>
+                    <h3>📝 用户注册</h3>
                     <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.5rem;">请选择您的身份</p>
                     <div class="role-selector">
                         <div class="role-btn active" onclick="selectRole(this,'teacher')" data-role="teacher">教师</div>
@@ -1970,43 +1972,43 @@
                 </div>
                 <!-- 步骤2：填写信息 -->
                 <div id="registerStep2" class="hidden">
-                    <h3 id="regStep2Title">&#x1F4DD; 用户注册</h3>
+                    <h3 id="regStep2Title">📝 用户注册</h3>
                     <div class="form-group hidden" id="regRealnameGroup">
                         <label>真实姓名 *</label>
-                        <input type="text" id="regRealname" placeholder="请输入真实姓名">
-                        <div class="reg-hint" id="regRealnameHint" style="font-size:0.72rem;color:#f59e0b;margin-top:0.15rem;">&#x26A0; 请如实填写真实姓名，此信息将用于后期功能权限授予（如回忆录访问等）</div>
+                        <input type="text" id="regRealname" placeholder="请输入真实姓名" __gcruniqueid="3">
+                        <div class="reg-hint" id="regRealnameHint" style="font-size:0.72rem;color:#f59e0b;margin-top:0.15rem;">⚠ 请如实填写真实姓名，此信息将用于后期功能权限授予（如回忆录访问等）</div>
                     </div>
                     <div class="form-group">
                         <label>用户名 *</label>
-                        <input type="text" id="regUsername" placeholder="请输入用户名">
+                        <input type="text" id="regUsername" placeholder="请输入用户名" __gcruniqueid="4">
                     </div>
                     <!-- 联系方式（智能识别） -->
                     <div class="form-group">
                         <label>手机号 / 邮箱 *</label>
-                        <input type="text" id="regContact" placeholder="请输入手机号或邮箱" onblur="autoSendRegVerifyCode()" oninput="onRegContactInput()">
+                        <input type="text" id="regContact" placeholder="请输入手机号或邮箱" onblur="autoSendRegVerifyCode()" oninput="onRegContactInput()" __gcruniqueid="5">
                         <div class="verify-hint" id="contactHint"></div>
                     </div>
                     <!-- 验证码 -->
                     <div class="form-group">
                         <label>验证码 *</label>
                         <div class="verify-code-row">
-                            <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6">
+                            <input type="text" id="regVerifyCode" placeholder="6位验证码" maxlength="6" __gcruniqueid="6">
                             <button class="btn-secondary" id="sendCodeBtn" onclick="sendRegisterVerifyCode()">发送验证码</button>
                         </div>
                         <div class="verify-hint" id="verifyHint"></div>
                     </div>
                     <div class="form-group">
                         <label>密码 * <span class="pwd-hint">(至少6位，含字母、数字、特殊字符中至少两项)</span></label>
-                        <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)">
+                        <input type="password" id="regPassword" placeholder="请输入密码" oninput="checkPasswordStrength(this.value)" __gcruniqueid="7">
                         <div class="password-strength" id="passwordStrength"></div>
                     </div>
                     <div class="form-group">
                         <label>确认密码 *</label>
-                        <input type="password" id="regPasswordConfirm" placeholder="再次输入密码">
+                        <input type="password" id="regPasswordConfirm" placeholder="再次输入密码" __gcruniqueid="8">
                     </div>
                     <div class="form-group" id="regSubjectGroup">
                         <label>任教学科</label>
-                        <select id="regSubject">
+                        <select id="regSubject" __gcruniqueid="9">
                             <option value="">请选择学科</option>
                             <option value="语文">语文</option>
                             <option value="数学">数学</option>
@@ -2027,11 +2029,11 @@
             <div id="recoverForm" class="hidden">
                 <!-- 步骤1：输入用户名查询 -->
                 <div id="recoverStep1">
-                    <h3>&#x1F511; 密码找回</h3>
+                    <h3>🔑 密码找回</h3>
                     <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请输入用户名</p>
                     <div class="form-group">
                         <label>用户名</label>
-                        <input type="text" id="recUsername" placeholder="请输入用户名">
+                        <input type="text" id="recUsername" placeholder="请输入用户名" __gcruniqueid="10">
                     </div>
                     <button class="btn-primary" onclick="queryUserForReset()">重置密码</button>
                     <div class="msg" id="recMsg"></div>
@@ -2050,7 +2052,7 @@
                             <div class="form-group">
                                 <label>验证码</label>
                                 <div class="verify-code-row">
-                                    <input type="text" id="resetVerifyCode" placeholder="6位验证码" maxlength="6">
+                                    <input type="text" id="resetVerifyCode" placeholder="6位验证码" maxlength="6" __gcruniqueid="11">
                                     <button class="btn-secondary" id="resetSendCodeBtn" onclick="sendResetVerifyCode()">发送验证码</button>
                                 </div>
                                 <div class="verify-hint" id="resetVerifyHint"></div>
@@ -2063,7 +2065,7 @@
                             <button class="btn-primary" onclick="sendResetLink()">发送重置链接</button>
                         </div>
                         <div id="resetEmailSent" class="hidden" style="text-align:center;padding:0.5rem;background:#f0fdf4;border-radius:0.5rem;margin-top:0.5rem;">
-                            <p style="font-size:0.85rem;color:#166534;">&#x2709; 重置链接已发送至邮箱，请查收</p>
+                            <p style="font-size:0.85rem;color:#166534;">✉ 重置链接已发送至邮箱，请查收</p>
                         </div>
                     </div>
 
@@ -2076,30 +2078,30 @@
                 </div>
                 <!-- 步骤2：验证码通过后重置密码 -->
                 <div id="recoverStep2" class="hidden">
-                    <h3>&#x1F511; 重置密码</h3>
+                    <h3>🔑 重置密码</h3>
                     <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">验证码验证通过，请设置新密码</p>
                     <div class="form-group">
                         <label>新密码</label>
-                        <input type="password" id="recNewPassword" placeholder="至少6位">
+                        <input type="password" id="recNewPassword" placeholder="至少6位" __gcruniqueid="12">
                     </div>
                     <div class="form-group">
                         <label>确认新密码</label>
-                        <input type="password" id="recNewPasswordConfirm" placeholder="再次输入新密码">
+                        <input type="password" id="recNewPasswordConfirm" placeholder="再次输入新密码" __gcruniqueid="13">
                     </div>
                     <button class="btn-primary" onclick="doResetPassword()">重置密码</button>
                     <div class="msg" id="recResetMsg"></div>
                 </div>
                 <!-- 步骤3：通过链接重置密码 -->
                 <div id="recoverStep3" class="hidden">
-                    <h3>&#x1F511; 重置密码</h3>
+                    <h3>🔑 重置密码</h3>
                     <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin-bottom:0.8rem;">请设置新密码</p>
                     <div class="form-group">
                         <label>新密码</label>
-                        <input type="password" id="linkNewPassword" placeholder="至少6位">
+                        <input type="password" id="linkNewPassword" placeholder="至少6位" __gcruniqueid="14">
                     </div>
                     <div class="form-group">
                         <label>确认新密码</label>
-                        <input type="password" id="linkNewPasswordConfirm" placeholder="再次输入新密码">
+                        <input type="password" id="linkNewPasswordConfirm" placeholder="再次输入新密码" __gcruniqueid="15">
                     </div>
                     <button class="btn-primary" onclick="doResetPasswordByLink()">重置密码</button>
                     <div class="msg" id="linkResetMsg"></div>
@@ -2111,15 +2113,15 @@
     <!-- 忘记用户名弹窗 -->
     <div class="forgot-username-overlay hidden" id="forgotUsernameOverlay">
         <div class="forgot-username-panel">
-            <h3>&#x1F50D; 忘记用户名</h3>
+            <h3>🔍 忘记用户名</h3>
             <div class="form-group">
                 <label>选择找回方式</label>
                 <div class="contact-type-selector" id="forgotContactTypeSelector">
                     <div class="contact-type-btn active" onclick="selectForgotContactType(this,'email')" data-type="email">邮箱</div>
                     <div class="contact-type-btn" onclick="selectForgotContactType(this,'phone')" data-type="phone">手机号</div>
                 </div>
-                <input type="email" id="forgotEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;">
-                <input type="tel" id="forgotPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;">
+                <input type="email" id="forgotEmail" placeholder="请输入邮箱" style="margin-top:0.5rem;" __gcruniqueid="16">
+                <input type="tel" id="forgotPhone" placeholder="请输入手机号" class="hidden" style="margin-top:0.5rem;" __gcruniqueid="17">
             </div>
             <button class="btn-primary" onclick="doFindUsername()">查找用户名</button>
             <div class="msg" id="forgotUsernameMsg"></div>
@@ -2132,11 +2134,11 @@
     <!-- 后台管理界面 -->
     <div id="adminView" class="hidden">
         <div class="admin-container">
-            <h2>&#x1F3E2; 后台管理</h2>
-            <button class="admin-back-btn" onclick="window.location.href = window.location.pathname.replace(/\/admin\/?$/, '/') || '/';">&#x2190; 返回移动端</button>
+            <h2>🏢 后台管理</h2>
+            <button class="admin-back-btn" onclick="window.location.href = window.location.pathname.replace(/\/admin\/?$/, '/') || '/';">← 返回移动端</button>
 
             <div class="admin-no-perm" id="adminNoPerm" style="display:none;">
-                <p>&#x1F6AB; 无权限访问后台管理</p>
+                <p>🚫 无权限访问后台管理</p>
             </div>
 
             <div id="adminContent" class="hidden">
@@ -2159,12 +2161,12 @@
                 <!-- 用户管理（可折叠） -->
                 <div class="admin-section" id="sectionUsers">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionUsers')">
-                        <h3>&#x1F4CB; 用户管理</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>📋 用户管理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <!-- 搜索框 -->
-                        <input type="text" class="admin-search" id="adminSearch" placeholder="搜索用户名、姓名、邮箱或手机号..." oninput="filterAdminUsers()">
+                        <input type="text" class="admin-search" id="adminSearch" placeholder="搜索用户名、姓名、邮箱或手机号..." oninput="filterAdminUsers()" __gcruniqueid="18">
 
                         <!-- 移动端：卡片列表 -->
                         <div class="admin-user-cards" id="adminUserCards"></div>
@@ -2194,7 +2196,7 @@
                         <!-- 批量操作 -->
                         <div class="admin-batch-bar">
                             <h4>批量更改权限</h4>
-                            <select id="adminPermSelect">
+                            <select id="adminPermSelect" __gcruniqueid="19">
                                 <option value="viewSchedule">查看时间表</option>
                                 <option value="modifySchedule">修改时间表</option>
                                 <option value="sendNotification">发送通知</option>
@@ -2203,7 +2205,7 @@
                                 <option value="editMemory">回忆录编辑</option>
                                 <option value="isAdmin">管理员</option>
                             </select>
-                            <select id="adminPermAction">
+                            <select id="adminPermAction" __gcruniqueid="20">
                                 <option value="grant">授予</option>
                                 <option value="revoke">撤销</option>
                             </select>
@@ -2224,8 +2226,8 @@
                 <!-- 添加单个用户（可折叠） -->
                 <div class="admin-section" id="sectionSingle">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionSingle')">
-                        <h3>&#x1F4E5; 添加单个用户</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>📥 添加单个用户</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <!-- 角色选择（按钮式） -->
@@ -2239,34 +2241,34 @@
                         <div class="admin-form-row">
                             <div class="admin-form-group">
                                 <label>用户名 *</label>
-                                <input type="text" class="admin-form-input" id="singleUsername" placeholder="用户名">
+                                <input type="text" class="admin-form-input" id="singleUsername" placeholder="用户名" __gcruniqueid="21">
                             </div>
                             <div class="admin-form-group">
                                 <label>密码 *</label>
-                                <input type="text" class="admin-form-input" id="singlePassword" placeholder="至少6位">
+                                <input type="text" class="admin-form-input" id="singlePassword" placeholder="至少6位" __gcruniqueid="22">
                             </div>
                         </div>
                         <div class="admin-form-row">
                             <div class="admin-form-group">
                                 <label>真实姓名 *</label>
-                                <input type="text" class="admin-form-input" id="singleRealname" placeholder="真实姓名">
+                                <input type="text" class="admin-form-input" id="singleRealname" placeholder="真实姓名" __gcruniqueid="23">
                             </div>
                             <div class="admin-form-group">
                                 <label id="singleEmailLabel">邮箱（选填）</label>
-                                <input type="email" class="admin-form-input" id="singleEmail" placeholder="email@example.com（选填）">
+                                <input type="email" class="admin-form-input" id="singleEmail" placeholder="email@example.com（选填）" __gcruniqueid="24">
                             </div>
                         </div>
                         <div class="admin-form-row">
                             <div class="admin-form-group">
                                 <label>手机号（选填）</label>
-                                <input type="tel" class="admin-form-input" id="singlePhone" placeholder="手机号（选填）">
+                                <input type="tel" class="admin-form-input" id="singlePhone" placeholder="手机号（选填）" __gcruniqueid="25">
                             </div>
                             <div class="admin-form-group"></div>
                         </div>
                         <!-- 学科选择（仅教师可见） -->
                         <div class="admin-form-group" id="singleSubjectGroup">
                             <label>任教学科</label>
-                            <select class="admin-form-select" id="singleSubjectSelect" onchange="onSingleSubjectChange()">
+                            <select class="admin-form-select" id="singleSubjectSelect" onchange="onSingleSubjectChange()" __gcruniqueid="26">
                                 <option value="">请选择学科</option>
                                 <option value="语文">语文</option>
                                 <option value="数学">数学</option>
@@ -2276,16 +2278,16 @@
                                 <option value="生物">生物</option>
                                 <option value="__custom__">自定义</option>
                             </select>
-                            <input type="text" class="admin-form-input" id="singleSubjectCustom" placeholder="请输入自定义学科" style="display:none;margin-top:0.4rem;">
+                            <input type="text" class="admin-form-input" id="singleSubjectCustom" placeholder="请输入自定义学科" style="display:none;margin-top:0.4rem;" __gcruniqueid="27">
                         </div>
                         <div class="admin-form-group">
                             <label>权限</label>
                             <div class="admin-perm-checks">
-                                <label class="admin-perm-check"><input type="checkbox" id="singlePermView" checked> 查看时间表</label>
-                                <label class="admin-perm-check"><input type="checkbox" id="singlePermModify" checked> 修改时间表</label>
-                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSend" checked> 发送通知</label>
-                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSendFile" checked> 发送文件</label>
-                                <label class="admin-perm-check"><input type="checkbox" id="singlePermViewMemory" checked onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录查看</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermView" checked=""> 查看时间表</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermModify" checked=""> 修改时间表</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSend" checked=""> 发送通知</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSendFile" checked=""> 发送文件</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermViewMemory" checked="" onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录查看</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermEditMemory" onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录编辑</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermAdmin"> 管理员</label>
                             </div>
@@ -2298,12 +2300,13 @@
                 <!-- 批量添加用户（可折叠） -->
                 <div class="admin-section" id="sectionBatch">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionBatch')">
-                        <h3>&#x2795; 批量添加用户</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>➕ 批量添加用户</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <p class="admin-hint">每行格式：用户名,密码,真实姓名,邮箱,手机号,角色(学生/教师),学科（学科可留空）</p>
-                        <textarea class="admin-textarea" id="adminBatchInput" placeholder="zhangsan,123456,张三,zhangsan@example.com,13800138000,教师,数学&#10;lisi,123456,李四,lisi@example.com,13900139000,学生,"></textarea>
+                        <textarea class="admin-textarea" id="adminBatchInput" placeholder="zhangsan,123456,张三,zhangsan@example.com,13800138000,教师,数学
+lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></textarea>
                         <button class="admin-btn-primary" onclick="adminBatchAdd()">添加</button>
                         <div class="msg" id="adminBatchMsg" style="font-size:0.78rem;text-align:center;margin-top:0.4rem;min-height:1.2rem;"></div>
                     </div>
@@ -2312,14 +2315,14 @@
                 <!-- IP 封禁（可折叠） -->
                 <div class="admin-section" id="sectionBan">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionBan')">
-                        <h3>&#x1F6AB; IP 封禁</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>🚫 IP 封禁</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <div class="admin-ban-input-row">
                             <div class="form-group">
                                 <label>IP 区段</label>
-                                <input type="text" id="adminBanIP" placeholder="如 192.168.1.0/24">
+                                <input type="text" id="adminBanIP" placeholder="如 192.168.1.0/24" __gcruniqueid="29">
                             </div>
                             <button class="admin-btn-primary" style="margin-top:0;flex-shrink:0;" onclick="adminAddBan()">添加</button>
                         </div>
@@ -2330,8 +2333,8 @@
                 <!-- 申诉处理（可折叠） -->
                 <div class="admin-section" id="sectionAppeals">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionAppeals')">
-                        <h3>&#x1F4E9; 申诉处理</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>📩 申诉处理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <p class="admin-hint">展示所有待处理（pending）状态的申诉。批准时可重置用户密码，拒绝则关闭申诉。</p>
@@ -2342,8 +2345,8 @@
                 <!-- 封禁设备管理（可折叠） -->
                 <div class="admin-section" id="sectionBannedDevices">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionBannedDevices')">
-                        <h3>&#x1F5F1; 封禁设备管理</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>🗱 封禁设备管理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <p class="admin-hint">已封禁的设备列表（仅可查看和删除，不能手动添加。新增封禁请通过用户登录记录进行）。</p>
@@ -2354,8 +2357,8 @@
                 <!-- 回忆录管理提示（编辑功能已移至回忆录查看页面） -->
                 <div class="admin-section" id="sectionHistory">
                     <div class="admin-section-header" onclick="toggleAdminSection('sectionHistory')">
-                        <h3>&#x1F30C; 回忆录管理</h3>
-                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                        <h3>🌌 回忆录管理</h3>
+                        <svg class="admin-section-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="admin-section-body">
                         <p class="admin-hint">回忆录编辑功能已迁移至回忆录查看页面。拥有"回忆录编辑"权限的用户可在回忆录页面右上角点击"编辑"按钮直接进行编辑。</p>
@@ -2372,14 +2375,14 @@
     <div class="admin-modal-overlay" id="batchDeleteModal">
         <div class="admin-modal" style="max-width:24rem;">
             <h3>
-                <button class="admin-modal-close" onclick="closeBatchDeleteModal()">&times;</button>
-                &#x1F6A8; 批量删除用户
+                <button class="admin-modal-close" onclick="closeBatchDeleteModal()">×</button>
+                🚨 批量删除用户
             </h3>
             <div style="padding:0 1.5rem 1.5rem;">
                 <p id="batchDeleteUserList" style="font-size:0.8rem;color:#374151;margin-bottom:0.8rem;background:#fef2f2;padding:0.6rem;border-radius:0.4rem;border:1px solid #fecaca;"></p>
                 <div class="form-group">
                     <label style="font-size:0.82rem;color:#374151;font-weight:600;">管理员密码 *</label>
-                    <input type="password" id="batchDeleteAdminPwd" placeholder="请输入当前管理员密码" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;margin-top:0.25rem;">
+                    <input type="password" id="batchDeleteAdminPwd" placeholder="请输入当前管理员密码" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;margin-top:0.25rem;" __gcruniqueid="30">
                 </div>
                 <div class="msg" id="batchDeleteMsg" style="font-size:0.78rem;min-height:1rem;margin-top:0.4rem;"></div>
                 <div style="display:flex;gap:0.6rem;margin-top:0.8rem;justify-content:flex-end;">
@@ -2394,38 +2397,38 @@
     <div class="admin-modal-overlay" id="editUserModal">
         <div class="admin-modal">
             <h3>
-                <button class="admin-modal-close" onclick="closeEditModal()">&times;</button>
+                <button class="admin-modal-close" onclick="closeEditModal()">×</button>
                 编辑用户
             </h3>
             <input type="hidden" id="editOriginalUsername">
             <div class="admin-form-group">
                 <label>用户名 *</label>
-                <input type="text" class="admin-form-input" id="editUsername" placeholder="用户名">
+                <input type="text" class="admin-form-input" id="editUsername" placeholder="用户名" __gcruniqueid="31">
             </div>
             <div class="admin-form-row">
                 <div class="admin-form-group">
                     <label>新密码（留空不修改）</label>
-                    <input type="text" class="admin-form-input" id="editPassword" placeholder="留空则不修改">
+                    <input type="text" class="admin-form-input" id="editPassword" placeholder="留空则不修改" __gcruniqueid="32">
                 </div>
                 <div class="admin-form-group">
                     <label>确认新密码</label>
-                    <input type="text" class="admin-form-input" id="editPasswordConfirm" placeholder="再次输入">
+                    <input type="text" class="admin-form-input" id="editPasswordConfirm" placeholder="再次输入" __gcruniqueid="33">
                 </div>
             </div>
             <div class="admin-form-row">
                 <div class="admin-form-group">
                     <label>真实姓名</label>
-                    <input type="text" class="admin-form-input" id="editRealname" placeholder="真实姓名（选填）">
+                    <input type="text" class="admin-form-input" id="editRealname" placeholder="真实姓名（选填）" __gcruniqueid="34">
                 </div>
                 <div class="admin-form-group">
                     <label>邮箱</label>
-                    <input type="email" class="admin-form-input" id="editEmail" placeholder="email@example.com（选填）">
+                    <input type="email" class="admin-form-input" id="editEmail" placeholder="email@example.com（选填）" __gcruniqueid="35">
                 </div>
             </div>
             <div class="admin-form-row">
                 <div class="admin-form-group">
                     <label>手机号</label>
-                    <input type="tel" class="admin-form-input" id="editPhone" placeholder="手机号（选填）">
+                    <input type="tel" class="admin-form-input" id="editPhone" placeholder="手机号（选填）" __gcruniqueid="36">
                 </div>
                 <div class="admin-form-group"></div>
             </div>
@@ -2440,7 +2443,7 @@
                 </div>
                 <div class="admin-form-group" id="editSubjectGroup">
                     <label>任教学科</label>
-                    <select class="admin-form-select" id="editSubjectSelect" onchange="onEditSubjectChange()">
+                    <select class="admin-form-select" id="editSubjectSelect" onchange="onEditSubjectChange()" __gcruniqueid="37">
                         <option value="">请选择学科</option>
                         <option value="语文">语文</option>
                         <option value="数学">数学</option>
@@ -2450,7 +2453,7 @@
                         <option value="生物">生物</option>
                         <option value="__custom__">自定义</option>
                     </select>
-                    <input type="text" class="admin-form-input hidden" id="editSubjectCustom" placeholder="输入自定义学科" style="margin-top:0.4rem;">
+                    <input type="text" class="admin-form-input hidden" id="editSubjectCustom" placeholder="输入自定义学科" style="margin-top:0.4rem;" __gcruniqueid="38">
                 </div>
             </div>
             <div class="admin-form-group">
@@ -2481,10 +2484,10 @@
 
     <!-- 主菜单 -->
     <div id="mainMenu" class="main-menu">
-        <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">&#x1F4CB; 查看晚自习作业时间表</button>
-        <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">&#x1F4E4; 发送通知至晚自习系统</button>
-        <button class="menu-btn" id="menuBtnSendFile" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;" onclick="showView('sendFileView')">&#x1F4E5; 发送文件至班级大屏</button>
-        <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">&#x1F30C; 情怀：我们一起走过的日子</button>
+        <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">📋 查看晚自习作业时间表</button>
+        <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">📤 发送通知至晚自习系统</button>
+        <button class="menu-btn" id="menuBtnSendFile" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;" onclick="showView('sendFileView')">📥 发送文件至班级大屏</button>
+        <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">🌌 情怀：我们一起走过的日子</button>
     </div>
 
     <!-- 个人中心视图 -->
@@ -2492,7 +2495,7 @@
         <button class="back-btn" onclick="showMainMenu()">← 返回</button>
 
         <div class="profile-card">
-            <h3>&#x1F464; 个人中心</h3>
+            <h3>👤 个人中心</h3>
             <div class="profile-row">
                 <span class="label">用户名</span>
                 <span class="value" id="profileUsername">-</span>
@@ -2524,11 +2527,11 @@
                     <h4 style="font-size:0.95rem;color:#374151;margin-bottom:0.6rem;">修改邮箱</h4>
                     <div class="form-group">
                         <label style="font-size:0.8rem;color:#4b5563;">验证当前密码</label>
-                        <input type="password" id="profilePwdVerify" placeholder="请输入当前密码" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                        <input type="password" id="profilePwdVerify" placeholder="请输入当前密码" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;" __gcruniqueid="39">
                     </div>
                     <div class="form-group">
                         <label style="font-size:0.8rem;color:#4b5563;">新邮箱</label>
-                        <input type="email" id="profileNewEmail" placeholder="请输入新邮箱" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                        <input type="email" id="profileNewEmail" placeholder="请输入新邮箱" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;" __gcruniqueid="40">
                     </div>
                     <button class="profile-action-btn" onclick="doChangeEmail()">修改邮箱</button>
                     <div class="msg" id="profileEmailMsg" style="font-size:0.8rem;text-align:center;margin-top:0.3rem;min-height:1.2rem;"></div>
@@ -2541,11 +2544,11 @@
                     <h4 style="font-size:0.95rem;color:#374151;margin-bottom:0.6rem;">修改手机号</h4>
                     <div class="form-group">
                         <label style="font-size:0.8rem;color:#4b5563;">验证当前密码</label>
-                        <input type="password" id="profilePhonePwdVerify" placeholder="请输入当前密码" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                        <input type="password" id="profilePhonePwdVerify" placeholder="请输入当前密码" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;" __gcruniqueid="41">
                     </div>
                     <div class="form-group">
                         <label style="font-size:0.8rem;color:#4b5563;">新手机号</label>
-                        <input type="tel" id="profileNewPhone" placeholder="请输入新手机号" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                        <input type="tel" id="profileNewPhone" placeholder="请输入新手机号" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;" __gcruniqueid="42">
                     </div>
                     <button class="profile-action-btn" onclick="doChangePhone()">修改手机号</button>
                     <div class="msg" id="profilePhoneMsg" style="font-size:0.8rem;text-align:center;margin-top:0.3rem;min-height:1.2rem;"></div>
@@ -2557,7 +2560,7 @@
                 <div class="profile-card" style="margin-bottom:0;">
                     <h4 style="font-size:0.95rem;color:#374151;margin-bottom:0.6rem;">修改任教学科</h4>
                     <div class="form-group">
-                        <select id="profileNewSubject" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;">
+                        <select id="profileNewSubject" style="width:100%;padding:0.55rem 0.75rem;border:1px solid #d1d5db;border-radius:0.5rem;font-size:0.9rem;outline:none;" __gcruniqueid="43">
                             <option value="">请选择学科</option>
                             <option value="语文">语文</option>
                             <option value="数学">数学</option>
@@ -2574,7 +2577,7 @@
 
         <!-- 登录记录卡片 -->
         <div class="profile-card">
-            <h3>&#x1F4DC; 登录记录</h3>
+            <h3>📜 登录记录</h3>
             <div id="profileLoginRecords"></div>
         </div>
     </div>
@@ -2585,13 +2588,13 @@
         <div class="card">
             <div class="card-title" style="font-size:0.82rem;">
                 <img src="icon.jpg" alt="" style="height:1.2em;vertical-align:middle;margin-right:0.3em;">
-                <span id="scheduleTitle">高二（13）班晚自习作业时间表</span>
+                <span id="scheduleTitle">高二（13）班8月12日晚自习作业时间表</span>
             </div>
             <div id="scheduleContent">
                 <div class="schedule-loading">等待晚自习系统发送作业时间表…</div>
             </div>
             <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;">
-                <button class="back-btn" onclick="openModifyTimeModal()" style="margin-bottom:0;">&#x23F1;&#xFE0F; 更改时间</button>
+                <button class="back-btn" onclick="openModifyTimeModal()" style="margin-bottom:0;">⏱️ 更改时间</button>
             </div>
             <div class="status-bar" id="scheduleStatusBar"></div>
             </div>
@@ -2615,17 +2618,17 @@
         <button class="back-btn" onclick="showMainMenu()">← 返回</button>
 
         <!-- 通知发送小标题 -->
-        <div class="card-title" style="margin-bottom:0.8rem;font-size:1rem;"><span class="icon">&#x1F4E4;</span> 发送通知至晚自习系统</div>
+        <div class="card-title" style="margin-bottom:0.8rem;font-size:1rem;"><span class="icon">📤</span> 发送通知至晚自习系统</div>
 
         <!-- 协议警告 -->
         <div id="protocolWarning" class="protocol-warning hidden">
-            <span class="warn-icon">&#x26A0;&#xFE0F;</span>
+            <span class="warn-icon">⚠️</span>
             <span>当前通过本地文件打开，发送功能无法使用。请通过 HTTP 服务器访问。</span>
         </div>
 
         <!-- 通知内容 -->
         <div class="card">
-            <div class="card-title"><span class="icon">&#x1F4DD;</span> 通知内容</div>
+            <div class="card-title"><span class="icon">📝</span> 通知内容</div>
 
             <div class="input-group">
                 <label class="input-label">科目（可选）</label>
@@ -2642,22 +2645,22 @@
 
             <div class="input-group">
                 <label class="input-label">标题</label>
-                <input type="text" id="msgTitle" class="text-input" placeholder="例：数学老师通知" maxlength="100">
+                <input type="text" id="msgTitle" class="text-input" placeholder="例：数学老师通知" maxlength="100" __gcruniqueid="44">
             </div>
 
             <div class="input-group">
                 <label class="input-label">内容</label>
-                <textarea id="msgBody" class="text-input" placeholder="输入通知内容…" maxlength="2000"></textarea>
+                <textarea id="msgBody" class="text-input" placeholder="输入通知内容…" maxlength="2000" __gcruniqueid="45"></textarea>
             </div>
 
             <div class="input-group">
                 <label class="input-label">附件（可选）</label>
                 <div class="attach-area" onclick="document.getElementById('attachInput').click()">
-                    <span class="attach-icon">&#x1F4CE;</span>
+                    <span class="attach-icon">📎</span>
                     <div class="attach-text">点击上传图片或文件，支持批量上传</div>
                     <div class="attach-hint">支持 jpg/png/gif/pdf/doc/docx/xls/xlsx/ppt/pptx/txt/zip，最大 1GB</div>
                 </div>
-                <input type="file" id="attachInput" multiple onchange="handleAttachSelect(event)">
+                <input type="file" id="attachInput" multiple="" onchange="handleAttachSelect(event)">
                 <div class="attach-preview" id="attachPreview">
                     <!-- 图片预览或文件信息 -->
                 </div>
@@ -2674,23 +2677,23 @@
                 <label class="input-label">紧急程度</label>
                 <div class="priority-group">
                     <div class="priority-btn" data-priority="1" onclick="selectPriority(this)">
-                        <span class="p-icon">&#x1F4A4;</span>静默
+                        <span class="p-icon">💤</span>静默
                         <span class="p-label">min</span>
                     </div>
                     <div class="priority-btn" data-priority="2" onclick="selectPriority(this)">
-                        <span class="p-icon">&#x1F515;</span>低
+                        <span class="p-icon">🔕</span>低
                         <span class="p-label">low</span>
                     </div>
                     <div class="priority-btn active" data-priority="3" onclick="selectPriority(this)">
-                        <span class="p-icon">&#x1F514;</span>默认
+                        <span class="p-icon">🔔</span>默认
                         <span class="p-label">default</span>
                     </div>
                     <div class="priority-btn" data-priority="4" onclick="selectPriority(this)">
-                        <span class="p-icon">&#x1F4F1;</span>高
+                        <span class="p-icon">📱</span>高
                         <span class="p-label">high</span>
                     </div>
                     <div class="priority-btn" data-priority="5" onclick="selectPriority(this)">
-                        <span class="p-icon">&#x1F6A8;</span>紧急
+                        <span class="p-icon">🚨</span>紧急
                         <span class="p-label">urgent</span>
                     </div>
                 </div>
@@ -2698,40 +2701,40 @@
         </div>
 
         <!-- 发送按钮 -->
-        <button class="send-btn" id="sendBtn" onclick="sendNotification()">&#x1F4E4; 发送通知</button>
+        <button class="send-btn" id="sendBtn" onclick="sendNotification()">📤 发送通知</button>
         <div class="status-bar" id="statusBar"></div>
 
         <!-- 发送历史 -->
         <div class="card" style="margin-top: 1rem;">
-            <div class="card-title"><span class="icon">&#x1F4CB;</span> 发送历史</div>
+            <div class="card-title"><span class="icon">📋</span> 发送历史</div>
             <div class="history-list" id="historyList">
                 <div class="empty-history">暂无发送记录</div>
             </div>
-            <button class="delete-all-btn" id="deleteAllBtn" onclick="clearAllHistory(event)"><svg viewBox="0 0 1049 1024" xmlns="http://www.w3.org/2000/svg" style="width:0.9rem;height:0.9rem;fill:#fff;vertical-align:middle;margin-right:0.2rem;"><path d="M764.90855011 817.60064944a52.75974023 52.75974023 0 0 1-52.69210016 52.69209934H332.61688287a52.75974023 52.75974023 0 0 1-52.69209933-52.69209934V258.34740247h484.98376657v559.25324697zM385.57954581 163.78571397a10.61958911 10.61958911 0 0 1 10.82251016-10.82251018h252.976191a10.61958911 10.61958911 0 0 1 10.82251099 10.82251018v31.72348552h-274.62121216z m537.67586508 31.72348552h-200.21644995v-31.72348552A73.86363666 73.86363666 0 0 0 649.37824697 90.125H396.13149319a73.86363666 73.86363666 0 0 0-73.66071396 73.66071397v31.72348552H121.78084381a31.79112561 31.79112561 0 1 0 0 63.51461033h94.69697031v558.64448052a116.20670965 116.20670965 0 0 0 116.20670965 116.20670966h379.53192618a116.20670965 116.20670965 0 0 0 116.20671048-116.20670966V258.34740247h94.69696948a31.72348471 31.72348471 0 0 0 31.72348472-31.79112562 31.11471826 31.11471826 0 0 0-31.72348472-31.04707736z m-400.83874448 579.54545425a31.72348471 31.72348471 0 0 0 31.79112561-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a31.65584381 31.65584381 0 0 0 31.72348472 31.72348471z m-147.86255346 0a31.72348471 31.72348471 0 0 0 31.72348471-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a32.60281394 32.60281394 0 0 0 31.72348472 31.72348471z m295.86038955 0a31.72348471 31.72348471 0 0 0 31.72348472-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a31.72348471 31.72348471 0 0 0 31.72348471 31.72348471z" fill="#ffffff"/></svg>删除全部通知历史</button>
+            <button class="delete-all-btn" id="deleteAllBtn" onclick="clearAllHistory(event)"><svg viewBox="0 0 1049 1024" xmlns="http://www.w3.org/2000/svg" style="width:0.9rem;height:0.9rem;fill:#fff;vertical-align:middle;margin-right:0.2rem;"><path d="M764.90855011 817.60064944a52.75974023 52.75974023 0 0 1-52.69210016 52.69209934H332.61688287a52.75974023 52.75974023 0 0 1-52.69209933-52.69209934V258.34740247h484.98376657v559.25324697zM385.57954581 163.78571397a10.61958911 10.61958911 0 0 1 10.82251016-10.82251018h252.976191a10.61958911 10.61958911 0 0 1 10.82251099 10.82251018v31.72348552h-274.62121216z m537.67586508 31.72348552h-200.21644995v-31.72348552A73.86363666 73.86363666 0 0 0 649.37824697 90.125H396.13149319a73.86363666 73.86363666 0 0 0-73.66071396 73.66071397v31.72348552H121.78084381a31.79112561 31.79112561 0 1 0 0 63.51461033h94.69697031v558.64448052a116.20670965 116.20670965 0 0 0 116.20670965 116.20670966h379.53192618a116.20670965 116.20670965 0 0 0 116.20671048-116.20670966V258.34740247h94.69696948a31.72348471 31.72348471 0 0 0 31.72348472-31.79112562 31.11471826 31.11471826 0 0 0-31.72348472-31.04707736z m-400.83874448 579.54545425a31.72348471 31.72348471 0 0 0 31.79112561-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a31.65584381 31.65584381 0 0 0 31.72348472 31.72348471z m-147.86255346 0a31.72348471 31.72348471 0 0 0 31.72348471-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a32.60281394 32.60281394 0 0 0 31.72348472 31.72348471z m295.86038955 0a31.72348471 31.72348471 0 0 0 31.72348472-31.72348471V405.60119031a31.79112561 31.79112561 0 1 0-63.51461033 0v337.72997873a31.72348471 31.72348471 0 0 0 31.72348471 31.72348471z" fill="#ffffff"></path></svg>删除全部通知历史</button>
         </div>
     </div>
 
     <!-- 发送文件至班级大屏视图 -->
     <div id="sendFileView" class="view-container">
-        <button class="back-btn" onclick="showMainMenu()">&#x2190; 返回</button>
+        <button class="back-btn" onclick="showMainMenu()">← 返回</button>
 
-        <div class="card-title" style="margin-bottom:0.8rem;font-size:1rem;"><span class="icon">&#x1F4E5;</span> 发送文件至班级大屏</div>
+        <div class="card-title" style="margin-bottom:0.8rem;font-size:1rem;"><span class="icon">📥</span> 发送文件至班级大屏</div>
 
         <!-- 协议警告 -->
         <div id="sendFileProtocolWarning" class="protocol-warning hidden">
-            <span class="warn-icon">&#x26A0;&#xFE0F;</span>
+            <span class="warn-icon">⚠️</span>
             <span>当前通过本地文件打开，发送功能无法使用。请通过 HTTP 服务器访问。</span>
         </div>
 
         <!-- 文件选择区 -->
         <div class="card">
-            <div class="card-title"><span class="icon">&#x1F4C1;</span> 选择文件</div>
+            <div class="card-title"><span class="icon">📁</span> 选择文件</div>
             <div id="fileDropZone" class="file-drop-zone" onclick="document.getElementById('fileSendInput').click()">
-                <span class="file-drop-icon">&#x1F4E6;</span>
+                <span class="file-drop-icon">📦</span>
                 <div class="file-drop-text">点击选择文件或拖拽文件到此处</div>
                 <div class="file-drop-hint">支持多文件选择，单文件最大 1GB</div>
             </div>
-            <input type="file" id="fileSendInput" multiple style="display:none;" onchange="handleFileSelect(event)">
+            <input type="file" id="fileSendInput" multiple="" style="display:none;" onchange="handleFileSelect(event)">
 
             <!-- 已选文件列表 -->
             <div class="file-send-list" id="fileSendList" style="display:none;"></div>
@@ -2759,25 +2762,25 @@
         <div class="card" style="margin-top:0.8rem;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
                 <div>
-                    <div style="font-size:0.9rem;font-weight:600;color:#374151;">&#x1F50A; 静默发送</div>
+                    <div style="font-size:0.9rem;font-weight:600;color:#374151;">🔊 静默发送</div>
                     <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;">开启后，文件将静默接收，不弹出提示窗口</div>
                 </div>
                 <label class="silent-toggle">
-                    <input type="checkbox" id="silentSendToggle" checked onchange="onSilentToggleChange(this)">
+                    <input type="checkbox" id="silentSendToggle" checked="" onchange="onSilentToggleChange(this)">
                     <span class="silent-toggle-slider"></span>
                 </label>
             </div>
         </div>
 
         <!-- 发送按钮 -->
-        <button class="send-btn" id="sendFileBtn" onclick="sendFilesToScreen()" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);">&#x1F4E4; 立即发送</button>
+        <button class="send-btn" id="sendFileBtn" onclick="sendFilesToScreen()" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);">📤 立即发送</button>
         <div class="status-bar" id="sendFileStatusBar"></div>
     </div>
 
     <!-- 静默发送关闭确认弹窗 -->
     <div id="silentConfirmModal" class="modal-overlay" style="display:none;">
         <div class="modal-content" style="max-width:360px;">
-            <div style="font-size:1rem;font-weight:700;color:#ef4444;margin-bottom:0.6rem;">&#x26A0;&#xFE0F; 确认关闭静默发送</div>
+            <div style="font-size:1rem;font-weight:700;color:#ef4444;margin-bottom:0.6rem;">⚠️ 确认关闭静默发送</div>
             <div style="font-size:0.85rem;color:#6b7280;line-height:1.6;margin-bottom:1rem;">
                 非静默发送会在班级大屏上展示文件信息（发送者、文件名、大小等），可能干扰教师正常教学。确定要关闭静默发送吗？
             </div>
@@ -2915,6 +2918,9 @@
         var _sbUserCache = null;  // 内存缓存（TTL 30s）
         var _sbUserCacheTime = 0;
         var _sbUserCacheTTL = 30000; // 30秒
+        var _sbBannedCache = null;  // 封禁设备缓存（TTL 60s）
+        var _sbBannedCacheTime = 0;
+        var _sbBannedCacheTTL = 60000; // 60秒
         var currentUser = null; // 提前声明，避免 TDZ 错误
 
         function sbRest(table, method, body) {
@@ -2939,8 +2945,10 @@
                 return r.json();
             });
         }
-        function sbGet(table, filterCol, filterVal, selectCols) {
-            var url = SUPABASE_URL + '/rest/v1/' + table + (filterCol ? '?' + filterCol + '=eq.' + encodeURIComponent(filterVal) : '');
+        // filterOp 可选：'eq'(默认), 'ilike', 'neq', 'gt', 'lt' 等 PostgREST 操作符
+        function sbGet(table, filterCol, filterVal, selectCols, filterOp) {
+            var op = filterOp || 'eq';
+            var url = SUPABASE_URL + '/rest/v1/' + table + (filterCol ? '?' + filterCol + '=' + op + '.' + encodeURIComponent(filterVal) : '');
             if (selectCols) url += (filterCol ? '&' : '?') + 'select=' + selectCols;
             return fetch(url, {
                 headers: { 'Content-Type': 'application/json' }
@@ -3099,16 +3107,9 @@
             async findByUsername(username) {
                 if (USE_SUPABASE) {
                     try {
-                        // 优先用服务端精确过滤（大小写敏感）
-                        var rows = await sbGet('users', 'username', username, SB_USER_SELECT_LOGIN);
+                        // 使用 ilike 做大小写不敏感匹配，单次查询
+                        var rows = await sbGet('users', 'username', username, SB_USER_SELECT_LOGIN, 'ilike');
                         var row = (rows && rows.length > 0) ? rows[0] : null;
-                        // 若精确匹配未命中，回退拉取全部做大小写不敏感匹配
-                        if (!row) {
-                            var allRows = await sbGet('users', null, null, SB_USER_SELECT_LOGIN);
-                            for (var i = 0; i < allRows.length; i++) {
-                                if (allRows[i].username.toLowerCase() === username.toLowerCase()) { row = allRows[i]; break; }
-                            }
-                        }
                         if (!row) return null;
                         return {
                             id: row.id,
@@ -3543,9 +3544,17 @@
             // ========== 封禁设备 ==========
             async getBannedDevices() {
                 if (USE_SUPABASE) {
+                    // 优先使用缓存（TTL 60秒）
+                    var now = Date.now();
+                    if (_sbBannedCache && (now - _sbBannedCacheTime) < _sbBannedCacheTTL) {
+                        return _sbBannedCache;
+                    }
                     try {
                         var rows = await sbGet('banned_devices');
-                        return rows || [];
+                        var result = rows || [];
+                        _sbBannedCache = result;
+                        _sbBannedCacheTime = Date.now();
+                        return result;
                     } catch(e) {
                         console.warn('Supabase 获取封禁设备失败，回退到本地:', e);
                     }
@@ -3555,7 +3564,7 @@
             async addBannedDevice(deviceInfo, bannedBy, reason) {
                 var data = {device_info: deviceInfo, banned_by: bannedBy, banned_at: new Date().toISOString(), reason: reason || ''};
                 if (USE_SUPABASE) {
-                    try { await sbInsert('banned_devices', data); } catch(e) { console.error('Add banned device error:', e); }
+                    try { await sbInsert('banned_devices', data); _sbBannedCache = null; } catch(e) { console.error('Add banned device error:', e); }
                     return;
                 }
                 var devices = JSON.parse(localStorage.getItem('mobile_banned_devices') || '[]');
@@ -3568,6 +3577,7 @@
                 if (USE_SUPABASE) {
                     try {
                         await sbDelete('banned_devices', 'device_info', deviceInfo);
+                        _sbBannedCache = null;
                     } catch(e) { console.error('Remove banned device error:', e); }
                     return;
                 }
@@ -3698,6 +3708,8 @@
                 var role = parts[5] || '教师';
                 var subject = parts[6] || '';
                 if (!uname || !pw || !realname) { errors.push('第' + (i+1) + '行缺少必填字段'); continue; }
+                var unameErr = validateUsername(uname);
+                if (unameErr) { errors.push('第' + (i+1) + '行：' + unameErr); continue; }
                 if (existingNames.has(uname)) { errors.push('第' + (i+1) + '行用户名已存在'); continue; }
                 var permissions = {};
                 if (role === '教师') {
@@ -3954,6 +3966,8 @@
             if (!username || !password || !realname) {
                 msg.textContent = '请填写所有必填字段（用户名、密码、真实姓名）'; msg.className = 'msg error'; return;
             }
+            var unameError = validateUsername(username);
+            if (unameError) { msg.textContent = unameError; msg.className = 'msg error'; return; }
             if (password.length < 6) { msg.textContent = '密码至少6位'; msg.className = 'msg error'; return; }
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 msg.textContent = '邮箱格式不正确'; msg.className = 'msg error'; return;
@@ -4974,8 +4988,8 @@
                 if (el) el.addEventListener('input', function() { this.classList.remove('input-error'); });
             });
 
-            // 自动清理数据库中的过期数据
-            cleanupExpiredData();
+            // 自动清理数据库中的过期数据（延迟5秒执行，避免与登录请求竞争网络带宽）
+            setTimeout(function() { cleanupExpiredData().catch(function(e){}); }, 5000);
 
             // 检测 URL 中的重置 token
             var resetToken = new URLSearchParams(window.location.search).get('reset');
@@ -5205,22 +5219,26 @@
             msg.textContent = '登录中…'; msg.className = 'msg';
 
             try {
-                // 先检查设备是否被封禁
                 var deviceInfo = getDeviceInfo();
-                var isBanned = await DB.checkBannedDevice(deviceInfo);
+                // 核心优化：封禁检查 + 用户查询 + 密码哈希 三个请求并行执行
+                var [isBanned, u, hash] = await Promise.all([
+                    DB.checkBannedDevice(deviceInfo),
+                    DB.findByUsername(username),
+                    sha256(pw)
+                ]);
+
                 if (isBanned) {
                     msg.textContent = '该设备已被封禁，请联系管理员'; msg.className = 'msg error';
                     dbShowStatus('设备已被封禁', 'error');
                     return;
                 }
 
-                var [hash, u] = await Promise.all([sha256(pw), DB.findByUsername(username)]);
                 if(u && u.password === hash) {
-                    // 自动检查并修正回忆录权限：有编辑权限但无查看权限时自动补上
+                    // 自动检查并修正回忆录权限：有编辑权限但无查看权限时自动补上（非阻塞）
                     var perms = u.permissions || {};
                     if (perms.editMemory && !perms.viewMemory) {
                         perms.viewMemory = true;
-                        try { await DB.updateUser(username, {permissions: perms}); } catch(e) {}
+                        DB.updateUser(username, {permissions: perms}).catch(function(e){});
                     }
                     currentUser = {username: u.username, email: u.email || '', realname: u.realname || '', user_metadata: {subject: u.subject, role: u.role || 'teacher', permissions: perms}};
                     saveSession();
@@ -5230,16 +5248,17 @@
                     applyUserSubject();
                     applyUserPermissions();
                     dbShowStatus('登录成功', 'success');
-                    // 记录登录信息（IP、设备、时间），不阻塞登录流程
-                    var ip = await getClientIP();
-                    if (ip) localStorage.setItem('mobile_current_ip', ip);
-                    DB.addLoginRecord(username, ip || 'unknown', deviceInfo).catch(function(e){
-                        console.warn('记录登录信息失败:', e);
-                    });
+                    // 记录登录信息（IP、设备、时间）— 完全非阻塞，不影响用户体验
+                    getClientIP().then(function(ip) {
+                        if (ip) localStorage.setItem('mobile_current_ip', ip);
+                        DB.addLoginRecord(username, ip || 'unknown', deviceInfo).catch(function(e){
+                            console.warn('记录登录信息失败:', e);
+                        });
+                    }).catch(function(){});
                     // 如果需要强制修改密码（被管理员重置 或 密码为默认密码123456），弹出修改密码弹窗
                     if (u.need_password_change || hash === DEFAULT_RESET_PASSWORD_HASH) {
                         if (hash === DEFAULT_RESET_PASSWORD_HASH) {
-                            // 密码为默认密码，更新数据库标记
+                            // 密码为默认密码，更新数据库标记（非阻塞）
                             DB.updateUser(username, { need_password_change: true }).catch(function(e){
                                 console.warn('更新密码标记失败:', e);
                             });
@@ -5304,6 +5323,22 @@
                 var el = document.getElementById(id);
                 if (el) el.classList.remove('input-error');
             });
+        }
+
+        // 用户名验证：支持中文、字母、数字、emoji及特殊符号
+        // 返回 null 表示通过，返回字符串表示错误信息
+        function validateUsername(username) {
+            if (!username) return '请填写用户名';
+            // 按 Unicode 码点计算长度（正确处理 emoji 和组合字符）
+            var chars = Array.from(username);
+            if (chars.length < 1 || chars.length > 20) {
+                return '用户名长度需在1-20个字符之间';
+            }
+            // 禁止空格和控制字符，允许中文、字母、数字、emoji及特殊符号
+            if (/[\x00-\x1F\x7F\s]/.test(username)) {
+                return '用户名不能包含空格或控制字符';
+            }
+            return null;
         }
 
         // 密码复杂度检查（自行注册时要求：字母、数字、特殊字符中至少两项）
@@ -5459,8 +5494,9 @@
                 if (regRole === 'student' && !realname) {
                     return markRegError('regRealname', '请填写真实姓名');
                 }
-                if (!username) {
-                    return markRegError('regUsername', '请填写用户名');
+                var usernameError = validateUsername(username);
+                if (usernameError) {
+                    return markRegError('regUsername', usernameError);
                 }
                 if (!contact) {
                     return markRegError('regContact', '请填写手机号或邮箱');
@@ -7764,19 +7800,36 @@
     </script>
 
     <!-- 更新历史按钮 -->
-    <button class="changelog-btn" onclick="showChangelog()">&#x1F4DC; 更新历史</button>
+    <button class="changelog-btn" onclick="showChangelog()">📜 更新历史</button>
 
-    </div><!-- end main-content -->
+    <!-- end main-content -->
 
-    <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">&#x1F4AC; 问题反馈</a>
+    <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">💬 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.6.7</div>
+    <div class="version-label">当前版本：v2.7.1</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
-            <h2>&#x1F4DC; 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">&times;</button></h2>
+            <h2>📜 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">×</button></h2>
+
+            <h3>v2.7.1</h3>
+            <ul>
+                <li>登录速度大幅优化：封禁检查、用户查询、密码哈希三请求并行执行</li>
+                <li>用户查询改用 ilike 单次大小写不敏感匹配，消除冗余网络请求</li>
+                <li>封禁设备列表增加60秒缓存，减少重复网络请求</li>
+                <li>IP获取和登录记录改为完全非阻塞，不延迟用户界面响应</li>
+                <li>添加 preconnect 预连接，提前建立TCP/TLS连接</li>
+                <li>过期数据清理延迟5秒执行，避免与登录请求竞争网络带宽</li>
+            </ul>
+
+            <h3>v2.7.0</h3>
+            <ul>
+                <li>用户名支持中文、emoji及特殊符号，按Unicode码点计算长度（1-20字符）</li>
+                <li>注册、后台单个添加、批量添加均接入统一用户名校验</li>
+                <li>禁止用户名包含空格和控制字符，提升数据安全性</li>
+            </ul>
 
             <h3>v2.6.7</h3>
             <ul>
@@ -8025,7 +8078,7 @@
             <h3>v1.0.3</h3>
             <ul>
                 <li>批量文件选择，上传前预上传机制，上传进度条</li>
-                <li>图片预览（<=2MB 原图，>2MB 自动压缩至 1MB 以内）</li>
+                <li>图片预览（&lt;=2MB 原图，&gt;2MB 自动压缩至 1MB 以内）</li>
             </ul>
 
             <h3>v1.0.2</h3>
@@ -8049,5 +8102,6 @@
             </ul>
         </div>
     </div>
-</body>
-</html>
+
+
+</body></html>
