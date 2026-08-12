@@ -1933,7 +1933,7 @@
     </div>
 
     <!-- 登录/注册弹窗 -->
-    <div class="auth-overlay" id="authOverlay">
+    <div class="auth-overlay hidden" id="authOverlay">
         <div class="auth-panel" id="authPanel">
             <!-- 登录表单 -->
             <div id="loginForm" class="">
@@ -6225,6 +6225,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                         unlockContent();
                         applyUserSubject();
                         applyUserPermissions();
+                        hideAuth(); // 确保登录弹窗隐藏（页面刷新后恢复会话时）
                         // 如果当前在后台管理页面，自动登录后检查权限
                         if (document.getElementById('adminView') && !document.getElementById('adminView').classList.contains('hidden')) {
                             checkAdminPermission();
@@ -7807,12 +7808,18 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">💬 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.7.1</div>
+    <div class="version-label">当前版本：v2.7.2</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>📜 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">×</button></h2>
+
+            <h3>v2.7.2</h3>
+            <ul>
+                <li>修复登录状态下访问后台仍要求重新登录的问题</li>
+                <li>登录弹窗默认隐藏，仅在未登录时显示</li>
+            </ul>
 
             <h3>v2.7.1</h3>
             <ul>
