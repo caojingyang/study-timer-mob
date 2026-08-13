@@ -1904,16 +1904,33 @@
     <script>
         // EmailJS 已迁移至服务端（Cloudflare Worker /api/send-email），无需客户端 SDK
         async function sendEmailViaWorker(templateId, params) {
-            var resp = await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ template_id: templateId, params: params })
-            });
-            if (!resp.ok) {
-                var errBody = await resp.json().catch(function(){ return { error: 'HTTP ' + resp.status }; });
-                throw new Error(errBody.error || '邮件发送失败');
+            // 添加 15 秒超时，防止请求挂起
+            var controller = new AbortController();
+            var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+            try {
+                var resp = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ template_id: templateId, params: params }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                var respText = await resp.text();
+                var data;
+                try { data = JSON.parse(respText); } catch(_) { data = {}; }
+
+                if (!resp.ok) {
+                    throw new Error(data.error || 'HTTP ' + resp.status);
+                }
+                return data;
+            } catch(err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('请求超时，请稍后重试');
+                }
+                throw err;
             }
-            return resp.json();
         }
     </script>
     <style id="trae-panel-enter-style">
@@ -5453,7 +5470,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                     // 通过服务端 Worker 发送验证码邮件（无需客户端 SDK）
                     await sendEmailViaWorker('template_wrye0wo', {
                         to_email: contact,
-                        message: '您的注册验证码是：' + code + '，10分钟内有效，请勿泄露给他人。',
+                        message: code,
                         subject: '晚自习系统 - 注册验证码'
                     });
                 } else {
