@@ -3227,11 +3227,12 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             async createUser(userData, silent) {
                 if (USE_SUPABASE) {
                     // 映射字段名：password -> password_hash, realname -> real_name
+                    // 注意：email/phone 为空时传 null（而非空字符串），避免 UNIQUE 约束冲突
                     var rowData = {
                         username: userData.username,
                         real_name: userData.realname,
-                        email: userData.email || '',
-                        phone: userData.phone || '',
+                        email: userData.email || null,
+                        phone: userData.phone || null,
                         password_hash: userData.password,
                         role: userData.role,
                         subject: userData.subject || '',
