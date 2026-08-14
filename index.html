@@ -7891,8 +7891,51 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                         return { name: f.name, size: f.size, type: f.type, downloadUrl: f.downloadUrl, shareUrl: f.shareUrl };
                     })
                 };
+                var screenUrl = 'http://' + screenInfo.ip + ':' + screenInfo.port + '/api/receive-files';
+                var isHttpsPage = window.location.protocol === 'https:';
+
+                // HTTPS 页面无法直接发送 HTTP 请求（Mixed Content 限制）
+                // 尝试通过 no-cors 模式 fetch 发送（大屏只需接收数据，不需要读取响应）
+                if (isHttpsPage) {
+                    // 更新发送进度
+                    var progress2 = 0;
+                    var interval2 = setInterval(function() {
+                        progress2 += 10;
+                        if (progress2 > 90) progress2 = 90;
+                        var fillEl = document.getElementById('fileTransferProgressFill');
+                        var textEl = document.getElementById('fileTransferProgressText');
+                        if (fillEl) fillEl.style.width = progress2 + '%';
+                        if (textEl) textEl.textContent = '正在发送至班级大屏… ' + progress2 + '%';
+                    }, 300);
+
+                    fetch(screenUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: AbortSignal.timeout(15000)
+                    }).then(function() {
+                        clearInterval(interval2);
+                        // no-cors 模式下无法读取响应，但请求已发出即视为成功
+                        var fillEl = document.getElementById('fileTransferProgressFill');
+                        var textEl = document.getElementById('fileTransferProgressText');
+                        if (fillEl) fillEl.style.width = '100%';
+                        if (textEl) textEl.textContent = '发送完成 ✓';
+                        for (var i = 0; i < sendFileList.length; i++) {
+                            sendFileList[i].status = 'sent';
+                        }
+                        renderFileSendList();
+                        resolve();
+                    }).catch(function(err) {
+                        clearInterval(interval2);
+                        reject(new Error('HTTPS混合内容限制或网络错误: ' + (err.message || '')));
+                    });
+                    return;
+                }
+
+                // 非 HTTPS 页面：正常使用 XHR
                 var xhr = new XMLHttpRequest();
-                xhr.open('POST', 'http://' + screenInfo.ip + ':' + screenInfo.port + '/api/receive-files');
+                xhr.open('POST', screenUrl);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.timeout = 15000;
 
@@ -7987,7 +8030,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
 
                 if (screenInfo.online) {
                     // 在线：直接发送到大屏
-                    showSendFileStatus('班级大屏在线，正在发送…', 'sending');
+                    var httpsNote = window.location.protocol === 'https:' ? '（HTTPS页面，使用兼容模式发送）' : '';
+                    showSendFileStatus('班级大屏在线，正在发送' + httpsNote + '…', 'sending');
                     document.getElementById('fileSendTransferProgress').style.display = 'block';
                     try {
                         await sendToScreenServer(screenInfo, fileInfos, silent);
