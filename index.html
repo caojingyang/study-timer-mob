@@ -7880,93 +7880,10 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             }
         }
 
-        // 发送文件信息到大屏服务器
+        // 发送文件信息到大屏服务器（已废弃，改为数据库中转）
+        // 保留函数避免引用错误
         function sendToScreenServer(screenInfo, fileInfos, silent) {
-            return new Promise(function(resolve, reject) {
-                var payload = {
-                    sender: currentUser.username,
-                    realname: currentUser.realname || currentUser.username,
-                    silent: silent,
-                    files: fileInfos.map(function(f) {
-                        return { name: f.name, size: f.size, type: f.type, downloadUrl: f.downloadUrl, shareUrl: f.shareUrl };
-                    })
-                };
-                var screenUrl = 'http://' + screenInfo.ip + ':' + screenInfo.port + '/api/receive-files';
-                var isHttpsPage = window.location.protocol === 'https:';
-
-                // HTTPS 页面无法直接发送 HTTP 请求（Mixed Content 限制）
-                // 尝试通过 no-cors 模式 fetch 发送（大屏只需接收数据，不需要读取响应）
-                if (isHttpsPage) {
-                    // 更新发送进度
-                    var progress2 = 0;
-                    var interval2 = setInterval(function() {
-                        progress2 += 10;
-                        if (progress2 > 90) progress2 = 90;
-                        var fillEl = document.getElementById('fileTransferProgressFill');
-                        var textEl = document.getElementById('fileTransferProgressText');
-                        if (fillEl) fillEl.style.width = progress2 + '%';
-                        if (textEl) textEl.textContent = '正在发送至班级大屏… ' + progress2 + '%';
-                    }, 300);
-
-                    fetch(screenUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                        signal: AbortSignal.timeout(15000)
-                    }).then(function() {
-                        clearInterval(interval2);
-                        // no-cors 模式下无法读取响应，但请求已发出即视为成功
-                        var fillEl = document.getElementById('fileTransferProgressFill');
-                        var textEl = document.getElementById('fileTransferProgressText');
-                        if (fillEl) fillEl.style.width = '100%';
-                        if (textEl) textEl.textContent = '发送完成 ✓';
-                        for (var i = 0; i < sendFileList.length; i++) {
-                            sendFileList[i].status = 'sent';
-                        }
-                        renderFileSendList();
-                        resolve();
-                    }).catch(function(err) {
-                        clearInterval(interval2);
-                        reject(new Error('HTTPS混合内容限制或网络错误: ' + (err.message || '')));
-                    });
-                    return;
-                }
-
-                // 非 HTTPS 页面：正常使用 XHR
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', screenUrl);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.timeout = 15000;
-
-                // 更新发送进度（模拟，因为POST只是发送文件信息，大屏端下载是后台进行）
-                var progress = 0;
-                var interval = setInterval(function() {
-                    progress += 10;
-                    if (progress > 90) progress = 90;
-                    document.getElementById('fileTransferProgressFill').style.width = progress + '%';
-                    document.getElementById('fileTransferProgressText').textContent = '正在发送至班级大屏… ' + progress + '%';
-                }, 300);
-
-                xhr.onload = function() {
-                    clearInterval(interval);
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        document.getElementById('fileTransferProgressFill').style.width = '100%';
-                        document.getElementById('fileTransferProgressText').textContent = '发送完成 ✓';
-                        // 标记所有文件为已发送
-                        for (var i = 0; i < sendFileList.length; i++) {
-                            sendFileList[i].status = 'sent';
-                        }
-                        renderFileSendList();
-                        resolve();
-                    } else {
-                        reject(new Error('HTTP ' + xhr.status));
-                    }
-                };
-                xhr.onerror = function() { clearInterval(interval); reject(new Error('网络错误')); };
-                xhr.ontimeout = function() { clearInterval(interval); reject(new Error('超时')); };
-                xhr.send(JSON.stringify(payload));
-            });
+            return Promise.reject(new Error('已改为数据库中转模式'));
         }
 
         // 主发送函数
@@ -8024,61 +7941,31 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                     };
                 });
 
-                // Step 2: 检查大屏是否在线
-                showSendFileStatus('正在检测班级大屏状态…', 'sending');
-                var screenInfo = await checkScreenOnline();
+                // Step 2: 统一保存到数据库，大屏端实时轮询拉取
+                showSendFileStatus('正在保存文件信息到数据库…', 'sending');
+                await savePendingFilesToDB(fileInfos, silent);
+                await saveFileTransferHistory(fileInfos, silent, 'sent');
 
-                if (screenInfo.online) {
-                    // 在线：直接发送到大屏
-                    var httpsNote = window.location.protocol === 'https:' ? '（HTTPS页面，使用兼容模式发送）' : '';
-                    showSendFileStatus('班级大屏在线，正在发送' + httpsNote + '…', 'sending');
-                    document.getElementById('fileSendTransferProgress').style.display = 'block';
-                    try {
-                        await sendToScreenServer(screenInfo, fileInfos, silent);
-                        document.getElementById('fileSendTransferProgress').style.display = 'none';
-                        showSendFileStatus('文件已成功发送至班级大屏 ✓', 'success');
-                        // 保存发送历史（在线发送）
-                        await saveFileTransferHistory(fileInfos, silent, 'sent');
-                        // 刷新待发送和历史
-                        renderPendingFiles();
-                        renderFileTransferHistory();
-                        // 清空列表
-                        setTimeout(function() {
-                            sendFileList = [];
-                            renderFileSendList();
-                        }, 2000);
-                    } catch(e) {
-                        document.getElementById('fileSendTransferProgress').style.display = 'none';
-                        // 发送失败，降级为离线模式
-                        showSendFileStatus('发送失败，正在保存到数据库…', 'sending');
-                        await savePendingFilesToDB(fileInfos, silent);
-                        await saveFileTransferHistory(fileInfos, silent, 'offline');
-                        showSendFileStatus('发送失败，文件已保存，大屏下次上线时自动下载', 'success');
-                        renderPendingFiles();
-                        renderFileTransferHistory();
-                        setTimeout(function() {
-                            sendFileList = [];
-                            renderFileSendList();
-                        }, 2000);
-                    }
-                } else {
-                    // 离线：保存到数据库
-                    showSendFileStatus('班级大屏已离线，正在保存文件信息…', 'sending');
-                    await savePendingFilesToDB(fileInfos, silent);
-                    await saveFileTransferHistory(fileInfos, silent, 'offline');
-                    showSendFileStatus('班级大屏已离线，将于下次上线时自动下载', 'success');
-                    // 标记所有文件为已发送（离线模式）
-                    for (var j = 0; j < sendFileList.length; j++) {
-                        sendFileList[j].status = 'sent';
-                    }
-                    renderFileSendList();
-                    renderPendingFiles();
-                    renderFileTransferHistory();
-                    setTimeout(function() {
-                        sendFileList = [];
-                        renderFileSendList();
-                    }, 3000);
+                // 标记所有文件为已发送
+                for (var j = 0; j < sendFileList.length; j++) {
+                    sendFileList[j].status = 'sent';
                 }
+                renderFileSendList();
+                renderPendingFiles();
+                renderFileTransferHistory();
+
+                // 检查大屏是否在线，给出不同的提示
+                var screenInfo = await checkScreenOnline();
+                if (screenInfo.online) {
+                    showSendFileStatus('文件已保存，班级大屏在线，正在自动接收 ✓', 'success');
+                } else {
+                    showSendFileStatus('文件已保存，班级大屏离线，上线后将自动接收', 'success');
+                }
+
+                setTimeout(function() {
+                    sendFileList = [];
+                    renderFileSendList();
+                }, 3000);
             } catch(err) {
                 showSendFileStatus('操作失败：' + (err.message || '未知错误'), 'error');
             } finally {
@@ -8320,12 +8207,19 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
     <a href="https://www.wenjuan.com/s/UZBZJvRBgN/" target="_blank" class="feedback-btn">💬 问题反馈</a>
 
     <!-- 版本号标注 -->
-    <div class="version-label">当前版本：v2.8.0</div>
+    <div class="version-label">当前版本：v2.8.1</div>
 
     <!-- 更新历史弹窗 -->
     <div id="changelogOverlay" class="changelog-overlay hidden">
         <div class="changelog-panel">
             <h2>📜 移动端系统 — 更新历史<button class="changelog-close" onclick="hideChangelog()">×</button></h2>
+
+            <h3>v2.8.1</h3>
+            <ul>
+                <li>文件发送改为数据库中转模式，不再直接向大屏发送HTTP请求</li>
+                <li>解决HTTPS页面无法发送文件到HTTP大屏的混合内容限制问题</li>
+                <li>大屏端每5秒实时轮询数据库，发现新文件立即下载</li>
+            </ul>
 
             <h3>v2.8.0</h3>
             <ul>
