@@ -3031,13 +3031,15 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 headers: { 'Content-Type': 'application/json' }
             }).then(function(r) {
                 if (!r.ok) {
-                    return r.json().then(function(errBody) {
-                        var errMsg = (errBody && errBody.message) ? errBody.message : ('HTTP ' + r.status);
+                    return r.text().then(function(txt) {
+                        var errMsg = txt;
+                        try { errMsg = JSON.parse(txt).message || txt; } catch(_) {}
                         throw new Error('Supabase DELETE error: ' + errMsg);
-                    }).catch(function(e) {
-                        if (e.message) throw e;
-                        throw new Error('Supabase DELETE error: HTTP ' + r.status);
                     });
+                }
+                // 204 No Content 或空 body 时直接返回，不解析 JSON（避免 SyntaxError）
+                if (r.status === 204 || r.headers.get('content-length') === '0') {
+                    return null;
                 }
                 return r.json();
             });
@@ -3334,9 +3336,11 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                     dbShowStatus('删除用户 "' + username + '"…', 'writing');
                     try {
                         await sbDelete('users', 'username', username);
+                    } finally {
                         _sbInvalidateCache();
-                        return true;
-                    } finally { dbHideStatus(); }
+                        dbHideStatus();
+                    }
+                    return true;
                 }
                 var users = JSON.parse(localStorage.getItem('mobile_users') || '[]');
                 users = users.filter(x => x.username !== username);
@@ -3923,8 +3927,16 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
         }
 
         async function adminDeleteUser(username) {
+            if (username === currentUser.username) {
+                alert('不能删除当前登录的管理员账号');
+                return;
+            }
             if (!confirm('确定要删除用户 "' + username + '" 吗？此操作不可撤销。')) return;
-            await DB.deleteUser(username);
+            try {
+                await DB.deleteUser(username);
+            } catch(e) {
+                alert('删除用户失败: ' + e.message);
+            }
             renderAdminUserTable();
         }
 
