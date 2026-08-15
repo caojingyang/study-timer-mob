@@ -826,15 +826,15 @@
         } catch(e) {}
 
         // ====== 登录态与权限验证 ======
-        // 未登录用户直接访问 /history 时，拦截并跳回移动端
+        // 未登录用户直接访问 history 时，拦截并跳回移动端
         if (!userInfo.name) {
             alert('请先登录后再访问回忆录');
-            window.location.href = '/';
+            window.location.href = './';
         }
         // 检查回忆录查看权限（未设置时默认允许，兼容旧用户；管理员自动拥有所有权限）
         if (userInfo.name && userInfo.permissions.viewMemory === false && !userInfo.permissions.isAdmin) {
             alert('您没有回忆录查看权限');
-            window.location.href = '/';
+            window.location.href = './';
         }
 
         // ====== BGM 背景音乐系统 ======
