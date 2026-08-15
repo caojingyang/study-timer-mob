@@ -1042,13 +1042,21 @@
                 var currentIdx = Math.round(pages.scrollTop / window.innerHeight);
                 var pageEl = pages.children[currentIdx];
                 if (!pageEl) return;
+                // 懒加载当前页视频
+                lazyLoadVideo(pageEl);
                 var videoIframe = pageEl.querySelector('.timeline-video iframe');
-                if (videoIframe) {
+                if (videoIframe && videoIframe.src) {
                     // 当前页面有视频 -> 暂停 BGM
                     bgmOnVideoStart();
                 } else {
                     // 当前页面无视频 -> 恢复 BGM
                     bgmOnVideoEnd();
+                }
+                // 卸载非相邻页面视频
+                for (var i = 0; i < pages.children.length; i++) {
+                    if (Math.abs(i - currentIdx) > 1) {
+                        unloadVideo(pages.children[i]);
+                    }
                 }
             }, 500);
         }
@@ -1147,7 +1155,7 @@
                             tasks.push(preloadImage(preloadedNodes[i].bgImage));
                         }
                     }
-                    // 2) 预加载 Bilibili 视频：预热播放器与封面 CDN 连接（API 受 CORS 限制，用 preconnect 近似）
+                    // 2) 预加载 Bilibili 视频：仅预热播放器与封面 CDN 连接（不加载 iframe，滚动到时才加载）
                     if (!document.getElementById('bgmPreconnectPlayer')) {
                         var pc1 = document.createElement('link');
                         pc1.id = 'bgmPreconnectPlayer'; pc1.rel = 'preconnect'; pc1.href = 'https://player.bilibili.com';
@@ -1516,7 +1524,7 @@
                 if (node.video) {
                     var bvid = extractBvid(node.video);
                     if (bvid) {
-                        videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
+                        videoHtml = buildVideoHtml(bvid);
                     }
                 }
                 var imagesHtml = '';
@@ -1583,15 +1591,22 @@
         function scrollToPage(idx) {
             var pages = document.getElementById('memoryPages');
             pages.scrollTo({ top: idx * window.innerHeight, behavior: 'smooth' });
-            // 滚动后立即检查视频联动（不等 500ms 定时器）
+            // 滚动后检查视频懒加载和 BGM 联动
             setTimeout(function() {
                 var pageEl = pages.children[idx];
                 if (!pageEl) return;
+                lazyLoadVideo(pageEl);
                 var videoIframe = pageEl.querySelector('.timeline-video iframe');
-                if (videoIframe) {
+                if (videoIframe && videoIframe.src) {
                     bgmOnVideoStart();
                 } else {
                     bgmOnVideoEnd();
+                }
+                // 卸载非相邻页面的视频（释放资源）
+                for (var i = 0; i < pages.children.length; i++) {
+                    if (Math.abs(i - idx) > 1) {
+                        unloadVideo(pages.children[i]);
+                    }
                 }
             }, 300);
         }
@@ -1600,6 +1615,53 @@
             if (!url) return null;
             var m = url.match(/BV[0-9A-Za-z]+/);
             return m ? m[0] : null;
+        }
+
+        // 生成B站播放器 URL（高清晰度：优先 1080P+）
+        function buildBiliPlayerUrl(bvid) {
+            // high_quality=1: 高画质；q=80: 1080P；autoplay=0: 不自动播放
+            return 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&q=80&autoplay=0&danmaku=0';
+        }
+
+        // 生成懒加载视频 HTML（iframe 不设 src，用 data-src 延迟加载）
+        function buildVideoHtml(bvid) {
+            return '<div class="timeline-video" data-bvid="' + bvid + '"><iframe data-src="' + buildBiliPlayerUrl(bvid) + '" allowfullscreen></iframe></div>';
+        }
+
+        // 懒加载视频：当页面进入可视区域时设置 iframe src
+        var _lazyLoadedVideos = new Set();
+        function lazyLoadVideo(pageEl) {
+            if (!pageEl) return;
+            var videoDiv = pageEl.querySelector('.timeline-video');
+            if (!videoDiv) return;
+            var iframe = videoDiv.querySelector('iframe');
+            if (!iframe) return;
+            // 已加载则跳过
+            var dataSrc = iframe.getAttribute('data-src');
+            if (!dataSrc) return;
+            var bvid = videoDiv.getAttribute('data-bvid') || '';
+            if (_lazyLoadedVideos.has(bvid)) return;
+            iframe.src = dataSrc;
+            iframe.removeAttribute('data-src');
+            _lazyLoadedVideos.add(bvid);
+        }
+
+        // 卸载视频：当页面离开可视区域时移除 src（停止播放、释放资源）
+        function unloadVideo(pageEl) {
+            if (!pageEl) return;
+            var iframe = pageEl.querySelector('.timeline-video iframe');
+            if (!iframe) return;
+            if (iframe.src) {
+                iframe.removeAttribute('src');
+                // 保留 data-src 以便下次重新加载
+                var bvid = iframe.closest('.timeline-video')?.getAttribute('data-bvid');
+                if (bvid && !_lazyLoadedVideos.has(bvid + '_unloaded')) {
+                    _lazyLoadedVideos.delete(bvid);
+                    _lazyLoadedVideos.add(bvid + '_unloaded');
+                    // 恢复 data-src
+                    iframe.setAttribute('data-src', buildBiliPlayerUrl(bvid));
+                }
+            }
         }
 
         function escapeHtml(text) {
@@ -1743,13 +1805,16 @@
             var card = getCurrentVisibleCard();
             if (card) {
                 card.setAttribute('data-video', 'https://www.bilibili.com/video/' + bvid);
-                // 在内容后插入视频iframe
+                // 在内容后插入视频iframe（懒加载模式）
                 var existingVideo = card.querySelector('.timeline-video');
                 if (existingVideo) existingVideo.remove();
                 var videoDiv = document.createElement('div');
                 videoDiv.className = 'timeline-video';
-                videoDiv.innerHTML = '<iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe>';
+                videoDiv.setAttribute('data-bvid', bvid);
+                videoDiv.innerHTML = '<iframe data-src="' + buildBiliPlayerUrl(bvid) + '" allowfullscreen></iframe>';
                 card.appendChild(videoDiv);
+                // 编辑模式下立即加载（方便预览）
+                lazyLoadVideo(card.closest('.memory-page'));
             } else {
                 alert('未找到当前节点');
             }
@@ -1862,7 +1927,7 @@
                 var videoHtml = '';
                 if (node.video) {
                     var bvid = extractBvid(node.video);
-                    if (bvid) videoHtml = '<div class="timeline-video"><iframe src="https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&high_quality=1&danmaku=0" allowfullscreen></iframe></div>';
+                    if (bvid) videoHtml = buildVideoHtml(bvid);
                 }
                 var imagesHtml = '';
                 if (node.images) {
