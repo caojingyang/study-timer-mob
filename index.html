@@ -2214,7 +2214,7 @@
     <div id="adminView" class="hidden">
         <div class="admin-container">
             <h2>🏢 后台管理</h2>
-            <button class="admin-back-btn" onclick="window.location.href = window.location.pathname.replace(/\/admin\/?$/, '/') || '/';">← 返回移动端</button>
+            <button class="admin-back-btn" onclick="adminReturnToMobile();">← 返回移动端</button>
 
             <div class="admin-no-perm" id="adminNoPerm" style="display:none;">
                 <p>🚫 无权限访问后台管理</p>
@@ -3790,7 +3790,16 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
         var _adminReturnCountdown = null;
         function adminReturnToMobile() {
             if (_adminReturnCountdown) { clearInterval(_adminReturnCountdown); _adminReturnCountdown = null; }
-            window.location.href = window.location.pathname.replace(/\/admin\/?$/, '/') || '/';
+            // 兼容 /admin 和 #admin 两种方式
+            if (window.location.hash === '#admin') {
+                // hash 路由：清除 hash 即可
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                location.reload();
+            } else {
+                // 路径路由：去掉 /admin 后缀
+                var path = window.location.pathname.replace(/\/admin\/?$/, '/') || '/';
+                window.location.href = path;
+            }
         }
         function startAdminReturnCountdown() {
             if (_adminReturnCountdown) { clearInterval(_adminReturnCountdown); _adminReturnCountdown = null; }
