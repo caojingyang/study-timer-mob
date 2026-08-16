@@ -2568,6 +2568,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
         <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">📤 发送通知至晚自习系统</button>
         <button class="menu-btn" id="menuBtnSendFile" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;" onclick="showView('sendFileView')">📥 发送文件至班级大屏</button>
         <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">🌌 情怀：我们一起走过的日子</button>
+        <button class="menu-btn" id="menuBtnAdmin" style="display:none;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.4);" onclick="enterAdmin()">⚙️ 进入后台管理</button>
     </div>
 
     <!-- 个人中心视图 -->
@@ -6186,6 +6187,21 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             } else {
                 menuSendFile.style.display = '';
             }
+            // 后台管理按钮：仅管理员可见
+            var menuAdmin = document.getElementById('menuBtnAdmin');
+            if (menuAdmin) {
+                var un = currentUser.username.toLowerCase();
+                var isAdmin = perms.isAdmin || currentUser.user_metadata.is_admin ||
+                              (un === 'starbusk') || (un === 'admin');
+                menuAdmin.style.display = isAdmin ? '' : 'none';
+            }
+        }
+
+        // 进入后台管理
+        function enterAdmin() {
+            // 使用 hash 路由方式进入后台管理
+            window.location.hash = '#admin';
+            location.reload();
         }
 
         // 个人中心渲染
