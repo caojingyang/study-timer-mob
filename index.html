@@ -6574,6 +6574,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
         }
 
         function showMainMenu() {
+            // 返回主菜单时停止所有大屏状态轮询
+            stopAllScreenStatusPolling();
             document.querySelectorAll('.view-container').forEach(function(v) { v.classList.remove('active'); });
             document.getElementById('mainMenu').style.display = 'flex';
         }
@@ -8028,6 +8030,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
 
         // 更新指定视图的大屏状态
         var _screenStatusCache = { online: null, ts: 0 };
+        var _screenStatusPollers = {}; // 各视图的定时轮询器
         async function updateScreenStatus(viewId) {
             var containerMap = {
                 'scheduleView': 'scheduleScreenStatus',
@@ -8042,15 +8045,9 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             if (el) el.innerHTML = '<div class="screen-status-bar offline"><span class="screen-status-dot offline"></span>班级大屏状态：检测中…</div>';
 
             try {
-                // 使用缓存（10秒内复用）
-                var now = Date.now();
-                var screenInfo;
-                if (_screenStatusCache.online !== null && now - _screenStatusCache.ts < 10000) {
-                    screenInfo = { online: _screenStatusCache.online };
-                } else {
-                    screenInfo = await checkScreenOnline();
-                    _screenStatusCache = { online: screenInfo.online, ts: now };
-                }
+                // 每次实时检测，不使用缓存
+                var screenInfo = await checkScreenOnline();
+                _screenStatusCache = { online: screenInfo.online, ts: Date.now() };
                 renderScreenStatusBar(containerId, screenInfo.online);
 
                 // 如果是发送文件视图，还需更新待发送文件和发送历史
@@ -8061,6 +8058,55 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             } catch(e) {
                 renderScreenStatusBar(containerId, false);
             }
+
+            // 启动定时轮询（每15秒实时刷新大屏状态）
+            startScreenStatusPolling(viewId);
+        }
+
+        // 启动大屏状态定时轮询
+        function startScreenStatusPolling(viewId) {
+            // 先清除该视图已有的轮询
+            stopScreenStatusPolling(viewId);
+            _screenStatusPollers[viewId] = setInterval(async function() {
+                // 检查视图是否仍然处于活动状态
+                var viewEl = document.getElementById(viewId);
+                if (!viewEl || !viewEl.classList.contains('active')) {
+                    stopScreenStatusPolling(viewId);
+                    return;
+                }
+                var containerMap = {
+                    'scheduleView': 'scheduleScreenStatus',
+                    'notifyView': 'notifyScreenStatus',
+                    'sendFileView': 'sendFileScreenStatus'
+                };
+                var containerId = containerMap[viewId];
+                try {
+                    var screenInfo = await checkScreenOnline();
+                    _screenStatusCache = { online: screenInfo.online, ts: Date.now() };
+                    renderScreenStatusBar(containerId, screenInfo.online);
+                    if (viewId === 'sendFileView') {
+                        renderPendingFiles();
+                        renderFileTransferHistory();
+                    }
+                } catch(e) {
+                    renderScreenStatusBar(containerId, false);
+                }
+            }, 15000); // 每15秒检测一次
+        }
+
+        // 停止大屏状态定时轮询
+        function stopScreenStatusPolling(viewId) {
+            if (_screenStatusPollers[viewId]) {
+                clearInterval(_screenStatusPollers[viewId]);
+                delete _screenStatusPollers[viewId];
+            }
+        }
+
+        // 停止所有大屏状态轮询
+        function stopAllScreenStatusPolling() {
+            Object.keys(_screenStatusPollers).forEach(function(viewId) {
+                stopScreenStatusPolling(viewId);
+            });
         }
 
         // 渲染待发送文件列表
