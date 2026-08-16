@@ -5248,6 +5248,22 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                         }
                     }
                 } catch(e) { console.warn('清理待发送文件失败:', e); }
+
+                // 6. 清理大屏心跳表（screen_heartbeat）
+                //    - 删除多余的行（id != 1），防止表意外膨胀
+                //    - 若唯一的心跳记录已超过24小时，删除该行（大屏已长期离线，无需保留）
+                try {
+                    var hbRows = await sbGet('screen_heartbeat');
+                    if (hbRows && hbRows.length > 0) {
+                        var hbCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                        for (var h = 0; h < hbRows.length; h++) {
+                            // 删除多余行（id 不为 1）或超过24小时的过期心跳
+                            if (hbRows[h].id !== 1 || (hbRows[h].last_heartbeat && hbRows[h].last_heartbeat < hbCutoff)) {
+                                await sbDelete('screen_heartbeat', 'id', hbRows[h].id);
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('清理大屏心跳失败:', e); }
             } catch(e) {
                 console.error('自动清理过期数据失败:', e);
             }
