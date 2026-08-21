@@ -684,8 +684,8 @@
     </style>
 </head>
 <body>
-    <!-- 返回移动端（使用相对路径，兼容 CloudBase /mob/ 子目录部署） -->
-    <a href="./" class="back-to-mobile">&#x2190; 返回移动端</a>
+    <!-- 返回移动端（使用 index.html 明确路径，避免 URL 无尾部斜杠时跳到上级目录） -->
+    <a href="index.html" class="back-to-mobile">&#x2190; 返回移动端</a>
 
     <!-- BGM 背景音乐控制（进入回忆录后显示） -->
     <div id="bgmToggle" class="paused" title="背景音乐" role="button" aria-label="背景音乐开关">
@@ -827,14 +827,15 @@
 
         // ====== 登录态与权限验证 ======
         // 未登录用户直接访问 history 时，拦截并跳回移动端
+        // 使用 'index.html' 而非 './'，避免 URL 无尾部斜杠时跳到上级目录
         if (!userInfo.name) {
             alert('请先登录后再访问回忆录');
-            window.location.href = './';
+            window.location.href = 'index.html';
         }
         // 检查回忆录查看权限（未设置时默认允许，兼容旧用户；管理员自动拥有所有权限）
         if (userInfo.name && userInfo.permissions.viewMemory === false && !userInfo.permissions.isAdmin) {
             alert('您没有回忆录查看权限');
-            window.location.href = './';
+            window.location.href = 'index.html';
         }
 
         // ====== BGM 背景音乐系统 ======
