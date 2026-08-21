@@ -1952,14 +1952,49 @@
     <script>
         // EmailJS 已迁移至服务端（Cloudflare Worker /api/send-email），无需客户端 SDK
         async function sendEmailViaWorker(templateId, params) {
-            // 添加 15 秒超时，防止请求挂起
+            // 使用绝对 URL，兼容 CloudBase / Cloudflare / EdgeOne 等所有部署平台
             var controller = new AbortController();
             var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
             try {
-                var resp = await fetch('/api/send-email', {
+                var resp = await fetch(WORKER_BASE_URL + '/api/send-email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ template_id: templateId, params: params }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                var respText = await resp.text();
+                var data;
+                try { data = JSON.parse(respText); } catch(_) { data = {}; }
+
+                if (!resp.ok) {
+                    throw new Error(data.error || 'HTTP ' + resp.status);
+                }
+                return data;
+            } catch(err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('请求超时，请稍后重试');
+                }
+                throw err;
+            }
+        }
+
+        /**
+         * 通过 Worker 代理发送短信验证码
+         * Worker 调用腾讯云 SMS API，将验证码发送至用户填写的手机号
+         * @param {string} phone - 用户手机号
+         * @param {string} code - 6位验证码
+         */
+        async function sendSmsViaWorker(phone, code) {
+            var controller = new AbortController();
+            var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+            try {
+                var resp = await fetch(WORKER_BASE_URL + '/api/send-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, code: code }),
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
@@ -2895,6 +2930,15 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
     </div>
 
     <script>
+        // 确保 URL 以 / 结尾（CloudBase /mob 子目录部署时，无尾部斜杠会导致相对路径
+        // 如 history.html 解析到上级目录 / 而非 /mob/，从而跳到错误的系统）
+        (function() {
+            var p = window.location.pathname;
+            if (p.indexOf('.') === -1 && !p.endsWith('/')) {
+                window.location.replace(p + '/' + window.location.search + window.location.hash);
+            }
+        })();
+
         /*
          * ========== Supabase 数据库配置说明 ==========
          *
@@ -3023,15 +3067,15 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
         const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
+        // Worker 基础 URL（用于邮件/短信等服务端 API 调用，兼容所有部署平台）
+        const WORKER_BASE_URL = SUPABASE_URL.replace('/api/supabase', '');
         const SUPABASE_ANON_KEY = 'sb_publishable_x0V-7Mj0PyphcH0W2cID0A_W-yUfdME';
         let supabase = null;
         let USE_SUPABASE = SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co';
 
-        // ========== 短信验证码配置（Spug 推送平台 - 通知模板） ==========
-        // 文档: https://push.spug.cc/guide/send
-        // POST https://push.spug.cc/send/<TEMPLATE_CODE>?code=<验证码>
-        // 模板内容: 您的验证码是${code}，十分钟内有效，如非本人操作请忽略。
-        var SPUG_SMS_TEMPLATE = 'Dw1GdmdgzE8l32qK';
+        // ========== 短信验证码配置 ==========
+        // 短信通过 Worker 代理调用腾讯云 SMS API 发送至用户填写的手机号
+        // （旧方案使用 Spug 推送平台，只能发送至管理员绑定的手机号，已弃用）
 
         // Supabase REST API 封装（替代 SDK）
         // 登录等高频操作只查询必要字段
@@ -5655,13 +5699,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                         subject: '晚自习系统 - 注册验证码'
                     });
                 } else {
-                    // 短信发送：Spug 推送平台（通知模板）
-                    // POST https://push.spug.cc/send/<TEMPLATE_CODE>?code=<验证码>
-                    var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TEMPLATE + '?code=' + encodeURIComponent(code), {
-                        method: 'POST'
-                    });
-                    var smsResult = await smsResp.json();
-                    if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
+                    // 短信发送：通过 Worker 代理调用腾讯云 SMS API（发送至用户填写的手机号）
+                    await sendSmsViaWorker(contact, code);
                 }
 
                 // 若为新验证码则保存到数据库
@@ -5899,13 +5938,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             }
 
             try {
-                // 短信发送：Spug 推送平台（通知模板）
-                // POST https://push.spug.cc/send/<TEMPLATE_CODE>?code=<验证码>
-                var smsResp = await fetch('https://push.spug.cc/send/' + SPUG_SMS_TEMPLATE + '?code=' + encodeURIComponent(code), {
-                    method: 'POST'
-                });
-                var smsResult = await smsResp.json();
-                if (smsResult.code !== 200) throw new Error(smsResult.msg || '短信发送失败');
+                // 短信发送：通过 Worker 代理调用腾讯云 SMS API（发送至用户填写的手机号）
+                await sendSmsViaWorker(phone, code);
 
                 hint.textContent = '验证码已发送至尾号' + phone.slice(-4) + '，请查看手机短信（10分钟有效）';
                 hint.className = 'verify-hint sent';
@@ -7910,23 +7944,114 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             if (!currentUser) return;
             for (var i = 0; i < fileInfos.length; i++) {
                 var f = fileInfos[i];
+                // 检查downloadUrl是否存在，回退到shareUrl时给出警告
+                var downloadUrl = f.downloadUrl || f.shareUrl;
+                if (!f.downloadUrl) {
+                    console.warn('[文件发送] 文件 "' + f.name + '" 缺少直链downloadUrl，回退到shareUrl: ' + (f.shareUrl || '空'));
+                    console.warn('[文件发送] 这可能导致大屏端下载到HTML页面而非实际文件');
+                }
+                if (!downloadUrl) {
+                    console.error('[文件发送] 文件 "' + f.name + '" 没有任何URL！跳过此文件');
+                    continue;
+                }
                 await sbInsert('pending_files', {
                     sender_username: currentUser.username,
                     sender_realname: currentUser.realname || currentUser.username,
                     file_name: f.name,
                     file_size: f.size,
                     file_type: f.type || '',
-                    download_url: f.downloadUrl || f.shareUrl,
+                    download_url: downloadUrl,
                     share_url: f.shareUrl || '',
                     silent: silent
                 });
             }
         }
 
-        // 发送文件信息到大屏服务器（已废弃，改为数据库中转）
-        // 保留函数避免引用错误
-        function sendToScreenServer(screenInfo, fileInfos, silent) {
-            return Promise.reject(new Error('已改为数据库中转模式'));
+        // 尝试局域网直传
+        // 返回: { success: true, sentFiles: [...] } 或 null（直传不可用）
+        async function tryLanDirectSend(fileItems, silent) {
+            try {
+                // 获取大屏IP和端口
+                var screenInfo = await checkScreenOnline();
+                if (!screenInfo || !screenInfo.online || !screenInfo.ip) {
+                    return null;
+                }
+                var screenUrl = 'http://' + screenInfo.ip + ':' + (screenInfo.port || 8080);
+
+                // 测试大屏是否可达（快速测试）
+                var testResp = await fetch(screenUrl + '/api/status', {
+                    method: 'GET',
+                    mode: 'cors',
+                    signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined
+                });
+                if (!testResp.ok) return null;
+
+                console.log('[直传] 大屏可达，尝试局域网直传: ' + screenUrl);
+
+                // 逐个直传文件
+                var sentFiles = [];
+                var failedFiles = [];
+                var totalSize = fileItems.reduce(function(s, f) { return s + (f.file?.size || 0); }, 0);
+                var uploadedSize = 0;
+
+                for (var i = 0; i < fileItems.length; i++) {
+                    var item = fileItems[i];
+                    var file = item.file;
+                    if (!file) continue;
+
+                    try {
+                        showSendFileStatus('局域网直传中 (' + (i+1) + '/' + fileItems.length + '): ' + file.name, 'sending');
+                        // 更新进度条
+                        var progress = totalSize > 0 ? Math.round((uploadedSize / totalSize) * 100) : 0;
+                        document.getElementById('fileSendUploadProgress').style.display = 'block';
+                        document.getElementById('fileSendProgressFill').style.width = progress + '%';
+
+                        var formData = new FormData();
+                        formData.append('file', file, file.name);
+                        formData.append('sender', currentUser.username);
+                        formData.append('realname', currentUser.realname || currentUser.username);
+                        formData.append('name', file.name);
+                        formData.append('type', file.type || '');
+                        formData.append('silent', silent ? 'true' : 'false');
+
+                        var uploadResp = await fetch(screenUrl + '/api/upload', {
+                            method: 'POST',
+                            body: formData,
+                            mode: 'cors'
+                        });
+
+                        if (uploadResp.ok) {
+                            var uploadData = await uploadResp.json();
+                            if (uploadData.success) {
+                                sentFiles.push({
+                                    name: file.name,
+                                    size: file.size,
+                                    type: file.type,
+                                    directSent: true
+                                });
+                                uploadedSize += file.size;
+                            } else {
+                                failedFiles.push(item);
+                            }
+                        } else {
+                            failedFiles.push(item);
+                        }
+                    } catch(e) {
+                        console.warn('[直传] 文件上传失败: ' + file.name, e);
+                        failedFiles.push(item);
+                    }
+                }
+
+                document.getElementById('fileSendProgressFill').style.width = '100%';
+
+                if (sentFiles.length > 0) {
+                    return { success: true, sentFiles: sentFiles, failedFiles: failedFiles, screenUrl: screenUrl };
+                }
+                return null;
+            } catch(e) {
+                console.warn('[直传] 局域网直传不可用:', e.message || e);
+                return null;
+            }
         }
 
         // 主发送函数
@@ -7953,57 +8078,131 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             var silent = document.getElementById('silentSendToggle').checked;
 
             try {
-                // Step 1: 上传所有文件到 EasySend
+                // 先尝试局域网直传（速度快，不走第三方）
                 var pendingItems = sendFileList.filter(function(a) { return a.status === 'pending' || a.status === 'error'; });
+                var lanResult = null;
+
                 if (pendingItems.length > 0) {
-                    showSendFileStatus('正在上传文件…', 'sending');
-                    document.getElementById('fileSendUploadProgress').style.display = 'block';
-                    document.getElementById('fileSendProgressFill').style.width = '0%';
-                    for (var i = 0; i < pendingItems.length; i++) {
-                        await uploadFileToEasySend(pendingItems[i]);
+                    showSendFileStatus('检测大屏网络…', 'sending');
+                    lanResult = await tryLanDirectSend(pendingItems, silent);
+
+                    if (lanResult && lanResult.success && lanResult.sentFiles.length === pendingItems.length) {
+                        // 全部直传成功
+                        for (var j = 0; j < sendFileList.length; j++) sendFileList[j].status = 'sent';
+                        renderFileSendList();
+                        renderFileTransferHistory();
+
+                        showSendFileStatus('局域网直传成功 ✓ (' + lanResult.sentFiles.length + ' 个文件已直接送达大屏)', 'success');
+                        document.getElementById('fileSendUploadProgress').style.display = 'none';
+
+                        setTimeout(function() {
+                            sendFileList = [];
+                            renderFileSendList();
+                        }, 3000);
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = '📤 立即发送';
+                        return;
                     }
-                    document.getElementById('fileSendUploadProgress').style.display = 'none';
                 }
 
-                // 检查是否有上传成功的文件
+                // 直传部分或全部失败，回退到 EasySend + 数据库中转模式
+                var itemsToUpload = pendingItems;
+                if (lanResult && lanResult.failedFiles) {
+                    // 只有直传失败的文件需要走EasySend
+                    var sentNames = (lanResult.sentFiles || []).map(function(f) { return f.name; });
+                    itemsToUpload = pendingItems.filter(function(a) { return sentNames.indexOf(a.file.name) === -1; });
+                    console.log('[直传] 直传成功 ' + lanResult.sentFiles.length + ' 个，剩余 ' + itemsToUpload.length + ' 个走云端中转');
+                }
+
+                // Step 1: 上传剩余文件到 EasySend
+                if (itemsToUpload.length > 0) {
+                    showSendFileStatus('正在上传文件（云端中转）…', 'sending');
+                    document.getElementById('fileSendUploadProgress').style.display = 'block';
+                    document.getElementById('fileSendProgressFill').style.width = '0%';
+                    for (var i = 0; i < itemsToUpload.length; i++) {
+                        await uploadFileToEasySend(itemsToUpload[i]);
+                    }
+                }
+
+                // 检查是否有上传成功的文件（包括直传成功的）
                 var successItems = sendFileList.filter(function(a) { return a.status === 'done'; });
-                if (successItems.length === 0) {
+                // 直传成功的也加入列表（标记为done状态以便后续处理）
+                var directSentNames = [];
+                if (lanResult && lanResult.sentFiles) {
+                    directSentNames = lanResult.sentFiles.map(function(f) { return f.name; });
+                }
+
+                // 如果全失败
+                if (successItems.length === 0 && directSentNames.length === 0) {
                     showSendFileStatus('所有文件上传失败，请重试', 'error');
                     sendBtn.disabled = false;
                     sendBtn.textContent = '📤 立即发送';
+                    document.getElementById('fileSendUploadProgress').style.display = 'none';
                     return;
                 }
 
-                var fileInfos = successItems.map(function(a) {
-                    return {
+                var fileInfos = [];
+                // EasySend上传成功的
+                for (var k = 0; k < successItems.length; k++) {
+                    var a = successItems[k];
+                    fileInfos.push({
                         name: a.file.name,
                         size: a.file.size,
                         type: a.file.type,
                         downloadUrl: a.downloadUrl,
-                        shareUrl: a.shareUrl
-                    };
-                });
+                        shareUrl: a.shareUrl,
+                        directSent: false
+                    });
+                }
+                // 直传成功的（不需要存数据库，但要记录历史）
+                var directSentInfos = [];
+                if (lanResult && lanResult.sentFiles) {
+                    for (var m = 0; m < lanResult.sentFiles.length; m++) {
+                        var sf = lanResult.sentFiles[m];
+                        directSentInfos.push({
+                            name: sf.name,
+                            size: sf.size,
+                            type: sf.type,
+                            downloadUrl: '',
+                            shareUrl: '',
+                            directSent: true
+                        });
+                    }
+                }
 
-                // Step 2: 统一保存到数据库，大屏端实时轮询拉取
-                showSendFileStatus('正在保存文件信息到数据库…', 'sending');
-                await savePendingFilesToDB(fileInfos, silent);
-                await saveFileTransferHistory(fileInfos, silent, 'sent');
+                var allFileInfos = fileInfos.concat(directSentInfos);
+
+                // Step 2: 只把云端中转的文件保存到数据库
+                if (fileInfos.length > 0) {
+                    showSendFileStatus('正在保存文件信息到数据库…', 'sending');
+                    await savePendingFilesToDB(fileInfos, silent);
+                }
+                await saveFileTransferHistory(allFileInfos, silent, 'sent');
 
                 // 标记所有文件为已发送
-                for (var j = 0; j < sendFileList.length; j++) {
-                    sendFileList[j].status = 'sent';
+                for (var n = 0; n < sendFileList.length; n++) {
+                    sendFileList[n].status = 'sent';
                 }
                 renderFileSendList();
                 renderPendingFiles();
                 renderFileTransferHistory();
 
                 // 检查大屏是否在线，给出不同的提示
-                var screenInfo = await checkScreenOnline();
-                if (screenInfo.online) {
-                    showSendFileStatus('文件已保存，班级大屏在线，正在自动接收 ✓', 'success');
+                var screenInfo2 = await checkScreenOnline();
+                var directCount = directSentNames.length;
+                var cloudCount = fileInfos.length;
+                var msg = '';
+                if (directCount > 0 && cloudCount > 0) {
+                    msg = directCount + ' 个文件已直传大屏，' + cloudCount + ' 个云端中转中 ✓';
+                } else if (directCount > 0) {
+                    msg = directCount + ' 个文件已直传大屏 ✓';
+                } else if (screenInfo2 && screenInfo2.online) {
+                    msg = '文件已保存，班级大屏在线，正在自动接收 ✓';
                 } else {
-                    showSendFileStatus('文件已保存，班级大屏离线，上线后将自动接收', 'success');
+                    msg = '文件已保存，班级大屏离线，上线后将自动接收';
                 }
+                showSendFileStatus(msg, 'success');
+                document.getElementById('fileSendUploadProgress').style.display = 'none';
 
                 setTimeout(function() {
                     sendFileList = [];
@@ -8011,6 +8210,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 }, 3000);
             } catch(err) {
                 showSendFileStatus('操作失败：' + (err.message || '未知错误'), 'error');
+                document.getElementById('fileSendUploadProgress').style.display = 'none';
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.textContent = '📤 立即发送';
