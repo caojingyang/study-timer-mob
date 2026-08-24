@@ -2318,6 +2318,7 @@
                                 <option value="sendFile">发送文件</option>
                                 <option value="viewMemory">回忆录查看</option>
                                 <option value="editMemory">回忆录编辑</option>
+                                <option value="seatSystem">排座系统</option>
                                 <option value="isAdmin">管理员</option>
                             </select>
                             <select id="adminPermAction" __gcruniqueid="20">
@@ -2404,6 +2405,7 @@
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermSendFile" checked=""> 发送文件</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermViewMemory" checked="" onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录查看</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermEditMemory" onchange="if(this.checked) document.getElementById('singlePermViewMemory').checked=true;"> 回忆录编辑</label>
+                                <label class="admin-perm-check"><input type="checkbox" id="singlePermSeatSystem"> 排座系统</label>
                                 <label class="admin-perm-check"><input type="checkbox" id="singlePermAdmin"> 管理员</label>
                             </div>
                         </div>
@@ -2580,6 +2582,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                     <label class="admin-perm-check"><input type="checkbox" id="editPermSendFile"> 发送文件</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermViewMemory"> 回忆录查看</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermEditMemory" onchange="if(this.checked) document.getElementById('editPermViewMemory').checked=true;"> 回忆录编辑</label>
+                    <label class="admin-perm-check"><input type="checkbox" id="editPermSeatSystem"> 排座系统</label>
                     <label class="admin-perm-check"><input type="checkbox" id="editPermAdmin"> 管理员</label>
                 </div>
             </div>
@@ -2602,6 +2605,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
         <button class="menu-btn btn-schedule" id="menuBtnSchedule" onclick="showView('scheduleView')">📋 查看晚自习作业时间表</button>
         <button class="menu-btn btn-notify" id="menuBtnNotify" onclick="showView('notifyView')">📤 发送通知至晚自习系统</button>
         <button class="menu-btn" id="menuBtnSendFile" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;" onclick="showView('sendFileView')">📥 发送文件至班级大屏</button>
+        <button class="menu-btn" id="menuBtnSeat" style="display:none;background:linear-gradient(135deg,#0d9488 0%,#0891b2 100%);color:#fff;" onclick="goToSeat()">🪑 班级智能排座系统</button>
         <button class="menu-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;" onclick="goToHistory()">🌌 情怀：我们一起走过的日子</button>
         <button class="menu-btn" id="menuBtnAdmin" style="display:none;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.4);" onclick="enterAdmin()">⚙️ 进入后台管理</button>
     </div>
@@ -2953,7 +2957,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
          *   password_hash TEXT NOT NULL,
          *   role TEXT NOT NULL DEFAULT 'teacher' CHECK (role IN ('student', 'teacher')),
          *   subject TEXT,
-         *   permissions JSONB NOT NULL DEFAULT '{"viewSchedule":true,"modifySchedule":false,"sendNotification":false,"sendFile":false}',
+         *   permissions JSONB NOT NULL DEFAULT '{"viewSchedule":true,"modifySchedule":false,"sendNotification":false,"sendFile":false,"seatSystem":false}',
          *   is_admin BOOLEAN NOT NULL DEFAULT false,
          *   banned_ips TEXT[] DEFAULT '{}',
          *   created_at TIMESTAMPTZ DEFAULT now()
@@ -3063,6 +3067,40 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
          * -- 教师默认开启 sendFile 权限
          * UPDATE users SET permissions = permissions || '{"sendFile": true}'::jsonb
          *   WHERE role = 'teacher' AND permissions->>'sendFile' IS NULL;
+         *
+         * -- 10. 排座系统 - 座位模板表
+         * CREATE TABLE IF NOT EXISTS seat_templates (
+         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         *   name TEXT NOT NULL,
+         *   layout JSONB NOT NULL DEFAULT '{}',
+         *   created_by TEXT NOT NULL DEFAULT '',
+         *   created_at TIMESTAMPTZ DEFAULT now()
+         * );
+         *
+         * -- 11. 排座系统 - 座位表（当前和历史）
+         * CREATE TABLE IF NOT EXISTS seat_tables (
+         *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         *   name TEXT NOT NULL DEFAULT '',
+         *   template_layout JSONB NOT NULL DEFAULT '{}',
+         *   arrangement JSONB NOT NULL DEFAULT '{}',
+         *   student_list JSONB NOT NULL DEFAULT '[]',
+         *   star_students JSONB NOT NULL DEFAULT '[]',
+         *   progress_students JSONB NOT NULL DEFAULT '[]',
+         *   created_by TEXT NOT NULL DEFAULT '',
+         *   created_at TIMESTAMPTZ DEFAULT now(),
+         *   updated_at TIMESTAMPTZ DEFAULT now(),
+         *   is_completed BOOLEAN NOT NULL DEFAULT false
+         * );
+         * ALTER TABLE seat_templates ENABLE ROW LEVEL SECURITY;
+         * ALTER TABLE seat_tables ENABLE ROW LEVEL SECURITY;
+         * CREATE POLICY "allow_all_seat_templates" ON seat_templates FOR ALL USING (true) WITH CHECK (true);
+         * CREATE POLICY "allow_all_seat_tables" ON seat_tables FOR ALL USING (true) WITH CHECK (true);
+         *
+         * -- 12. 为现有用户添加 seatSystem 权限（默认 false，仅管理员 true）
+         * UPDATE users SET permissions = permissions || '{"seatSystem": false}'::jsonb
+         *   WHERE NOT (permissions ? 'seatSystem');
+         * UPDATE users SET permissions = permissions || '{"seatSystem": true}'::jsonb
+         *   WHERE is_admin = true OR permissions->>'isAdmin' = 'true';
          */
 
         // ========== Supabase 配置（通过 REST API 直连，无需加载 SDK） ==========
@@ -3919,12 +3957,12 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 if (existingNames.has(uname)) { errors.push('第' + (i+1) + '行用户名已存在'); continue; }
                 var permissions = {};
                 if (role === '教师') {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false, seatSystem: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false, seatSystem: false };
                 }
                 var isAdmin = (uname.toLowerCase() === 'starbusk');
-                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; }
+                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; permissions.seatSystem = true; }
                 pendingUsers.push({
                     username: uname,
                     realname: realname,
@@ -4015,6 +4053,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             if (perms.sendFile) tags.push('<span class="admin-user-tag perm">发文件</span>');
             if (perms.viewMemory) tags.push('<span class="admin-user-tag perm">回忆录查看</span>');
             if (perms.editMemory) tags.push('<span class="admin-user-tag perm">回忆录编辑</span>');
+            if (perms.seatSystem) tags.push('<span class="admin-user-tag perm">排座系统</span>');
             if (perms.isAdmin) tags.push('<span class="admin-user-tag admin-tag">管理</span>');
             return tags.join('') || '<span style="color:#94a3b8;">无</span>';
         }
@@ -4056,6 +4095,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 if (perms.sendFile) html += '<span class="admin-user-tag perm">发文件</span>';
                 if (perms.viewMemory) html += '<span class="admin-user-tag perm">回忆录查看</span>';
                 if (perms.editMemory) html += '<span class="admin-user-tag perm">回忆录编辑</span>';
+                if (perms.seatSystem) html += '<span class="admin-user-tag perm">排座系统</span>';
                 if (perms.isAdmin) html += '<span class="admin-user-tag admin-tag">管理</span>';
 
                 html += '</div>' +
@@ -4202,7 +4242,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 sendNotification: document.getElementById('singlePermSend').checked,
                 sendFile: document.getElementById('singlePermSendFile').checked,
                 viewMemory: document.getElementById('singlePermViewMemory').checked,
-                editMemory: document.getElementById('singlePermEditMemory').checked
+                editMemory: document.getElementById('singlePermEditMemory').checked,
+                seatSystem: document.getElementById('singlePermSeatSystem').checked
             };
             // 授予编辑权限时自动授予查看权限
             if (permissions.editMemory) permissions.viewMemory = true;
@@ -4256,6 +4297,7 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             document.getElementById('editPermSendFile').checked = !!perms.sendFile;
             document.getElementById('editPermViewMemory').checked = !!perms.viewMemory;
             document.getElementById('editPermEditMemory').checked = !!perms.editMemory;
+            document.getElementById('editPermSeatSystem').checked = !!perms.seatSystem;
             document.getElementById('editPermAdmin').checked = !!(perms.isAdmin || u.is_admin);
             document.getElementById('editModalMsg').textContent = '';
 
@@ -4435,7 +4477,8 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 sendNotification: document.getElementById('editPermSend').checked,
                 sendFile: document.getElementById('editPermSendFile').checked,
                 viewMemory: document.getElementById('editPermViewMemory').checked,
-                editMemory: document.getElementById('editPermEditMemory').checked
+                editMemory: document.getElementById('editPermEditMemory').checked,
+                seatSystem: document.getElementById('editPermSeatSystem').checked
             };
             // 授予编辑权限时自动授予查看权限
             if (permissions.editMemory) permissions.viewMemory = true;
@@ -5147,6 +5190,21 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
             window.location.href = 'history.html';
         }
 
+        // 进入排座系统页面
+        async function goToSeat() {
+            if (!currentUser) {
+                alert('请先登录');
+                showAuth('login');
+                return;
+            }
+            var perms = currentUser.permissions || {};
+            if (perms.seatSystem !== true && !perms.isAdmin) {
+                alert('您没有排座系统权限');
+                return;
+            }
+            window.location.href = 'seat.html';
+        }
+
         // 检查 IP 封禁
         async function checkIPBan() {
             var banList = await DB.getBannedIPs();
@@ -5799,13 +5857,13 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 // 根据角色设置权限
                 var permissions;
                 if (regRole === 'student') {
-                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: false, sendNotification: false, sendFile: false, viewMemory: true, editMemory: false, seatSystem: false };
                 } else {
-                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false };
+                    permissions = { viewSchedule: true, modifySchedule: true, sendNotification: true, sendFile: true, viewMemory: true, editMemory: false, seatSystem: false };
                 }
 
                 var isAdmin = (username.toLowerCase() === 'starbusk');
-                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; }
+                if (isAdmin) { permissions.isAdmin = true; permissions.editMemory = true; permissions.seatSystem = true; }
 
                 await DB.createUser({
                     username: username,
@@ -6244,6 +6302,14 @@ lisi,123456,李四,lisi@example.com,13900139000,学生," __gcruniqueid="28"></te
                 var isAdmin = perms.isAdmin || currentUser.user_metadata.is_admin ||
                               (un === 'starbusk') || (un === 'admin');
                 menuAdmin.style.display = isAdmin ? '' : 'none';
+            }
+            // 排座系统按钮：需要 seatSystem 权限或管理员
+            var menuSeat = document.getElementById('menuBtnSeat');
+            if (menuSeat) {
+                var un2 = currentUser.username.toLowerCase();
+                var isAdmin2 = perms.isAdmin || currentUser.user_metadata.is_admin ||
+                               (un2 === 'starbusk') || (un2 === 'admin');
+                menuSeat.style.display = (perms.seatSystem || isAdmin2) ? '' : 'none';
             }
         }
 
