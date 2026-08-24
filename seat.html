@@ -1,0 +1,2975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高二（13）班智能排座系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.2/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="font-awesome.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --boy-bg: #dbeafe;
+            --boy-text: #1e40af;
+            --boy-border: #93c5fd;
+            --girl-bg: #fce7f3;
+            --girl-text: #db2777;
+            --girl-border: #f9a8d4;
+            --star-border: #f59e0b;
+            --star-bg: #fef3c7;
+            --progress-border: #22c55e;
+            --progress-bg: #dcfce7;
+            --seat-border: #94a3b8;
+            --seat-empty-bg: #f8fafc;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #fff0f6 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #1e293b;
+        }
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        /* Mobile banner */
+        .mobile-banner {
+            background: linear-gradient(90deg, #f59e0b, #f97316);
+            color: white;
+            padding: 10px 24px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        /* Main layout */
+        .main-container {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 60px);
+        }
+        .left-panel {
+            flex: 0 0 65%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            padding: 20px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-panel {
+            flex: 0 0 35%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .right-header {
+            padding: 16px 16px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .right-header h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-box:focus { border-color: var(--primary-light); }
+        .student-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+        .student-list::-webkit-scrollbar { width: 6px; }
+        .student-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .student-list::-webkit-scrollbar-track { background: transparent; }
+        .student-card {
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: grab;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+        .student-card:hover { transform: translateX(4px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .student-card:active { cursor: grabbing; }
+        .student-card.boy {
+            background: var(--boy-bg);
+            color: var(--boy-text);
+            border-color: var(--boy-border);
+        }
+        .student-card.girl {
+            background: var(--girl-bg);
+            color: var(--girl-text);
+            border-color: var(--girl-border);
+        }
+        .student-card.star {
+            border: 2px dashed var(--star-border);
+            background: var(--star-bg);
+        }
+        .student-card.progress {
+            border: 2px dashed var(--progress-border);
+            background: var(--progress-bg);
+        }
+        .student-card.seated {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+        .student-card.dragging { opacity: 0.5; }
+        .card-number {
+            background: var(--progress-border);
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .right-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #475569;
+        }
+        .btn-secondary:hover { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 2px 8px rgba(34,197,94,0.3);
+        }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+        .btn-lg { padding: 14px 28px; font-size: 16px; border-radius: 12px; }
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #94a3b8;
+        }
+        .empty-state-icon { font-size: 64px; }
+        .empty-state-text { font-size: 18px; font-weight: 500; }
+        .empty-state-buttons { display: flex; gap: 16px; }
+        /* Seating area */
+        .seating-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 0;
+        }
+        .seat-groups-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .seat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .seat-row {
+            display: flex;
+            gap: 8px;
+        }
+        .seat {
+            border: 2px dashed var(--seat-border);
+            border-radius: 10px;
+            min-height: 52px;
+            min-width: 78px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--seat-empty-bg);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px;
+            text-align: center;
+            position: relative;
+        }
+        .seat:hover { border-color: var(--primary-light); background: var(--primary-bg); }
+        .seat.drag-over {
+            background: #c7d2fe;
+            border-color: var(--primary);
+            border-style: solid;
+            transform: scale(1.05);
+        }
+        .seat.occupied {
+            border-style: solid;
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            cursor: grab;
+        }
+        .seat.occupied.boy { background: var(--boy-bg); border-color: var(--boy-border); color: var(--boy-text); }
+        .seat.occupied.girl { background: var(--girl-bg); border-color: var(--girl-border); color: var(--girl-text); }
+        .seat.occupied.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
+        .seat.occupied.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
+        .aisle-spacer {
+            min-width: 24px;
+        }
+        .podium-spacer-row {
+            height: 16px;
+        }
+        .podium-row {
+            display: flex;
+            gap: 12px;
+        }
+        .podium {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            box-shadow: 0 4px 16px rgba(79,70,229,0.2);
+        }
+        /* Drag overlay */
+        .drag-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 0 0 16px 16px;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+        }
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95) translateY(10px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .modal-card.large { width: 900px; }
+        .modal-card.medium { width: 600px; }
+        .modal-card.small { width: 400px; }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .modal-title { font-size: 20px; font-weight: 700; color: #1e293b; }
+        .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #64748b;
+        }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { margin-bottom: 16px; }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        /* Template cards */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .template-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .template-card:hover { border-color: var(--primary-light); box-shadow: 0 4px 16px rgba(99,102,241,0.15); transform: translateY(-2px); }
+        .template-card.selected { border-color: var(--primary); background: var(--primary-bg); }
+        .template-card-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .template-card-info { font-size: 13px; color: #64748b; }
+        /* History cards */
+        .history-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+        .history-card:hover { border-color: var(--primary-light); box-shadow: 0 4px 16px rgba(99,102,241,0.1); }
+        .history-card.incomplete { border-color: var(--star-border); background: #fffbeb; }
+        .history-card-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .history-card-meta { font-size: 13px; color: #64748b; margin-bottom: 10px; }
+        .history-card-actions { display: flex; gap: 8px; }
+        /* Preview table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .preview-table th, .preview-table td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            text-align: center;
+        }
+        .preview-table th { background: #f8fafc; font-weight: 600; }
+        .preview-table th.highlighted { background: #fef3c7; border: 2px solid #f59e0b; }
+        .preview-table td.highlighted { background: #fffbeb; }
+        /* Star selection grid */
+        .star-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+        .star-card {
+            padding: 8px 4px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .star-card.boy { background: var(--boy-bg); color: var(--boy-text); }
+        .star-card.girl { background: var(--girl-bg); color: var(--girl-text); }
+        .star-card.is-star { border: 2px dashed var(--star-border); background: var(--star-bg); cursor: not-allowed; }
+        .star-card.selected { border: 2px solid var(--progress-border); background: var(--progress-bg); }
+        .star-card .star-badge {
+            position: absolute;
+            top: -6px; right: -6px;
+            background: var(--progress-border);
+            color: white;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* No permission */
+        .no-permission {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 9999;
+        }
+        .no-permission i { font-size: 64px; color: #ef4444; }
+        .no-permission h2 { font-size: 28px; margin: 0; }
+        .no-permission p { font-size: 16px; color: #94a3b8; }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        .toast.warning { background: #d97706; }
+        /* Selection indicator */
+        .selection-indicator {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 12px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #92400e;
+        }
+        .selection-indicator.active { display: flex; }
+        .selection-indicator .next-name {
+            background: white;
+            padding: 4px 12px;
+            border-radius: 8px;
+            color: #1e40af;
+            font-weight: 700;
+        }
+        /* Seating toolbar */
+        .seating-toolbar {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .seating-info {
+            text-align: center;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        /* Input */
+        .input-field {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus { border-color: var(--primary-light); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+        /* File upload */
+        .file-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-upload-area:hover { border-color: var(--primary-light); background: var(--primary-bg); }
+        .file-upload-area i { font-size: 40px; color: #94a3b8; margin-bottom: 8px; }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; height: auto; }
+            .left-panel, .right-panel { flex: 1; width: 100%; }
+            .right-panel { max-height: 400px; }
+            .header-title { font-size: 16px; }
+            .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
+            .star-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        /* Group builder */
+        .group-builder { display: flex; flex-direction: column; gap: 8px; }
+        .group-builder-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .group-builder-item input {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-star { background: #fef3c7; color: #92400e; }
+        .badge-progress { background: #dcfce7; color: #166534; }
+        .badge-boy { background: var(--boy-bg); color: var(--boy-text); }
+        .badge-girl { background: var(--girl-bg); color: var(--girl-text); }
+    </style>
+</head>
+<body>
+
+<!-- No Permission Screen -->
+<div class="no-permission" id="noPermissionScreen">
+    <i class="fa fa-lock"></i>
+    <h2>无权限访问排座系统</h2>
+    <p>您没有排座系统的访问权限，请联系管理员。</p>
+    <a href="./" class="back-btn" style="margin-top:10px;">返回</a>
+</div>
+
+<!-- Main App (hidden until permission check passes) -->
+<div id="appContent" style="display:none;">
+
+<!-- Header -->
+<div class="app-header">
+    <a href="./" class="back-btn"><i class="fa fa-arrow-left"></i> 返回移动端</a>
+    <div class="header-title">
+        <span style="font-size:26px;">🪑</span>
+        <span>高二（13）班智能排座系统</span>
+    </div>
+    <div style="width:120px;"></div>
+</div>
+
+<!-- Mobile Banner -->
+<div class="mobile-banner" id="mobileBanner">
+    <i class="fa fa-desktop"></i> 电脑上打开此网页效果更佳
+</div>
+
+<!-- Main Container -->
+<div class="main-container">
+    <!-- Left Panel: Seating Area -->
+    <div class="left-panel" id="leftPanel">
+        <!-- Content rendered dynamically -->
+    </div>
+
+    <!-- Right Panel: Student List -->
+    <div class="right-panel" id="rightPanel">
+        <div class="right-header">
+            <h3><i class="fa fa-users"></i> 学生名单 <span id="studentCount" style="font-size:13px;color:#94a3b8;font-weight:400;"></span></h3>
+            <input type="text" class="search-box" id="searchBox" placeholder="搜索姓名 / 拼音 / 首字母...">
+        </div>
+        <div class="student-list" id="studentList">
+            <!-- Student cards rendered here -->
+        </div>
+        <div class="drag-overlay" id="dragOverlay">
+            <div>
+                <i class="fa fa-arrows" style="font-size:32px;margin-bottom:8px;display:block;"></i>
+                移动到此处可重新安排该同学座位
+            </div>
+        </div>
+        <div class="right-footer">
+            <button class="btn btn-warning" style="width:100%;" id="starSelectionBtn" onclick="startStarSelection()">
+                <i class="fa fa-trophy"></i> 学习之星、进步之星选座
+            </button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Modal Container -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+        <!-- Modal content rendered here -->
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== CONFIG ====================
+const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
+
+const DEFAULT_STUDENTS = [
+  {"name":"毕子昂","gender":"男"},{"name":"蔡峻熙","gender":"男"},{"name":"曹健","gender":"男"},
+  {"name":"曹敬杨","gender":"男"},{"name":"曹星瀚","gender":"男"},{"name":"陈骏昕","gender":"男"},
+  {"name":"崔贤俊","gender":"男"},{"name":"桂博岳","gender":"男"},{"name":"郭奕晨","gender":"男"},
+  {"name":"洪高远","gender":"男"},{"name":"靖永诚","gender":"男"},{"name":"黎孟翔","gender":"男"},
+  {"name":"李天诚","gender":"男"},{"name":"刘明磊","gender":"男"},{"name":"茆钰鸿","gender":"男"},
+  {"name":"秦家浩","gender":"男"},{"name":"盛泽宇","gender":"男"},{"name":"唐一晨","gender":"男"},
+  {"name":"陶杨","gender":"男"},{"name":"王明锐","gender":"男"},{"name":"王泰格","gender":"男"},
+  {"name":"王逸谦","gender":"男"},{"name":"王宇皓","gender":"男"},{"name":"王梓帆","gender":"男"},
+  {"name":"文靖涵","gender":"男"},{"name":"夏浩岩","gender":"男"},{"name":"徐赵暄","gender":"男"},
+  {"name":"许健翔","gender":"男"},{"name":"许元非","gender":"男"},{"name":"许志强","gender":"男"},
+  {"name":"杨添翼","gender":"男"},{"name":"尹吴子恒","gender":"男"},{"name":"张瑞杨","gender":"男"},
+  {"name":"张伟杰","gender":"男"},{"name":"张子豪","gender":"男"},{"name":"张梓宸","gender":"男"},
+  {"name":"鲍文萱","gender":"女"},{"name":"鲍谷歌","gender":"女"},{"name":"蔡欣瑜","gender":"女"},
+  {"name":"邓羽宸","gender":"女"},{"name":"黄梦怡","gender":"女"},{"name":"刘思颖","gender":"女"},
+  {"name":"刘以柯","gender":"女"},{"name":"刘紫涵","gender":"女"},{"name":"罗梦雪","gender":"女"},
+  {"name":"潘紫萱","gender":"女"},{"name":"强丽敏","gender":"女"},{"name":"秦卿","gender":"女"},
+  {"name":"宋欣雨","gender":"女"},{"name":"孙沁萱","gender":"女"},{"name":"陶乐云","gender":"女"},
+  {"name":"陶绮","gender":"女"},{"name":"汪学萍","gender":"女"},{"name":"王欣悦","gender":"女"},
+  {"name":"王雨涵","gender":"女"},{"name":"王雨桐","gender":"女"},{"name":"吴紫昕","gender":"女"},
+  {"name":"谢然","gender":"女"},{"name":"许亦优","gender":"女"},{"name":"杨霏菲","gender":"女"},
+  {"name":"赵子琳","gender":"女"},{"name":"宗钰晨","gender":"女"}
+];
+
+const DEFAULT_TEMPLATE = {
+    name: "默认模板",
+    groups: [
+        {"cols": 2, "rows": 7},
+        {"cols": 0, "rows": 0, "aisle": true},
+        {"cols": 2, "rows": 7},
+        {"cols": 0, "rows": 0, "aisle": true},
+        {"cols": 1, "rows": 6},
+        {"cols": 0, "rows": 0, "aisle": true},
+        {"cols": 2, "rows": 7},
+        {"cols": 0, "rows": 0, "aisle": true},
+        {"cols": 2, "rows": 7}
+    ],
+    podium: {"startGroup": 1, "endGroup": 3}
+};
+
+const MASTER_PASSWORD = '@cjyC8Y26@';
+
+// ==================== STATE ====================
+const state = {
+    currentUser: null,
+    students: [],
+    originalStudents: [],
+    starStudents: [],     // [{name, rank}]
+    progressStudents: [], // [{name, order}]
+    skippedStudents: [],  // [{name, gender}]
+    currentTemplate: null,
+    templates: [],
+    arrangement: {},       // seatId -> {name, gender}
+    seatingTableName: '',
+    seatTableId: null,
+    isCompleted: false,
+    phase: 'template-selection', // 'template-selection' | 'seat-table-selection' | 'arranging'
+    selectionOrder: [],    // ordered names for sequential seating
+    currentSelectionIndex: 0,
+    orderSelectionActive: false,
+    searchKeyword: '',
+    excelData: null,      // parsed Excel AOA
+    excelHeaders: null,
+    detectedRankCol: -1,
+    nameColIndex: -1,
+    rankColIndex: -1,
+    excelHeaderRowIdx: 0,
+    studentRanks: {},      // name -> rank
+    historySeatTables: [],
+};
+
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+    // Check permission
+    if (!checkPermission()) {
+        document.getElementById('noPermissionScreen').style.display = 'flex';
+        return;
+    }
+    document.getElementById('appContent').style.display = 'block';
+
+    // Mobile detection
+    detectMobile();
+
+    // Initialize students
+    state.students = [...DEFAULT_STUDENTS];
+    state.originalStudents = [...DEFAULT_STUDENTS];
+    renderStudentList();
+
+    // Load templates from DB
+    await loadTemplates();
+
+    // Add default template if no templates loaded
+    if (state.templates.length === 0) {
+        state.templates.push({ ...DEFAULT_TEMPLATE, id: 'default', isDefault: true });
+    }
+
+    // Render left panel
+    renderLeftPanel();
+
+    // Setup drag overlay for student list
+    setupStudentListDrag();
+}
+
+// ==================== PERMISSION CHECK ====================
+function checkPermission() {
+    try {
+        const userStr = localStorage.getItem('currentUser');
+        if (!userStr) return false;
+        const user = JSON.parse(userStr);
+        state.currentUser = user;
+        if (user.isAdmin) return true;
+        if (user.permissions && user.permissions.seatSystem) return true;
+        return false;
+    } catch(e) {
+        return false;
+    }
+}
+
+// ==================== MOBILE DETECTION ====================
+function detectMobile() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || (window.screen.width < 768);
+    if (isMobile) {
+        const banner = document.getElementById('mobileBanner');
+        banner.style.display = 'block';
+        setTimeout(() => { banner.style.display = 'none'; }, 5000);
+    }
+}
+
+// ==================== STUDENT LIST ====================
+function renderStudentList() {
+    const container = document.getElementById('studentList');
+    const countEl = document.getElementById('studentCount');
+    
+    let displayStudents = state.students;
+    
+    // Filter by search
+    if (state.searchKeyword) {
+        displayStudents = state.students.filter(s => matchStudent(s.name, state.searchKeyword));
+    }
+    
+    // Sort: star students first, then progress, then rest
+    displayStudents = sortStudentsForDisplay(displayStudents);
+    
+    container.innerHTML = '';
+    countEl.textContent = `(${displayStudents.length}/${state.students.length}人)`;
+    
+    if (displayStudents.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">未找到匹配的学生</div>';
+        return;
+    }
+    
+    displayStudents.forEach(student => {
+        const card = createStudentCard(student);
+        container.appendChild(card);
+    });
+}
+
+function sortStudentsForDisplay(students) {
+    const starNames = state.starStudents.map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    const skippedNames = state.skippedStudents.map(s => s.name);
+    const seatedNames = Object.values(state.arrangement).map(s => s.name);
+    
+    const stars = [];
+    const progress = [];
+    const skipped = [];
+    const rest = [];
+    
+    for (const student of students) {
+        if (starNames.includes(student.name)) {
+            const star = state.starStudents.find(s => s.name === student.name);
+            stars.push({ ...student, starRank: star ? star.rank : 999 });
+        } else if (progressNames.includes(student.name)) {
+            const prog = state.progressStudents.find(s => s.name === student.name);
+            progress.push({ ...student, progressOrder: prog ? prog.order : 999 });
+        } else if (skippedNames.includes(student.name)) {
+            skipped.push(student);
+        } else {
+            rest.push(student);
+        }
+    }
+    
+    stars.sort((a, b) => a.starRank - b.starRank);
+    progress.sort((a, b) => a.progressOrder - b.progressOrder);
+    
+    return [...stars, ...progress, ...skipped, ...rest];
+}
+
+function createStudentCard(student) {
+    const card = document.createElement('div');
+    card.className = `student-card ${student.gender === '男' ? 'boy' : 'girl'}`;
+    card.draggable = true;
+    card.dataset.name = student.name;
+    card.dataset.gender = student.gender;
+    
+    const starNames = state.starStudents.map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    const skippedNames = state.skippedStudents.map(s => s.name);
+    
+    if (starNames.includes(student.name)) {
+        card.classList.add('star');
+    } else if (progressNames.includes(student.name)) {
+        card.classList.add('progress');
+        const prog = state.progressStudents.find(s => s.name === student.name);
+        if (prog) {
+            const badge = document.createElement('span');
+            badge.className = 'card-number';
+            badge.textContent = prog.order;
+            card.appendChild(badge);
+        }
+    }
+    
+    // Check if seated
+    const seatedNames = Object.values(state.arrangement).map(s => s.name);
+    if (seatedNames.includes(student.name)) {
+        card.classList.add('seated');
+    }
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = student.name;
+    card.insertBefore(nameSpan, card.firstChild);
+    
+    // Drag start
+    card.addEventListener('dragstart', (e) => {
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+            type: 'student',
+            name: student.name,
+            gender: student.gender
+        }));
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+    });
+    
+    return card;
+}
+
+// ==================== PINYIN SEARCH ====================
+function matchStudent(name, keyword) {
+    if (!keyword) return true;
+    const kw = keyword.trim().toLowerCase();
+    if (!kw) return true;
+    
+    // Direct match
+    if (name.includes(keyword.trim())) return true;
+    
+    // Pinyin match
+    try {
+        const pinyinLib = window.pinyinPro;
+        if (pinyinLib && pinyinLib.match) {
+            const result = pinyinLib.match(name, kw);
+            if (result && result.length > 0) return true;
+        }
+        if (pinyinLib && pinyinLib.pinyin) {
+            const fullPinyin = pinyinLib.pinyin(name, { toneType: 'none' }).toLowerCase().replace(/\s/g, '');
+            if (fullPinyin.includes(kw)) return true;
+            const initials = pinyinLib.pinyin(name, { pattern: 'first', toneType: 'none' }).toLowerCase().replace(/\s/g, '');
+            if (initials.includes(kw)) return true;
+        }
+    } catch(e) {
+        console.warn('Pinyin match error:', e);
+    }
+    
+    return false;
+}
+
+// Search box listener
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'searchBox') {
+        state.searchKeyword = e.target.value;
+        renderStudentList();
+    }
+});
+
+// ==================== LEFT PANEL RENDERING ====================
+function renderLeftPanel() {
+    const panel = document.getElementById('leftPanel');
+    
+    if (state.phase === 'template-selection') {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🪑</div>
+                <div class="empty-state-text">请选择或上传座位模板</div>
+                <div class="empty-state-buttons">
+                    <button class="btn btn-primary btn-lg" onclick="showTemplateLibrary()">
+                        <i class="fa fa-th-large"></i> 从已有模版中选择
+                    </button>
+                    <button class="btn btn-secondary btn-lg" onclick="showUploadTemplate()">
+                        <i class="fa fa-upload"></i> 上传新模版
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (state.phase === 'seat-table-selection') {
+        renderSeatTableSelection(panel);
+    } else if (state.phase === 'arranging') {
+        renderArranging(panel);
+    }
+}
+
+function renderSeatTableSelection(panel) {
+    const templateName = state.currentTemplate ? state.currentTemplate.name : '';
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:18px;color:#334155;">
+                <i class="fa fa-check-circle" style="color:#22c55e;"></i> 已选择模板：${templateName}
+            </h3>
+            <button class="btn btn-secondary btn-sm" onclick="changeTemplate()">
+                <i class="fa fa-exchange"></i> 更换模板
+            </button>
+        </div>
+        <div style="margin-bottom:16px;">
+            <div class="seating-info">模板预览：</div>
+            <div class="seating-container" id="templatePreview"></div>
+        </div>
+        <div class="empty-state" style="padding:40px 0;">
+            <div class="empty-state-text">请选择操作</div>
+            <div class="empty-state-buttons">
+                <button class="btn btn-primary btn-lg" onclick="startNewSeatTable()">
+                    <i class="fa fa-plus"></i> 新建座位表
+                </button>
+                <button class="btn btn-secondary btn-lg" onclick="showHistorySeatTables()">
+                    <i class="fa fa-history"></i> 查看历史座位表
+                </button>
+            </div>
+        </div>
+    `;
+    // Render template preview (mini)
+    renderSeatsPreview(document.getElementById('templatePreview'));
+}
+
+function renderArranging(panel) {
+    const seatedCount = Object.keys(state.arrangement).length;
+    const totalSeats = countTotalSeats(state.currentTemplate);
+    
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div>
+                <h3 style="margin:0;font-size:18px;color:#334155;display:flex;align-items:center;gap:8px;">
+                    <i class="fa fa-table"></i> ${state.seatingTableName}
+                </h3>
+                <div class="seating-info" style="margin-top:4px;">
+                    已排座：${seatedCount}/${totalSeats} 
+                    ${state.currentTemplate ? '· 模板：' + state.currentTemplate.name : ''}
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="changeTemplate()">
+                    <i class="fa fa-exchange"></i> 更换模板
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="saveSeatTable()">
+                    <i class="fa fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+        <div class="selection-indicator" id="selectionIndicator">
+            <i class="fa fa-info-circle"></i>
+            <span>当前选座顺序 — 下一位：</span>
+            <span class="next-name" id="nextStudentName"></span>
+        </div>
+        <div style="flex:1;overflow:auto;">
+            <div class="seating-container" id="seatingContainer"></div>
+        </div>
+        <div class="seating-toolbar">
+            <button class="btn btn-warning" id="skipBtn" onclick="showSkipPassword()" ${!state.orderSelectionActive ? 'style="display:none;"' : ''}>
+                <i class="fa fa-forward"></i> 跳过此人
+            </button>
+            <button class="btn btn-secondary" id="modeToggleBtn" onclick="toggleSelectionMode()"></button>
+            <button class="btn btn-success btn-lg" onclick="exportToExcel()">
+                <i class="fa fa-file-excel-o"></i> 导出座位表
+            </button>
+        </div>
+    `;
+    
+    renderSeats();
+    updateSelectionIndicator();
+    updateModeToggleBtn();
+}
+
+function renderSeatsPreview(container) {
+    if (!state.currentTemplate) return;
+    const template = state.currentTemplate;
+    const seatGroups = template.groups.filter(g => !g.aisle);
+    
+    // Build groups row
+    const groupsRow = document.createElement('div');
+    groupsRow.className = 'seat-groups-row';
+    
+    let seatGroupIdx = 0;
+    for (const g of template.groups) {
+        if (g.aisle) {
+            const spacer = document.createElement('div');
+            spacer.className = 'aisle-spacer';
+            spacer.style.minWidth = '16px';
+            groupsRow.appendChild(spacer);
+        } else {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'seat-group';
+            groupDiv.style.flex = g.cols;
+            for (let r = 0; r < g.rows; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                for (let c = 0; c < g.cols; c++) {
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    seat.style.minHeight = '28px';
+                    seat.style.minWidth = '40px';
+                    seat.style.fontSize = '10px';
+                    rowDiv.appendChild(seat);
+                }
+                groupDiv.appendChild(rowDiv);
+            }
+            groupsRow.appendChild(groupDiv);
+            seatGroupIdx++;
+        }
+    }
+    container.appendChild(groupsRow);
+    
+    // Podium spacer
+    const podiumSpacer = document.createElement('div');
+    podiumSpacer.style.height = '8px';
+    container.appendChild(podiumSpacer);
+    
+    // Podium
+    renderPodium(container, template, true);
+}
+
+function renderPodium(container, template, mini = false) {
+    const podiumStart = template.podium ? template.podium.startGroup : 0;
+    const podiumEnd = template.podium ? template.podium.endGroup : 0;
+    
+    // Calculate flex values for podium row
+    const seatGroups = template.groups.filter(g => !g.aisle);
+    let beforeFlex = 0;
+    let podiumFlex = 0;
+    let afterFlex = 0;
+    
+    let colCount = 0;
+    let seatGroupIdx = 0;
+    for (const g of template.groups) {
+        if (g.aisle) {
+            if (seatGroupIdx > podiumStart && seatGroupIdx <= podiumEnd) {
+                podiumFlex += 1;
+            } else if (seatGroupIdx <= podiumStart) {
+                beforeFlex += 1;
+            } else {
+                afterFlex += 1;
+            }
+        } else {
+            if (seatGroupIdx >= podiumStart && seatGroupIdx <= podiumEnd) {
+                podiumFlex += g.cols;
+            } else if (seatGroupIdx < podiumStart) {
+                beforeFlex += g.cols;
+            } else {
+                afterFlex += g.cols;
+            }
+            seatGroupIdx++;
+        }
+    }
+    
+    const podiumRow = document.createElement('div');
+    podiumRow.className = 'podium-row';
+    podiumRow.style.width = '100%';
+    
+    if (beforeFlex > 0) {
+        const before = document.createElement('div');
+        before.style.flex = beforeFlex;
+        podiumRow.appendChild(before);
+    }
+    
+    const podium = document.createElement('div');
+    podium.className = 'podium';
+    podium.style.flex = podiumFlex;
+    podium.textContent = '讲　台';
+    if (mini) {
+        podium.style.fontSize = '12px';
+        podium.style.padding = '6px';
+        podium.style.letterSpacing = '4px';
+    }
+    podiumRow.appendChild(podium);
+    
+    if (afterFlex > 0) {
+        const after = document.createElement('div');
+        after.style.flex = afterFlex;
+        podiumRow.appendChild(after);
+    }
+    
+    container.appendChild(podiumRow);
+}
+
+function renderSeats() {
+    const container = document.getElementById('seatingContainer');
+    if (!container || !state.currentTemplate) return;
+    
+    container.innerHTML = '';
+    const template = state.currentTemplate;
+    
+    // Build groups row
+    const groupsRow = document.createElement('div');
+    groupsRow.className = 'seat-groups-row';
+    
+    let seatGroupIdx = 0;
+    for (const g of template.groups) {
+        if (g.aisle) {
+            const spacer = document.createElement('div');
+            spacer.className = 'aisle-spacer';
+            groupsRow.appendChild(spacer);
+        } else {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'seat-group';
+            for (let r = 0; r < g.rows; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                for (let c = 0; c < g.cols; c++) {
+                    const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
+                    const seat = createSeat(seatId, seatGroupIdx, r, c);
+                    rowDiv.appendChild(seat);
+                }
+                groupDiv.appendChild(rowDiv);
+            }
+            groupsRow.appendChild(groupDiv);
+            seatGroupIdx++;
+        }
+    }
+    container.appendChild(groupsRow);
+    
+    // Podium spacer
+    const spacer = document.createElement('div');
+    spacer.className = 'podium-spacer-row';
+    container.appendChild(spacer);
+    
+    // Podium
+    renderPodium(container, template, false);
+}
+
+function createSeat(seatId, groupIdx, row, col) {
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.id = seatId;
+    seat.dataset.seatId = seatId;
+    
+    const occupied = state.arrangement[seatId];
+    if (occupied) {
+        seat.classList.add('occupied');
+        seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
+        
+        const starNames = state.starStudents.map(s => s.name);
+        const progressNames = state.progressStudents.map(s => s.name);
+        if (starNames.includes(occupied.name)) seat.classList.add('star');
+        if (progressNames.includes(occupied.name)) seat.classList.add('progress');
+        
+        seat.textContent = occupied.name;
+        seat.draggable = true;
+        seat.dataset.studentName = occupied.name;
+        seat.dataset.gender = occupied.gender;
+        
+        // Drag occupied seat
+        seat.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'move',
+                fromSeat: seatId,
+                name: occupied.name,
+                gender: occupied.gender
+            }));
+            e.dataTransfer.effectAllowed = 'move';
+            seat.style.opacity = '0.5';
+        });
+        seat.addEventListener('dragend', () => {
+            seat.style.opacity = '1';
+        });
+    } else {
+        seat.textContent = '';
+    }
+    
+    // Drop zone
+    seat.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        seat.classList.add('drag-over');
+    });
+    seat.addEventListener('dragleave', () => {
+        seat.classList.remove('drag-over');
+    });
+    seat.addEventListener('drop', (e) => {
+        e.preventDefault();
+        seat.classList.remove('drag-over');
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        handleDrop(seatId, data);
+    });
+    
+    return seat;
+}
+
+function handleDrop(seatId, data) {
+    if (data.type === 'student') {
+        // Check order if active
+        if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
+            const expectedName = state.selectionOrder[state.currentSelectionIndex];
+            if (data.name !== expectedName) {
+                showToast(`请按照右侧名单顺序选择座位，下一位选座的同学：${expectedName}`, 'warning');
+                return;
+            }
+        }
+        
+        // Check if seat is occupied
+        if (state.arrangement[seatId]) {
+            showToast('该座位已有人，请先移走原有学生', 'warning');
+            return;
+        }
+        
+        // Remove from any other seat
+        removeStudentFromAllSeats(data.name);
+        
+        // Place in seat
+        state.arrangement[seatId] = { name: data.name, gender: data.gender };
+        
+        // Advance selection order
+        if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
+            state.currentSelectionIndex++;
+            if (state.currentSelectionIndex >= state.selectionOrder.length) {
+                state.orderSelectionActive = false;
+                showToast('顺序选座完成，现在可以自由排座', 'success');
+            }
+        }
+        
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateModeToggleBtn();
+        debouncedSave();
+        
+    } else if (data.type === 'move') {
+        // Moving from one seat to another
+        if (state.arrangement[seatId]) {
+            // Swap seats
+            const temp = state.arrangement[seatId];
+            state.arrangement[seatId] = { name: data.name, gender: data.gender };
+            state.arrangement[data.fromSeat] = temp;
+        } else {
+            // Move to empty seat
+            delete state.arrangement[data.fromSeat];
+            state.arrangement[seatId] = { name: data.name, gender: data.gender };
+        }
+        renderSeats();
+        renderStudentList();
+        debouncedSave();
+    }
+}
+
+function removeStudentFromAllSeats(name) {
+    for (const seatId in state.arrangement) {
+        if (state.arrangement[seatId].name === name) {
+            delete state.arrangement[seatId];
+        }
+    }
+}
+
+function removeStudentFromSeat(seatId) {
+    if (state.arrangement[seatId]) {
+        delete state.arrangement[seatId];
+        renderSeats();
+        renderStudentList();
+        debouncedSave();
+    }
+}
+
+// ==================== STUDENT LIST DRAG (remove from seat) ====================
+function setupStudentListDrag() {
+    const list = document.getElementById('studentList');
+    const overlay = document.getElementById('dragOverlay');
+    
+    list.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+    
+    list.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        if (e.target === list || list.contains(e.target)) {
+            overlay.style.display = 'flex';
+        }
+    });
+    
+    list.addEventListener('dragleave', (e) => {
+        if (!list.contains(e.relatedTarget)) {
+            overlay.style.display = 'none';
+        }
+    });
+    
+    list.addEventListener('drop', (e) => {
+        e.preventDefault();
+        overlay.style.display = 'none';
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.type === 'move') {
+                removeStudentFromSeat(data.fromSeat);
+                showToast(`已将 ${data.name} 移回名单`, 'success');
+            }
+        } catch(err) {}
+    });
+    
+    list.addEventListener('dragend', () => {
+        overlay.style.display = 'none';
+    });
+}
+
+// ==================== SELECTION ORDER ====================
+function updateSelectionIndicator() {
+    const indicator = document.getElementById('selectionIndicator');
+    const nameEl = document.getElementById('nextStudentName');
+    if (!indicator) return;
+    
+    if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
+        indicator.classList.add('active');
+        nameEl.textContent = state.selectionOrder[state.currentSelectionIndex];
+    } else {
+        indicator.classList.remove('active');
+    }
+}
+
+function updateModeToggleBtn() {
+    const btn = document.getElementById('modeToggleBtn');
+    if (!btn) return;
+    
+    if (state.orderSelectionActive) {
+        const remaining = state.selectionOrder.length - state.currentSelectionIndex;
+        btn.innerHTML = `<i class="fa fa-list-ol"></i> 顺序选座中（剩余${remaining}人）`;
+        btn.className = 'btn btn-secondary';
+        btn.disabled = false;
+    } else {
+        const seatedCount = Object.keys(state.arrangement).length;
+        const totalSeats = countTotalSeats(state.currentTemplate);
+        if (seatedCount >= totalSeats) {
+            btn.innerHTML = '<i class="fa fa-check"></i> 排座完成';
+            btn.className = 'btn btn-success';
+            btn.disabled = true;
+        } else {
+            btn.innerHTML = '<i class="fa fa-arrows"></i> 自由排座模式';
+            btn.className = 'btn btn-secondary';
+            btn.disabled = true;
+        }
+    }
+}
+
+function toggleSelectionMode() {
+    if (state.orderSelectionActive) {
+        // End ordered selection early
+        const remaining = state.selectionOrder.length - state.currentSelectionIndex;
+        if (remaining > 0) {
+            // Add remaining ordered students to skipped list
+            for (let i = state.currentSelectionIndex; i < state.selectionOrder.length; i++) {
+                const name = state.selectionOrder[i];
+                const student = state.students.find(s => s.name === name) || { name, gender: '男' };
+                if (!state.skippedStudents.some(s => s.name === name)) {
+                    state.skippedStudents.push(student);
+                }
+            }
+        }
+        state.orderSelectionActive = false;
+        state.currentSelectionIndex = state.selectionOrder.length;
+        showToast('已结束顺序选座，现在可以自由排座', 'success');
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateModeToggleBtn();
+        debouncedSave();
+    }
+}
+
+// ==================== SKIP PERSON ====================
+function showSkipPassword() {
+    if (!state.orderSelectionActive || state.currentSelectionIndex >= state.selectionOrder.length) {
+        showToast('当前无需跳过', 'info');
+        return;
+    }
+    
+    const currentName = state.selectionOrder[state.currentSelectionIndex];
+    showModal('small', '验证密码', `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${currentName}</strong> 的选座</p>
+            <p style="margin-bottom:12px;font-size:13px;color:#94a3b8;">请输入当前用户密码或主密码以确认跳过</p>
+            <div class="form-group">
+                <input type="password" class="input-field" id="skipPasswordInput" placeholder="请输入密码" autofocus>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-warning" onclick="confirmSkip()">确认跳过</button>
+        </div>
+    `);
+    document.getElementById('skipPasswordInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmSkip();
+    });
+}
+
+function confirmSkip() {
+    const input = document.getElementById('skipPasswordInput');
+    const password = input.value;
+    
+    // Check master password
+    if (password !== MASTER_PASSWORD) {
+        // Try to check user password via API (if available)
+        // For now, only master password is accepted
+        showToast('密码错误，请重新输入', 'error');
+        input.value = '';
+        input.focus();
+        return;
+    }
+    
+    const skippedName = state.selectionOrder[state.currentSelectionIndex];
+    const student = state.students.find(s => s.name === skippedName) || { name: skippedName, gender: '男' };
+    
+    // Add to skipped list
+    state.skippedStudents.push(student);
+    
+    // Advance selection
+    state.currentSelectionIndex++;
+    if (state.currentSelectionIndex >= state.selectionOrder.length) {
+        state.orderSelectionActive = false;
+        showToast(`已跳过 ${skippedName}，顺序选座完成`, 'success');
+    } else {
+        showToast(`已跳过 ${skippedName}，下一位：${state.selectionOrder[state.currentSelectionIndex]}`, 'success');
+    }
+    
+    closeModal();
+    renderStudentList();
+    renderSeats();
+    updateSelectionIndicator();
+    updateModeToggleBtn();
+    debouncedSave();
+}
+
+// ==================== TEMPLATE LIBRARY ====================
+async function loadTemplates() {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_templates', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data)) {
+                state.templates = data.map(t => {
+                    let layout = t.layout;
+                    if (typeof layout === 'string') {
+                        try { layout = JSON.parse(layout); } catch(e) { layout = null; }
+                    }
+                    layout = layout || {};
+                    return {
+                        id: t.id,
+                        name: t.name,
+                        groups: layout.groups || [],
+                        podium: layout.podium || { startGroup: 0, endGroup: 0 },
+                        createdBy: t.created_by,
+                        createdAt: t.created_at
+                    };
+                });
+            }
+        }
+    } catch(e) {
+        console.warn('Failed to load templates:', e);
+    }
+    
+    // Always include default template
+    const hasDefault = state.templates.some(t => t.name === '默认模板');
+    if (!hasDefault) {
+        state.templates.unshift({ ...DEFAULT_TEMPLATE, id: 'default', isDefault: true });
+    }
+}
+
+function showTemplateLibrary() {
+    const templateCards = state.templates.map((t, i) => {
+        const seatGroups = t.groups ? t.groups.filter(g => !g.aisle) : [];
+        const totalSeats = seatGroups.reduce((sum, g) => sum + g.cols * g.rows, 0);
+        return `
+            <div class="template-card" onclick="selectTemplate(${i})">
+                <div class="template-card-name">${t.name}</div>
+                <div class="template-card-info">
+                    <i class="fa fa-th"></i> ${seatGroups.length}组座位<br>
+                    <i class="fa fa-chair"></i> 共${totalSeats}个座位
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    showModal('large', '选择座位模板', `
+        <div class="modal-body">
+            <div class="template-grid">${templateCards}</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="showUploadTemplate()">
+                <i class="fa fa-upload"></i> 上传新模版
+            </button>
+        </div>
+    `);
+}
+
+function selectTemplate(index) {
+    const template = state.templates[index];
+    // Deep clone to avoid mutation
+    state.currentTemplate = JSON.parse(JSON.stringify(template));
+    state.phase = 'seat-table-selection';
+    closeModal();
+    renderLeftPanel();
+    showToast(`已选择模板：${template.name}`, 'success');
+}
+
+function changeTemplate() {
+    state.phase = 'template-selection';
+    state.currentTemplate = null;
+    state.arrangement = {};
+    renderLeftPanel();
+}
+
+// ==================== UPLOAD TEMPLATE ====================
+function showUploadTemplate() {
+    showModal('medium', '上传新模版', `
+        <div class="modal-body">
+            <p style="margin-bottom:16px;color:#475569;">上传一张座位表格图片或Excel文件，系统将智能识别座位布局。</p>
+            <div class="file-upload-area" onclick="document.getElementById('templateFileInput').click()">
+                <i class="fa fa-cloud-upload"></i>
+                <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传文件</div>
+                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls) 或图片 (.png, .jpg)</div>
+            </div>
+            <input type="file" id="templateFileInput" style="display:none;" accept=".xlsx,.xls,.png,.jpg,.jpeg" onchange="handleTemplateUpload(event)">
+            <div id="templatePreviewArea" style="margin-top:16px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        </div>
+    `);
+}
+
+function handleTemplateUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const ext = file.name.split('.').pop().toLowerCase();
+    
+    if (ext === 'xlsx' || ext === 'xls') {
+        handleTemplateExcel(file);
+    } else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+        handleTemplateImage(file);
+    } else {
+        showToast('不支持的文件格式', 'error');
+    }
+}
+
+function handleTemplateExcel(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            const merges = ws['!merges'] || [];
+            
+            // Auto-detect template structure
+            const detected = detectTemplateFromAOA(aoa, merges);
+            
+            showTemplateConfigForm(detected, file.name);
+        } catch(err) {
+            showToast('Excel解析失败：' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function handleTemplateImage(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const previewArea = document.getElementById('templatePreviewArea');
+        previewArea.innerHTML = `
+            <div style="text-align:center;">
+                <img src="${e.target.result}" style="max-width:100%;max-height:300px;border-radius:8px;border:2px solid #e2e8f0;">
+            </div>
+            <p style="margin-top:12px;font-size:13px;color:#94a3b8;text-align:center;">图片预览 — 请参考图片手动配置模板结构</p>
+        `;
+        
+        // Show manual config form with default structure
+        const defaultDetected = {
+            name: file.name.replace(/\.[^.]+$/, ''),
+            groups: JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.groups)),
+            podium: JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.podium))
+        };
+        showTemplateConfigForm(defaultDetected, file.name, true);
+    };
+    reader.readAsDataURL(file);
+}
+
+function detectTemplateFromAOA(aoa, merges) {
+    const maxRows = aoa.length;
+    const maxCols = aoa.reduce((max, row) => Math.max(max, (row || []).length), 0);
+    
+    // Detect podium from merged cells containing "讲台"
+    let podiumRow = -1;
+    let podiumStartCol = -1;
+    let podiumEndCol = -1;
+    for (const merge of merges) {
+        const val = aoa[merge.s.r] && aoa[merge.s.r][merge.s.c];
+        if (val && String(val).includes('讲台')) {
+            podiumRow = merge.s.r;
+            podiumStartCol = merge.s.c;
+            podiumEndCol = merge.e.c;
+        }
+    }
+    
+    // Also check for "讲台" text in cells
+    if (podiumRow === -1) {
+        for (let r = 0; r < maxRows; r++) {
+            for (let c = 0; c < maxCols; c++) {
+                const val = aoa[r] && aoa[r][c];
+                if (val && String(val).includes('讲台')) {
+                    podiumRow = r;
+                    podiumStartCol = c;
+                    podiumEndCol = c;
+                    break;
+                }
+            }
+            if (podiumRow !== -1) break;
+        }
+    }
+    
+    // Find data rows (exclude podium and title rows)
+    const dataEndRow = podiumRow > 0 ? podiumRow - 1 : maxRows - 1;
+    
+    // Detect column groups
+    let colHasData = new Array(maxCols).fill(false);
+    for (let r = 0; r <= dataEndRow; r++) {
+        for (let c = 0; c < maxCols; c++) {
+            const val = aoa[r] && aoa[r][c];
+            if (val !== undefined && val !== null && String(val).trim() !== '' && !String(val).includes('讲台')) {
+                colHasData[c] = true;
+            }
+        }
+    }
+    
+    // Group contiguous columns
+    let groups = [];
+    let currentStart = -1;
+    for (let c = 0; c < maxCols; c++) {
+        if (colHasData[c]) {
+            if (currentStart === -1) currentStart = c;
+        } else {
+            if (currentStart !== -1) {
+                groups.push({ startCol: currentStart, endCol: c - 1 });
+                currentStart = -1;
+            }
+        }
+    }
+    if (currentStart !== -1) groups.push({ startCol: currentStart, endCol: maxCols - 1 });
+    
+    // Build template groups
+    let templateGroups = [];
+    let seatGroupIndices = [];
+    for (let i = 0; i < groups.length; i++) {
+        const g = groups[i];
+        const cols = g.endCol - g.startCol + 1;
+        // Count rows with data in this group
+        let rows = 0;
+        for (let r = 0; r <= dataEndRow; r++) {
+            let hasData = false;
+            for (let c = g.startCol; c <= g.endCol; c++) {
+                const val = aoa[r] && aoa[r][c];
+                if (val !== undefined && val !== null && String(val).trim() !== '' && !String(val).includes('讲台')) {
+                    hasData = true;
+                    break;
+                }
+            }
+            if (hasData) rows++;
+        }
+        templateGroups.push({ cols, rows });
+        seatGroupIndices.push(i);
+        if (i < groups.length - 1) {
+            templateGroups.push({ cols: 0, rows: 0, aisle: true });
+        }
+    }
+    
+    // Determine podium position
+    let podium = { startGroup: 0, endGroup: Math.max(0, seatGroupIndices.length - 1) };
+    if (podiumStartCol >= 0 && podiumEndCol >= 0) {
+        let startG = -1, endG = -1;
+        for (let i = 0; i < groups.length; i++) {
+            const g = groups[i];
+            if (g.startCol >= podiumStartCol && g.endCol <= podiumEndCol) {
+                const seatIdx = seatGroupIndices.indexOf(i);
+                if (seatIdx !== -1) {
+                    if (startG === -1) startG = seatIdx;
+                    endG = seatIdx;
+                }
+            } else if (g.endCol >= podiumStartCol && g.startCol <= podiumEndCol) {
+                const seatIdx = seatGroupIndices.indexOf(i);
+                if (seatIdx !== -1) {
+                    if (startG === -1) startG = seatIdx;
+                    endG = seatIdx;
+                }
+            }
+        }
+        if (startG >= 0) podium = { startGroup: startG, endGroup: endG };
+    }
+    
+    return {
+        name: '上传模版',
+        groups: templateGroups.length > 0 ? templateGroups : JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.groups)),
+        podium: podium
+    };
+}
+
+function showTemplateConfigForm(detected, fileName, isFromImage = false) {
+    const seatGroups = detected.groups.filter(g => !g.aisle);
+    const totalSeats = seatGroups.reduce((sum, g) => sum + g.cols * g.rows, 0);
+    
+    let groupItems = '';
+    let seatIdx = 0;
+    detected.groups.forEach((g, i) => {
+        if (g.aisle) {
+            groupItems += `<div class="group-builder-item" style="background:#f8fafc;color:#94a3b8;">过道</div>`;
+        } else {
+            groupItems += `
+                <div class="group-builder-item">
+                    <span style="font-weight:600;min-width:60px;">第${seatIdx + 1}组</span>
+                    <label>列数:</label>
+                    <input type="number" value="${g.cols}" min="1" max="10" data-group-idx="${seatIdx}" data-field="cols">
+                    <label>排数:</label>
+                    <input type="number" value="${g.rows}" min="1" max="20" data-group-idx="${seatIdx}" data-field="rows">
+                </div>
+            `;
+            seatIdx++;
+        }
+    });
+    
+    const modalContent = `
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">模板名称</label>
+                <input type="text" class="input-field" id="templateNameInput" value="${detected.name || fileName.replace(/\.[^.]+$/, '')}" placeholder="请输入模板名称">
+            </div>
+            <div class="form-group">
+                <label class="form-label">座位组配置（共${seatGroups.length}组，${totalSeats}座）</label>
+                <div class="group-builder">${groupItems}</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">讲台位置（第几组到第几组下方）</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span>第</span>
+                    <input type="number" class="input-field" style="width:80px;" id="podiumStartInput" value="${detected.podium.startGroup + 1}" min="1">
+                    <span>组 到 第</span>
+                    <input type="number" class="input-field" style="width:80px;" id="podiumEndInput" value="${detected.podium.endGroup + 1}" min="1">
+                    <span>组</span>
+                </div>
+            </div>
+            <div class="seating-info" style="background:#f8fafc;padding:12px;border-radius:8px;">
+                <i class="fa fa-info-circle"></i> 模板将保存至数据库，所有用户可见
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveTemplateFromForm()">保存模板</button>
+        </div>
+    `;
+    
+    // Replace modal content
+    document.getElementById('modalCard').className = 'modal-card medium';
+    document.getElementById('modalCard').innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">配置模板</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        ${modalContent}
+    `;
+    
+    // Store detected data for saving
+    window._detectedTemplate = detected;
+}
+
+function saveTemplateFromForm() {
+    const name = document.getElementById('templateNameInput').value.trim();
+    if (!name) {
+        showToast('请输入模板名称', 'error');
+        return;
+    }
+    
+    const detected = window._detectedTemplate;
+    const inputs = document.querySelectorAll('[data-group-idx]');
+    
+    // Update group configs
+    const seatGroups = detected.groups.filter(g => !g.aisle);
+    inputs.forEach(input => {
+        const idx = parseInt(input.dataset.groupIdx);
+        const field = input.dataset.field;
+        const val = parseInt(input.value);
+        if (seatGroups[idx]) {
+            seatGroups[idx][field] = val;
+        }
+    });
+    
+    const podiumStart = parseInt(document.getElementById('podiumStartInput').value) - 1;
+    const podiumEnd = parseInt(document.getElementById('podiumEndInput').value) - 1;
+    
+    const template = {
+        name: name,
+        groups: detected.groups,
+        podium: { startGroup: podiumStart, endGroup: podiumEnd }
+    };
+    
+    // Save to database
+    saveTemplateToDB(template);
+}
+
+async function saveTemplateToDB(template) {
+    try {
+        const layout = JSON.stringify({
+            groups: template.groups,
+            podium: template.podium
+        });
+        
+        const body = {
+            name: template.name,
+            layout: layout,
+            created_by: state.currentUser ? state.currentUser.id : null,
+            created_at: new Date().toISOString()
+        };
+        
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        if (resp.ok) {
+            const data = await resp.json();
+            template.id = data[0] ? data[0].id : Date.now();
+        }
+    } catch(e) {
+        console.warn('Failed to save template to DB:', e);
+    }
+    
+    // Add to local templates
+    state.templates.push(template);
+    closeModal();
+    showToast(`模板"${template.name}"保存成功`, 'success');
+    
+    // Auto-select the new template
+    selectTemplate(state.templates.length - 1);
+}
+
+// ==================== STAR SELECTION ====================
+function startStarSelection() {
+    showModal('medium', '学习之星、进步之星选座', `
+        <div class="modal-body">
+            <div style="text-align:center;margin-bottom:16px;">
+                <i class="fa fa-trophy" style="font-size:48px;color:#f59e0b;"></i>
+                <p style="margin-top:8px;font-size:16px;font-weight:600;">上传排名表格</p>
+            </div>
+            <div class="file-upload-area" onclick="document.getElementById('rankFileInput').click()">
+                <i class="fa fa-file-excel-o"></i>
+                <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传排名表格</div>
+                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls, .csv)</div>
+            </div>
+            <input type="file" id="rankFileInput" style="display:none;" accept=".xlsx,.xls,.csv" onchange="handleRankFileUpload(event)">
+            <div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:8px;font-size:13px;color:#92400e;">
+                <i class="fa fa-shield"></i> 该表格仅在本地处理，不会上传至云端
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        </div>
+    `);
+}
+
+function handleRankFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            
+            state.excelData = aoa;
+            
+            // Detect header row (might be row 0 or row 1 if there's a title)
+            let headerRowIdx = -1;
+            const rankKeywords = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
+            const nameKeywords = ['姓名', '名字', '学生'];
+            
+            for (let r = 0; r < Math.min(3, aoa.length); r++) {
+                const row = aoa[r] || [];
+                let hasRank = false;
+                let hasName = false;
+                for (let c = 0; c < row.length; c++) {
+                    const cellVal = String(row[c] || '').trim();
+                    if (rankKeywords.some(kw => cellVal.includes(kw))) hasRank = true;
+                    if (nameKeywords.some(kw => cellVal.includes(kw))) hasName = true;
+                }
+                if (hasRank || hasName) {
+                    headerRowIdx = r;
+                    break;
+                }
+            }
+            
+            if (headerRowIdx === -1) headerRowIdx = 0;
+            
+            state.excelHeaders = aoa[headerRowIdx] || [];
+            state.excelHeaderRowIdx = headerRowIdx;
+            
+            // Find rank column (best match)
+            const rankColPriority = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
+            let bestRankCol = -1;
+            let bestPriority = 999;
+            for (let c = 0; c < state.excelHeaders.length; c++) {
+                const header = String(state.excelHeaders[c] || '').trim();
+                for (let p = 0; p < rankColPriority.length; p++) {
+                    if (header.includes(rankColPriority[p]) && p < bestPriority) {
+                        bestRankCol = c;
+                        bestPriority = p;
+                    }
+                }
+            }
+            state.detectedRankCol = bestRankCol;
+            
+            // Find name column
+            let nameCol = -1;
+            for (let c = 0; c < state.excelHeaders.length; c++) {
+                const header = String(state.excelHeaders[c] || '').trim();
+                if (nameKeywords.some(kw => header.includes(kw))) {
+                    nameCol = c;
+                    break;
+                }
+            }
+            // If no name header, try to match with existing student names
+            if (nameCol === -1) {
+                for (let c = 0; c < state.excelHeaders.length; c++) {
+                    let matchCount = 0;
+                    for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 10, aoa.length); r++) {
+                        const val = aoa[r] && aoa[r][c] ? String(aoa[r][c]).trim() : '';
+                        if (state.originalStudents.some(s => s.name === val)) matchCount++;
+                    }
+                    if (matchCount > 3) { nameCol = c; break; }
+                }
+            }
+            state.nameColIndex = nameCol;
+            state.rankColIndex = bestRankCol;
+            
+            // Show preview modal
+            showExcelPreview(aoa, headerRowIdx, bestRankCol);
+            
+        } catch(err) {
+            showToast('文件解析失败：' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function showExcelPreview(aoa, headerRowIdx, rankCol) {
+    // Show up to 20 rows starting from header row (including header)
+    const startRow = headerRowIdx;
+    const endRow = Math.min(startRow + 20, aoa.length);
+    const maxCols = aoa.slice(startRow, endRow).reduce((max, row) => Math.max(max, (row || []).length), 0);
+    
+    let tableHtml = '<table class="preview-table"><thead><tr>';
+    tableHtml += '<th style="background:#f1f5f9;width:40px;">#</th>';
+    for (let c = 0; c < maxCols; c++) {
+        const isRank = c === rankCol;
+        tableHtml += `<th class="${isRank ? 'highlighted' : ''}">${aoa[headerRowIdx] && aoa[headerRowIdx][c] !== undefined ? escapeHtml(String(aoa[headerRowIdx][c])) : ''}</th>`;
+    }
+    tableHtml += '</tr></thead><tbody>';
+    
+    for (let r = headerRowIdx + 1; r < endRow; r++) {
+        tableHtml += '<tr>';
+        tableHtml += `<td style="background:#f8fafc;color:#94a3b8;">${r - headerRowIdx}</td>`;
+        for (let c = 0; c < maxCols; c++) {
+            const isRank = c === rankCol;
+            const val = aoa[r] && aoa[r][c] !== undefined ? String(aoa[r][c]) : '';
+            tableHtml += `<td class="${isRank ? 'highlighted' : ''}">${escapeHtml(val)}</td>`;
+        }
+        tableHtml += '</tr>';
+    }
+    tableHtml += '</tbody></table>';
+    
+    const rankColName = rankCol >= 0 ? escapeHtml(String(state.excelHeaders[rankCol] || '')) : '未找到';
+    
+    showModal('large', '排名表格预览', `
+        <div class="modal-body">
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <span class="info-badge badge-star"><i class="fa fa-star"></i> 检测到年排列：${rankColName}</span>
+                ${rankCol >= 0 ? '<span style="color:#22c55e;font-size:13px;"><i class="fa fa-check"></i> 已高亮</span>' : '<span style="color:#ef4444;font-size:13px;"><i class="fa fa-exclamation"></i> 未找到，请手动选择</span>'}
+            </div>
+            <div style="overflow:auto;max-height:400px;border:1px solid #e2e8f0;border-radius:8px;">
+                ${tableHtml}
+            </div>
+            ${rankCol < 0 ? `
+                <div class="form-group" style="margin-top:12px;">
+                    <label class="form-label">手动选择年排列（表头）</label>
+                    <select class="input-field" id="manualRankColSelect">
+                        <option value="-1">-- 请选择 --</option>
+                        ${state.excelHeaders.map((h, i) => `<option value="${i}">${escapeHtml(String(h || `第${i+1}列`))}</option>`).join('')}
+                    </select>
+                </div>
+            ` : ''}
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-secondary" onclick="skipRankSelection()">跳过</button>
+            <button class="btn btn-primary" onclick="confirmRankSelection()">确认</button>
+        </div>
+    `);
+}
+
+function skipRankSelection() {
+    state.detectedRankCol = -1;
+    state.rankColIndex = -1;
+    closeModal();
+    showToast('已跳过年排列选择', 'info');
+    // Show progress star selection with all students
+    showProgressStarModal([]);
+}
+
+function confirmRankSelection() {
+    let rankCol = state.detectedRankCol;
+    
+    // Check manual selection
+    const manualSelect = document.getElementById('manualRankColSelect');
+    if (manualSelect && manualSelect.value !== '-1') {
+        rankCol = parseInt(manualSelect.value);
+        state.detectedRankCol = rankCol;
+        state.rankColIndex = rankCol;
+    }
+    
+    if (rankCol < 0) {
+        showToast('请选择年排列或点击跳过', 'warning');
+        return;
+    }
+    
+    // Parse student ranks
+    const aoa = state.excelData;
+    const headerRowIdx = state.excelHeaderRowIdx !== undefined ? state.excelHeaderRowIdx : 0;
+    const nameCol = state.nameColIndex;
+    
+    state.studentRanks = {};
+    const studentNamesWithRanks = [];
+    
+    for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+        const nameVal = nameCol >= 0 ? (aoa[r] && aoa[r][nameCol]) : null;
+        const rankVal = aoa[r] && aoa[r][rankCol];
+        
+        if (nameVal && String(nameVal).trim()) {
+            const name = String(nameVal).trim();
+            const rank = rankVal ? parseInt(String(rankVal).replace(/[^\d]/g, '')) || 9999 : 9999;
+            state.studentRanks[name] = rank;
+            studentNamesWithRanks.push({ name, rank });
+        }
+    }
+    
+    // Reorder students: clear and re-add in table order
+    const newStudents = [];
+    for (const item of studentNamesWithRanks) {
+        const orig = state.originalStudents.find(s => s.name === item.name);
+        if (orig) {
+            newStudents.push({ ...orig });
+        } else {
+            // Unknown student, try to determine gender
+            newStudents.push({ name: item.name, gender: '男' });
+        }
+    }
+    
+    // Add any students not in the Excel
+    for (const orig of state.originalStudents) {
+        if (!studentNamesWithRanks.some(s => s.name === orig.name)) {
+            newStudents.push({ ...orig });
+        }
+    }
+    
+    state.students = newStudents;
+    
+    // Identify learning stars (rank <= 100)
+    const starStudents = studentNamesWithRanks
+        .filter(s => s.rank > 0 && s.rank <= 100)
+        .sort((a, b) => a.rank - b.rank);
+    
+    state.starStudents = starStudents.map(s => ({ name: s.name, rank: s.rank }));
+    
+    closeModal();
+    renderStudentList();
+    showToast(`已识别 ${state.starStudents.length} 名学习之星`, 'success');
+    
+    // Show progress star selection modal
+    setTimeout(() => showProgressStarModal(starStudents.map(s => s.name)), 300);
+}
+
+function showProgressStarModal(starNames) {
+    const allStudents = state.students;
+    let selectedProgress = [];
+    
+    const renderCards = () => {
+        const grid = document.getElementById('progressStarGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        
+        allStudents.forEach(student => {
+            const card = document.createElement('div');
+            card.className = `star-card ${student.gender === '男' ? 'boy' : 'girl'}`;
+            card.textContent = student.name;
+            card.dataset.name = student.name;
+            
+            if (starNames.includes(student.name)) {
+                card.classList.add('is-star');
+                card.title = '该同学为学习之星';
+                card.onclick = () => {
+                    showToast(`该同学为学习之星`, 'info');
+                };
+            } else {
+                const existing = selectedProgress.findIndex(s => s.name === student.name);
+                if (existing >= 0) {
+                    card.classList.add('selected');
+                    const badge = document.createElement('span');
+                    badge.className = 'star-badge';
+                    badge.textContent = existing + 1;
+                    card.appendChild(badge);
+                }
+                card.onclick = () => {
+                    const idx = selectedProgress.findIndex(s => s.name === student.name);
+                    if (idx >= 0) {
+                        selectedProgress.splice(idx, 1);
+                    } else {
+                        selectedProgress.push({ name: student.name, order: selectedProgress.length + 1, gender: student.gender });
+                    }
+                    renderCards();
+                    updateConfirmBtn();
+                };
+            }
+            
+            grid.appendChild(card);
+        });
+    };
+    
+    const updateConfirmBtn = () => {
+        const btn = document.getElementById('progressConfirmBtn');
+        if (btn) {
+            if (selectedProgress.length === 0) {
+                btn.textContent = '跳过';
+                btn.className = 'btn btn-secondary';
+            } else {
+                btn.textContent = `确认（已选${selectedProgress.length}人）`;
+                btn.className = 'btn btn-success';
+            }
+        }
+    };
+    
+    showModal('large', '选择进步之星', `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;font-size:14px;">
+                请点击选择进步之星同学（按点击顺序排列）。黄色框为学习之星，不可选择。
+            </p>
+            <div class="form-group">
+                <input type="text" class="input-field" id="progressSearchInput" placeholder="输入姓名或单字查找..." oninput="filterProgressCards(this.value)">
+            </div>
+            <div class="star-grid" id="progressStarGrid"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-secondary" id="progressConfirmBtn" onclick="confirmProgressStars()">跳过</button>
+        </div>
+    `);
+    
+    renderCards();
+    updateConfirmBtn();
+    
+    // Store selected for confirm
+    window._selectedProgress = () => selectedProgress;
+}
+
+function filterProgressCards(keyword) {
+    const cards = document.querySelectorAll('#progressStarGrid .star-card');
+    cards.forEach(card => {
+        const name = card.dataset.name || '';
+        if (!keyword || matchStudent(name, keyword)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function confirmProgressStars() {
+    const selected = window._selectedProgress ? window._selectedProgress() : [];
+    state.progressStudents = selected.map((s, i) => ({ name: s.name, order: i + 1, gender: s.gender }));
+    
+    // Re-sort students: stars first (by rank), then progress (by order), then rest
+    reorderStudentsForSelection();
+    
+    closeModal();
+    renderStudentList();
+    
+    // Build selection order
+    buildSelectionOrder();
+    
+    showToast(`已选择 ${state.progressStudents.length} 名进步之星`, 'success');
+}
+
+function reorderStudentsForSelection() {
+    const starNames = state.starStudents.map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    
+    const stars = [];
+    const progress = [];
+    const rest = [];
+    
+    for (const student of state.students) {
+        if (starNames.includes(student.name)) {
+            const star = state.starStudents.find(s => s.name === student.name);
+            stars.push({ ...student, rank: star ? star.rank : 999 });
+        } else if (progressNames.includes(student.name)) {
+            const prog = state.progressStudents.find(s => s.name === student.name);
+            progress.push({ ...student, order: prog ? prog.order : 999 });
+        } else {
+            rest.push(student);
+        }
+    }
+    
+    stars.sort((a, b) => a.rank - b.rank);
+    progress.sort((a, b) => a.order - b.order);
+    
+    state.students = [...stars.map(s => { const {rank, ...rest} = s; return rest; }), ...progress.map(s => { const {order, ...rest} = s; return rest; }), ...rest];
+}
+
+function buildSelectionOrder() {
+    const starNames = state.starStudents.sort((a, b) => a.rank - b.rank).map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    
+    state.selectionOrder = [...starNames, ...progressNames];
+    state.currentSelectionIndex = 0;
+    state.orderSelectionActive = state.selectionOrder.length > 0;
+    
+    if (state.phase === 'arranging') {
+        updateSelectionIndicator();
+        updateModeToggleBtn();
+    }
+}
+
+// ==================== SEAT TABLE OPERATIONS ====================
+async function startNewSeatTable() {
+    // Check for incomplete seat tables
+    const incomplete = await checkIncompleteSeatTables();
+    
+    if (incomplete && incomplete.length > 0) {
+        showIncompleteModal(incomplete, () => promptNewSeatTableName());
+    } else {
+        promptNewSeatTableName();
+    }
+}
+
+async function checkIncompleteSeatTables() {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?is_completed=eq.false', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data)) {
+                // Filter out records older than 90 days
+                const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+                return data.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
+            }
+        }
+    } catch(e) {
+        console.warn('Failed to check incomplete tables:', e);
+    }
+    return [];
+}
+
+function showIncompleteModal(incomplete, onIgnore) {
+    const namesList = incomplete.map(t => `<div style="padding:8px;background:#fef3c7;border-radius:6px;margin-bottom:4px;">${escapeHtml(t.name)} — 更新于 ${new Date(t.updated_at || t.created_at).toLocaleDateString()}</div>`).join('');
+    const ids = incomplete.map(t => t.id);
+    window._incompleteIgnore = onIgnore;
+    window._incompleteIds = ids;
+    
+    showModal('medium', '检测到未排完的座位表', `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;">以下座位表还有空位未排完：</p>
+            ${namesList}
+            <p style="margin-top:12px;font-size:13px;color:#94a3b8;">请选择如何处理：</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal(); if(window._incompleteIgnore) window._incompleteIgnore();">忽略</button>
+            <button class="btn btn-danger" onclick="confirmDeleteIncomplete()">删除并新建座位表</button>
+            <button class="btn btn-primary" onclick="continueArranging()">继续排位</button>
+        </div>
+    `);
+}
+
+function confirmDeleteIncomplete() {
+    showModal('small', '确认删除', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;">确定要删除这些未排完的座位表吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="deleteAndCreateNew()">确认删除</button>
+        </div>
+    `);
+}
+
+async function deleteAndCreateNew() {
+    const ids = window._incompleteIds || [];
+    for (const id of ids) {
+        try {
+            await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch(e) {
+            console.warn('Failed to delete:', e);
+        }
+    }
+    closeModal();
+    showToast('已删除未排完的座位表', 'success');
+    promptNewSeatTableName();
+}
+
+async function continueArranging() {
+    const ids = window._incompleteIds || [];
+    if (ids.length === 0) return;
+    
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + ids[0], {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                loadSeatTable(data[0]);
+                closeModal();
+                return;
+            }
+        }
+    } catch(e) {
+        console.warn('Failed to load seat table:', e);
+    }
+    showToast('加载失败', 'error');
+}
+
+function promptNewSeatTableName() {
+    closeModal();
+    setTimeout(() => {
+        showModal('small', '新建座位表', `
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">座位表名称</label>
+                    <input type="text" class="input-field" id="seatTableNameInput" placeholder="例如：2024秋季排座" autofocus>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="createNewSeatTable()">创建</button>
+            </div>
+        `);
+        document.getElementById('seatTableNameInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') createNewSeatTable();
+        });
+    }, 100);
+}
+
+function createNewSeatTable() {
+    const name = document.getElementById('seatTableNameInput').value.trim();
+    if (!name) {
+        showToast('请输入座位表名称', 'error');
+        return;
+    }
+    
+    state.seatingTableName = name;
+    state.seatTableId = null;
+    state.arrangement = {};
+    state.isCompleted = false;
+    state.phase = 'arranging';
+    
+    // Build selection order if stars/progress exist
+    buildSelectionOrder();
+    
+    closeModal();
+    renderLeftPanel();
+    showToast(`已创建座位表：${name}`, 'success');
+    saveSeatTable();
+}
+
+// ==================== HISTORY ====================
+async function showHistorySeatTables() {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?order=updated_at.desc', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        let tables = [];
+        if (resp.ok) {
+            tables = await resp.json();
+        }
+        
+        // Filter out records older than 90 days
+        const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        tables = tables.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
+        
+        state.historySeatTables = tables;
+        
+        if (tables.length === 0) {
+            showModal('medium', '历史座位表', `
+                <div class="modal-body">
+                    <div style="text-align:center;padding:40px;color:#94a3b8;">
+                        <i class="fa fa-inbox" style="font-size:48px;"></i>
+                        <p style="margin-top:12px;">暂无历史座位表</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+                </div>
+            `);
+            return;
+        }
+        
+        const cards = tables.map(t => {
+            const arrangement = typeof t.arrangement === 'string' ? JSON.parse(t.arrangement) : (t.arrangement || {});
+            const seatCount = Object.keys(arrangement).length;
+            const templateLayout = typeof t.template_layout === 'string' ? JSON.parse(t.template_layout) : (t.template_layout || {});
+            const totalSeats = templateLayout.groups ? templateLayout.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0) : 0;
+            const incomplete = !t.is_completed;
+            const updatedDate = new Date(t.updated_at || t.created_at).toLocaleDateString();
+            
+            return `
+                <div class="history-card ${incomplete ? 'incomplete' : ''}">
+                    <div class="history-card-name">${escapeHtml(t.name)} ${incomplete ? '<span class="info-badge badge-star" style="margin-left:4px;">未完成</span>' : '<span class="info-badge badge-progress" style="margin-left:4px;">已完成</span>'}</div>
+                    <div class="history-card-meta">
+                        <i class="fa fa-calendar"></i> ${updatedDate}<br>
+                        <i class="fa fa-chair"></i> ${seatCount}/${totalSeats} 座位已排
+                    </div>
+                    <div class="history-card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="editHistorySeatTable('${t.id}')"><i class="fa fa-edit"></i> 修改</button>
+                        <button class="btn btn-secondary btn-sm" onclick="saveAsNewHistorySeatTable('${t.id}')"><i class="fa fa-copy"></i> 另存为</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        showModal('large', '历史座位表', `
+            <div class="modal-body">
+                <div class="template-grid">${cards}</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        `);
+        
+    } catch(e) {
+        showToast('加载历史座位表失败', 'error');
+    }
+}
+
+async function editHistorySeatTable(id) {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                loadSeatTable(data[0]);
+                closeModal();
+                return;
+            }
+        }
+    } catch(e) {}
+    showToast('加载失败', 'error');
+}
+
+async function saveAsNewHistorySeatTable(id) {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                const original = data[0];
+                closeModal();
+                setTimeout(() => {
+                    showModal('small', '另存为新的座位表', `
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label class="form-label">新座位表名称</label>
+                                <input type="text" class="input-field" id="newSeatTableNameInput" value="${escapeHtml(original.name)} (副本)" autofocus>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                            <button class="btn btn-primary" onclick="confirmSaveAsNew('${id}')">保存</button>
+                        </div>
+                    `);
+                    document.getElementById('newSeatTableNameInput').addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') confirmSaveAsNew(id);
+                    });
+                }, 100);
+                return;
+            }
+        }
+    } catch(e) {}
+    showToast('操作失败', 'error');
+}
+
+async function confirmSaveAsNew(originalId) {
+    const newName = document.getElementById('newSeatTableNameInput').value.trim();
+    if (!newName) {
+        showToast('请输入名称', 'error');
+        return;
+    }
+    
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + originalId, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                const original = data[0];
+                const newRow = {
+                    name: newName,
+                    template_layout: original.template_layout,
+                    arrangement: original.arrangement,
+                    student_list: original.student_list,
+                    star_students: original.star_students,
+                    progress_students: original.progress_students,
+                    created_by: state.currentUser ? state.currentUser.id : null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    is_completed: false
+                };
+                
+                const postResp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRow)
+                });
+                
+                if (postResp.ok) {
+                    const postData = await postResp.json();
+                    if (postData && postData.length > 0) {
+                        loadSeatTable(postData[0]);
+                    }
+                }
+                closeModal();
+                showToast('已另存为新座位表', 'success');
+                return;
+            }
+        }
+    } catch(e) {
+        console.warn('Save as new failed:', e);
+    }
+    showToast('操作失败', 'error');
+}
+
+function loadSeatTable(tableData) {
+    state.seatingTableName = tableData.name;
+    state.seatTableId = tableData.id;
+    state.isCompleted = tableData.is_completed || false;
+    
+    // Parse arrangement
+    state.arrangement = typeof tableData.arrangement === 'string' ? JSON.parse(tableData.arrangement) : (tableData.arrangement || {});
+    
+    // Parse template
+    const layout = typeof tableData.template_layout === 'string' ? JSON.parse(tableData.template_layout) : (tableData.template_layout || {});
+    state.currentTemplate = layout;
+    
+    // Parse students
+    if (tableData.student_list) {
+        state.students = typeof tableData.student_list === 'string' ? JSON.parse(tableData.student_list) : tableData.student_list;
+    }
+    
+    // Parse star/progress students
+    if (tableData.star_students) {
+        state.starStudents = typeof tableData.star_students === 'string' ? JSON.parse(tableData.star_students) : tableData.star_students;
+    }
+    if (tableData.progress_students) {
+        state.progressStudents = typeof tableData.progress_students === 'string' ? JSON.parse(tableData.progress_students) : tableData.progress_students;
+    }
+    
+    state.phase = 'arranging';
+    buildSelectionOrder();
+    renderLeftPanel();
+    renderStudentList();
+    showToast(`已加载座位表：${tableData.name}`, 'success');
+}
+
+// ==================== DATABASE SAVE ====================
+let saveTimer = null;
+function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveSeatTable(), 1000);
+}
+
+async function saveSeatTable() {
+    if (state.phase !== 'arranging' || !state.seatingTableName) return;
+    
+    try {
+        const templateLayout = JSON.stringify(state.currentTemplate);
+        const arrangement = JSON.stringify(state.arrangement);
+        const studentList = JSON.stringify(state.students);
+        const starStudents = JSON.stringify(state.starStudents);
+        const progressStudents = JSON.stringify(state.progressStudents);
+        
+        const totalSeats = countTotalSeats(state.currentTemplate);
+        const seatedCount = Object.keys(state.arrangement).length;
+        const isCompleted = seatedCount >= totalSeats;
+        
+        const body = {
+            name: state.seatingTableName,
+            template_layout: templateLayout,
+            arrangement: arrangement,
+            student_list: studentList,
+            star_students: starStudents,
+            progress_students: progressStudents,
+            created_by: state.currentUser ? state.currentUser.id : null,
+            updated_at: new Date().toISOString(),
+            is_completed: isCompleted
+        };
+        
+        if (state.seatTableId) {
+            // Update existing
+            await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + state.seatTableId, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+        } else {
+            // Create new
+            body.created_at = new Date().toISOString();
+            const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.length > 0) {
+                    state.seatTableId = data[0].id;
+                }
+            }
+        }
+    } catch(e) {
+        console.warn('Save failed:', e);
+    }
+}
+
+// ==================== EXPORT TO EXCEL ====================
+function exportToExcel() {
+    if (!state.currentTemplate || Object.keys(state.arrangement).length === 0) {
+        showToast('请先排座再导出', 'warning');
+        return;
+    }
+    
+    const template = state.currentTemplate;
+    const arrangement = state.arrangement;
+    
+    // Calculate total columns
+    let totalCols = 0;
+    for (const g of template.groups) {
+        totalCols += g.aisle ? 1 : g.cols;
+    }
+    
+    const seatGroups = template.groups.filter(g => !g.aisle);
+    const maxRows = Math.max(...seatGroups.map(g => g.rows));
+    
+    // Build grid
+    let grid = [];
+    for (let r = 0; r < maxRows; r++) {
+        let row = new Array(totalCols).fill('');
+        let col = 0;
+        let sgIdx = 0;
+        for (const g of template.groups) {
+            if (g.aisle) {
+                col += 1;
+            } else {
+                for (let c = 0; c < g.cols; c++) {
+                    if (r < g.rows) {
+                        const seatId = `seat-${sgIdx}-${r}-${c}`;
+                        const student = arrangement[seatId];
+                        if (student) {
+                            row[col + c] = student.name;
+                        }
+                    }
+                }
+                col += g.cols;
+                sgIdx++;
+            }
+        }
+        grid.push(row);
+    }
+    
+    // Empty row between seats and podium
+    grid.push(new Array(totalCols).fill(''));
+    
+    // Podium row
+    let podiumRow = new Array(totalCols).fill('');
+    const podiumStart = template.podium ? template.podium.startGroup : 0;
+    const podiumEnd = template.podium ? template.podium.endGroup : 0;
+    
+    // Calculate podium column span
+    let podiumStartCol = -1;
+    let podiumEndCol = -1;
+    let col = 0;
+    let sgIdx = 0;
+    for (const g of template.groups) {
+        if (g.aisle) {
+            if (sgIdx > podiumStart && sgIdx <= podiumEnd) {
+                if (podiumStartCol === -1) podiumStartCol = col;
+                podiumEndCol = col;
+            }
+            col += 1;
+        } else {
+            if (sgIdx >= podiumStart && sgIdx <= podiumEnd) {
+                if (podiumStartCol === -1) podiumStartCol = col;
+                podiumEndCol = col + g.cols - 1;
+            }
+            col += g.cols;
+            sgIdx++;
+        }
+    }
+    
+    // Fill podium
+    if (podiumStartCol >= 0 && podiumEndCol >= 0) {
+        for (let c = podiumStartCol; c <= podiumEndCol; c++) {
+            podiumRow[c] = '讲　台';
+        }
+    } else {
+        // Fallback: center podium
+        const center = Math.floor(totalCols / 2);
+        podiumStartCol = Math.max(0, center - 3);
+        podiumEndCol = Math.min(totalCols - 1, center + 3);
+        for (let c = podiumStartCol; c <= podiumEndCol; c++) {
+            podiumRow[c] = '讲　台';
+        }
+    }
+    grid.push(podiumRow);
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(grid);
+    
+    // Set column widths
+    ws['!cols'] = new Array(totalCols).fill({ wch: 10 });
+    
+    // Add merge for podium
+    const podiumRowIdx = grid.length - 1;
+    ws['!merges'] = [
+        { s: { r: podiumRowIdx, c: podiumStartCol }, e: { r: podiumRowIdx, c: podiumEndCol } }
+    ];
+    
+    // Try to add borders to seat cells
+    const borderStyle = {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' }
+    };
+    
+    for (let r = 0; r < maxRows; r++) {
+        let col = 0;
+        let sgIdx = 0;
+        for (const g of template.groups) {
+            if (g.aisle) {
+                col += 1;
+            } else {
+                for (let c = 0; c < g.cols; c++) {
+                    if (r < g.rows) {
+                        const cellRef = XLSX.utils.encode_cell({ r: r, c: col + c });
+                        if (ws[cellRef]) {
+                            ws[cellRef].s = { border: borderStyle, alignment: { horizontal: 'center', vertical: 'center' } };
+                        } else {
+                            ws[cellRef] = { t: 's', v: '', s: { border: borderStyle, alignment: { horizontal: 'center', vertical: 'center' } } };
+                        }
+                    }
+                }
+                col += g.cols;
+                sgIdx++;
+            }
+        }
+    }
+    
+    // Style podium cell
+    const podiumCellRef = XLSX.utils.encode_cell({ r: podiumRowIdx, c: podiumStartCol });
+    if (ws[podiumCellRef]) {
+        ws[podiumCellRef].s = {
+            border: borderStyle,
+            alignment: { horizontal: 'center', vertical: 'center' },
+            font: { bold: true, sz: 14 }
+        };
+    }
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '座位表');
+    
+    // Write file
+    const fileName = (state.seatingTableName || '座位表') + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+    
+    showToast('座位表已导出', 'success');
+}
+
+// ==================== UTILITIES ====================
+function countTotalSeats(template) {
+    if (!template || !template.groups) return 0;
+    return template.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showModal(size, title, content) {
+    const overlay = document.getElementById('modalOverlay');
+    const card = document.getElementById('modalCard');
+    card.className = 'modal-card ' + size;
+    card.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        ${content}
+    `;
+    overlay.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalOverlay')) {
+        closeModal();
+    }
+});
+
+let toastTimer = null;
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+// Clean up old records (90+ days)
+async function cleanupOldRecords() {
+    try {
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(SUPABASE_URL + '/rest/v1/seat_tables?updated_at=lt.' + ninetyDaysAgo, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch(e) {
+        console.warn('Cleanup failed:', e);
+    }
+}
+
+// Run cleanup on load
+cleanupOldRecords();
+
+</script>
+</body>
+</html>
