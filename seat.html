@@ -582,14 +582,17 @@
         }
 
         /* ==================== 响应式 ==================== */
-        @media (max-width: 768px) {
-            .main-container { flex-direction: column; height: auto; }
-            .left-panel, .right-panel { flex: 1; width: 100%; }
-            .right-panel { max-height: 350px; width: 100%; }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; min-height: calc(100vh - 60px); }
+            .left-panel { flex: 1 1 auto; width: 100%; min-height: 400px; }
+            .right-panel { flex: 1 1 auto; width: 100%; max-height: 380px; }
             .header-title { font-size: 16px; }
             .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
             .student-card { width: 60px; min-height: 44px; font-size: 12px; }
             .star-grid { grid-template-columns: repeat(4, 1fr); }
+            .left-toolbar { gap: 8px; }
+            .left-toolbar h3 { font-size: 16px; }
+            .toolbar-actions .btn { padding: 8px 12px; font-size: 13px; }
         }
     </style>
 </head>
