@@ -804,10 +804,9 @@ function checkPermission() {
     }
 }
 
-/* ==================== 首次使用提示 ==================== */
-// 仅显示一次的欢迎提示
+/* ==================== 使用提示 ==================== */
+// 每次打开都显示的欢迎提示
 function showWelcomePrompt() {
-    if (localStorage.getItem('seat_welcome_shown')) return;
     // 延迟500ms确保所有初始化完成后再显示
     setTimeout(() => {
         // 先关闭可能打开的弹窗（通过移除active类，不要设置style.display）
@@ -820,7 +819,7 @@ function showWelcomePrompt() {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal(); localStorage.setItem('seat_welcome_shown', '1');">确认</button>
+                <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal();">确认</button>
             </div>
         `);
     }, 500);
