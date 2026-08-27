@@ -778,8 +778,80 @@ async function init() {
     state.phase = 'initial';
     renderLeftPanel();
 
+    // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
+    _initEventDelegation();
+
     // 显示首次使用提示（仅一次），放在最后避免被其他弹窗覆盖
     showWelcomePrompt();
+}
+
+/* ==================== 事件委托（性能优化） ==================== */
+// 学生卡片拖拽事件委托：只需在容器上绑定一次
+function _initEventDelegation() {
+    const studentList = document.getElementById('studentList');
+
+    // 学生卡片鼠标拖拽
+    studentList.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const card = e.target.closest('.student-card');
+        if (!card || card.classList.contains('seated')) return;
+        e.preventDefault();
+        startCustomDrag({
+            type: 'student',
+            name: card.dataset.name,
+            gender: card.dataset.gender,
+            sourceElement: card
+        }, e);
+    });
+
+    // 学生卡片触摸拖拽
+    studentList.addEventListener('touchstart', (e) => {
+        const card = e.target.closest('.student-card');
+        if (!card || card.classList.contains('seated')) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        startCustomDrag({
+            type: 'student',
+            name: card.dataset.name,
+            gender: card.dataset.gender,
+            sourceElement: card
+        }, { clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+
+    // 座位拖拽事件委托：在座位容器上绑定一次
+    const seatingContainer = document.getElementById('seatingContainer');
+
+    // 已入座座位鼠标拖拽（移动）
+    seatingContainer.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const seat = e.target.closest('.seat.occupied');
+        if (!seat) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startCustomDrag({
+            type: 'move',
+            fromSeat: seat.dataset.seatId,
+            name: seat.dataset.studentName,
+            gender: seat.dataset.gender,
+            sourceElement: seat
+        }, e);
+    });
+
+    // 已入座座位触摸拖拽（移动）
+    seatingContainer.addEventListener('touchstart', (e) => {
+        const seat = e.target.closest('.seat.occupied');
+        if (!seat) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        startCustomDrag({
+            type: 'move',
+            fromSeat: seat.dataset.seatId,
+            name: seat.dataset.studentName,
+            gender: seat.dataset.gender,
+            sourceElement: seat
+        }, { clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
 }
 
 /* ==================== 权限检查 ==================== */
@@ -1152,6 +1224,13 @@ function renderSeats() {
     container.innerHTML = '';
     const template = state.currentTemplate;
 
+    // 预计算星标学生姓名集合（O(1) 查找，避免在循环内重复创建数组）
+    const starNameSet = new Set(state.starStudents.map(s => s.name));
+    const progressNameSet = new Set(state.progressStudents.map(s => s.name));
+
+    // 使用 DocumentFragment 批量插入，减少布局回流
+    const frag = document.createDocumentFragment();
+
     // 构建座位组行
     const groupsRow = document.createElement('div');
     groupsRow.className = 'seat-groups-row';
@@ -1178,7 +1257,7 @@ function renderSeats() {
                 rowDiv.className = 'seat-row';
                 for (let c = 0; c < g.cols; c++) {
                     const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
-                    const seat = createSeat(seatId, seatGroupIdx, r, c);
+                    const seat = createSeat(seatId, starNameSet, progressNameSet);
                     rowDiv.appendChild(seat);
                 }
                 groupDiv.appendChild(rowDiv);
@@ -1187,22 +1266,23 @@ function renderSeats() {
             seatGroupIdx++;
         }
     }
-    container.appendChild(groupsRow);
+    frag.appendChild(groupsRow);
 
     // 讲台与座位间空一行
     const spacer = document.createElement('div');
     spacer.className = 'podium-spacer-row';
-    container.appendChild(spacer);
+    frag.appendChild(spacer);
 
     // 讲台
+    container.appendChild(frag);
     renderPodium(container, template, false);
 
     // 桌面端自动缩放
     requestAnimationFrame(() => scaleSeatingContainer());
 }
 
-// 创建单个座位元素
-function createSeat(seatId, groupIdx, row, col) {
+// 创建单个座位元素（使用预计算的 Set 进行 O(1) 查找，不再绑定事件监听器）
+function createSeat(seatId, starNameSet, progressNameSet) {
     const seat = document.createElement('div');
     seat.className = 'seat';
     seat.id = seatId;
@@ -1215,41 +1295,14 @@ function createSeat(seatId, groupIdx, row, col) {
         seat.classList.add('occupied');
         seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
 
-        // 学习之星/进步之星高亮
-        const starNames = state.starStudents.map(s => s.name);
-        const progressNames = state.progressStudents.map(s => s.name);
-        if (starNames.includes(occupied.name)) seat.classList.add('star');
-        if (progressNames.includes(occupied.name)) seat.classList.add('progress');
+        // 学习之星/进步之星高亮（O(1) Set 查找）
+        if (starNameSet.has(occupied.name)) seat.classList.add('star');
+        if (progressNameSet.has(occupied.name)) seat.classList.add('progress');
 
         seat.textContent = occupied.name;
         seat.dataset.studentName = occupied.name;
         seat.dataset.gender = occupied.gender;
-
-        // 已入座座位支持拖拽移动
-        seat.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            e.preventDefault();
-            e.stopPropagation();
-            startCustomDrag({
-                type: 'move',
-                fromSeat: seatId,
-                name: occupied.name,
-                gender: occupied.gender,
-                sourceElement: seat
-            }, e);
-        });
-        seat.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const touch = e.touches[0];
-            startCustomDrag({
-                type: 'move',
-                fromSeat: seatId,
-                name: occupied.name,
-                gender: occupied.gender,
-                sourceElement: seat
-            }, { clientX: touch.clientX, clientY: touch.clientY });
-        }, { passive: false });
+        // 拖拽事件通过事件委托处理（见 _initSeatDelegation）
     } else {
         seat.textContent = '';
     }
@@ -1396,8 +1449,14 @@ function renderStudentList() {
     list.innerHTML = '';
     if (overlay) list.appendChild(overlay);
 
-    const seatedNames = Object.values(state.arrangement).map(s => s.name);
+    // 预计算查找集合（O(1) 查找，避免循环内 find/includes）
+    const seatedNameSet = new Set(Object.values(state.arrangement).map(s => s.name));
+    const starMap = new Map(state.starStudents.map(s => [s.name, s]));
+    const progressMap = new Map(state.progressStudents.map(s => [s.name, s]));
     const keyword = state.searchKeyword;
+
+    // 使用 DocumentFragment 批量插入
+    const frag = document.createDocumentFragment();
 
     state.students.forEach(student => {
         // 搜索过滤
@@ -1409,9 +1468,9 @@ function renderStudentList() {
         card.dataset.name = student.name;
         card.dataset.gender = student.gender;
 
-        // 学习之星/进步之星高亮
-        const starInfo = state.starStudents.find(s => s.name === student.name);
-        const progressInfo = state.progressStudents.find(s => s.name === student.name);
+        // 学习之星/进步之星高亮（O(1) Map 查找）
+        const starInfo = starMap.get(student.name);
+        const progressInfo = progressMap.get(student.name);
         if (starInfo) {
             card.classList.add('star');
         } else if (progressInfo) {
@@ -1422,36 +1481,17 @@ function renderStudentList() {
             card.appendChild(badge);
         }
 
-        // 已入座学生半透明
-        if (seatedNames.includes(student.name)) {
+        // 已入座学生半透明（O(1) Set 查找）
+        const isSeated = seatedNameSet.has(student.name);
+        if (isSeated) {
             card.classList.add('seated');
         }
 
-        // 拖拽事件（仅未入座学生可拖）
-        if (!seatedNames.includes(student.name)) {
-            card.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                e.preventDefault();
-                startCustomDrag({
-                    type: 'student',
-                    name: student.name,
-                    gender: student.gender,
-                    sourceElement: card
-                }, e);
-            });
-            card.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                startCustomDrag({
-                    type: 'student',
-                    name: student.name,
-                    gender: student.gender,
-                    sourceElement: card
-                }, { clientX: touch.clientX, clientY: touch.clientY });
-            }, { passive: false });
-        }
-        list.appendChild(card);
+        // 拖拽事件通过事件委托处理（见 _initStudentCardDelegation），不再逐个绑定
+        frag.appendChild(card);
     });
+
+    list.appendChild(frag);
 
     // 无匹配结果提示
     if (list.children.length <= 1) {
@@ -1462,10 +1502,12 @@ function renderStudentList() {
     }
 }
 
-// 搜索过滤学生名单
+// 搜索过滤学生名单（防抖，避免每次按键都触发完整渲染）
+let _searchTimer = null;
 function filterStudentList(value) {
     state.searchKeyword = value;
-    renderStudentList();
+    if (_searchTimer) clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => renderStudentList(), 200);
 }
 
 /* ==================== 自定义拖拽系统（鼠标+触摸） ==================== */
@@ -1480,10 +1522,10 @@ let _dragState = {
 
 // 开始拖拽
 function startCustomDrag(data, e) {
-    // 已入座的学生卡片不可拖动
+    // 已入座的学生卡片不可拖动（使用 Set 优化）
     if (data.type === 'student') {
-        const seatedNames = Object.values(state.arrangement).map(s => s.name);
-        if (seatedNames.includes(data.name)) return;
+        const seatedNameSet = new Set(Object.values(state.arrangement).map(s => s.name));
+        if (seatedNameSet.has(data.name)) return;
     }
 
     _dragState.active = true;
