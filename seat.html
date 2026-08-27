@@ -2338,7 +2338,7 @@ async function confirmSaveAsNew(originalId) {
                     student_list: original.student_list,
                     star_students: original.star_students,
                     progress_students: original.progress_students,
-                    created_by: state.currentUser ? state.currentUser.id : null,
+                    created_by: state.currentUser ? state.currentUser.id : '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     is_completed: false
@@ -2438,7 +2438,7 @@ async function saveSeatTable() {
             student_list: JSON.stringify(state.students),
             star_students: JSON.stringify(state.starStudents),
             progress_students: JSON.stringify(state.progressStudents),
-            created_by: state.currentUser ? state.currentUser.id : null,
+            created_by: state.currentUser ? state.currentUser.id : '',
             updated_at: new Date().toISOString(),
             is_completed: Object.keys(state.arrangement).length >= countTotalSeats(state.currentTemplate)
         };
@@ -2671,6 +2671,7 @@ function confirmRankSelection() {
 
     closeModal();
     renderStudentList();
+    debouncedSave();
     showToast(`已识别 ${state.starStudents.length} 名学习之星`, 'success');
     setTimeout(() => showProgressStarModal(starStudents.map(s => s.name)), 300);
 }
@@ -2773,6 +2774,7 @@ function confirmProgressStars() {
     closeModal();
     renderStudentList();
     buildSelectionOrder();
+    debouncedSave();
     showToast(`已选择 ${state.progressStudents.length} 名进步之星`, 'success');
     // 选完后提示推送至大屏
     if (state.starStudents.length > 0 || state.progressStudents.length > 0) {
@@ -2849,16 +2851,22 @@ async function pushToScreen() {
             arrangement: JSON.stringify(state.arrangement),
             star_students: JSON.stringify(state.starStudents),
             progress_students: JSON.stringify(state.progressStudents),
-            created_by: state.currentUser ? state.currentUser.id : null,
+            created_by: state.currentUser ? state.currentUser.id : '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             is_completed: false
         };
-        await fetch(SUPABASE_URL + '/rest/v1/seat_choose', {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            console.error('推送失败:', resp.status, errText);
+            showToast('推送失败，请重试', 'error');
+            return;
+        }
         showModal('small', '推送成功', `
             <div class="modal-body">
                 <div style="text-align:center;padding:16px;">
