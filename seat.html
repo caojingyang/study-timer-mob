@@ -688,7 +688,7 @@ const DEFAULT_STUDENTS = [
   {"name":"邓羽宸","gender":"女"},{"name":"黄梦怡","gender":"女"},{"name":"刘思颖","gender":"女"},
   {"name":"刘以柯","gender":"女"},{"name":"刘紫涵","gender":"女"},{"name":"罗梦雪","gender":"女"},
   {"name":"潘紫萱","gender":"女"},{"name":"强丽敏","gender":"女"},{"name":"秦卿","gender":"女"},
-  {"name":"宋欣雨","gender":"女"},{"name":"孙沁萱","gender":"女"},{"name":"陶乐云","gender":"女"},
+  {"name":"宋欣雨","gender":"女"},{"name":"孙沁萱","gender":"女"},
   {"name":"陶绮","gender":"女"},{"name":"汪学萍","gender":"女"},{"name":"王欣悦","gender":"女"},
   {"name":"王雨涵","gender":"女"},{"name":"王雨桐","gender":"女"},{"name":"吴紫昕","gender":"女"},
   {"name":"谢然","gender":"女"},{"name":"许亦优","gender":"女"},{"name":"杨霏菲","gender":"女"},
@@ -703,7 +703,7 @@ const DEFAULT_TEMPLATE = {
         {"cols": 0, "rows": 0, "aisle": true},
         {"cols": 2, "rows": 7},
         {"cols": 0, "rows": 0, "aisle": true},
-        {"cols": 1, "rows": 6, "offset": 1},
+        {"cols": 1, "rows": 5, "offset": 2},
         {"cols": 0, "rows": 0, "aisle": true},
         {"cols": 2, "rows": 7},
         {"cols": 0, "rows": 0, "aisle": true},
@@ -2885,9 +2885,12 @@ function exportToExcel() {
     const template = state.currentTemplate;
     const arrangement = state.arrangement;
 
-    // 计算总列数和列类型（座位/过道）
-    let totalCols = 0;
-    let colTypes = [];
+    // 中文数字映射
+    const cnNums = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+
+    // 计算总列数和列类型（第0列为行标签，之后为座位/过道）
+    let totalCols = 1; // 第0列：行标签
+    let colTypes = ['label'];
     for (const g of template.groups) {
         if (g.aisle) {
             totalCols += 1;
@@ -2902,18 +2905,22 @@ function exportToExcel() {
     // 最大行数需考虑offset：组实际占用的行数为 rows + offset
     const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
 
-    // 通用样式：宋体11pt不加粗、居中对齐、thin边框
+    // 通用样式：宋体11pt不加粗、居中对齐、wrapText、thin边框
     const thinBorder = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
     const cellFont = { name: '宋体', sz: 11, bold: false };
-    const centerAlign = { horizontal: 'center', vertical: 'center' };
+    const centerAlign = { horizontal: 'center', vertical: 'center', wrapText: true };
 
-    // 构建网格数据和座位标记
+    // 构建网格数据和座位标记（第0列为行标签）
     let grid = [];
     let seatCellMap = [];
     for (let r = 0; r < maxRows; r++) {
         let row = new Array(totalCols).fill('');
         let isSeatRow = new Array(totalCols).fill(false);
-        let col = 0;
+
+        // 行标签：第七排、第六排...
+        row[0] = `第${cnNums[maxRows - r] || (maxRows - r)}排`;
+
+        let col = 1; // 从第1列开始（跳过行标签列）
         let sgIdx = 0;
         for (const g of template.groups) {
             if (g.aisle) {
@@ -2921,13 +2928,12 @@ function exportToExcel() {
             } else {
                 const offset = g.offset || 0;
                 for (let c = 0; c < g.cols; c++) {
-                    // 有offset的组：行号需减去offset，且仅在该组的有效行范围内放置座位
                     const adjustedRow = r - offset;
                     if (adjustedRow >= 0 && adjustedRow < g.rows) {
                         const seatId = `seat-${sgIdx}-${adjustedRow}-${c}`;
                         const student = arrangement[seatId];
                         if (student) row[col + c] = student.name;
-                        isSeatRow[col + c] = true; // 空座位也标记为座位格（保留框线）
+                        isSeatRow[col + c] = true;
                     }
                 }
                 col += g.cols;
@@ -2947,9 +2953,9 @@ function exportToExcel() {
     const podiumStart = template.podium ? template.podium.startGroup : 0;
     const podiumEnd = template.podium ? template.podium.endGroup : 0;
 
-    // 计算讲台列范围
+    // 计算讲台列范围（列索引偏移+1，因第0列为行标签）
     let podiumStartCol = -1, podiumEndCol = -1;
-    let col = 0, sgIdx = 0;
+    let col = 1, sgIdx = 0;
     for (const g of template.groups) {
         if (g.aisle) {
             if (sgIdx > podiumStart && sgIdx <= podiumEnd) {
@@ -2969,8 +2975,13 @@ function exportToExcel() {
     // 后备：居中
     if (podiumStartCol < 0 || podiumEndCol < 0) {
         const center = Math.floor(totalCols / 2);
-        podiumStartCol = Math.max(0, center - 3);
+        podiumStartCol = Math.max(1, center - 3);
         podiumEndCol = Math.min(totalCols - 1, center + 3);
+    }
+    // 收窄讲台范围：排除起始组首列和结束组末列，匹配上传表格的 F:J 合并范围
+    if (podiumEndCol - podiumStartCol >= 4) {
+        podiumStartCol += 1;
+        podiumEndCol -= 1;
     }
     podiumRow[podiumStartCol] = '讲台';
     const podiumRowIdx = grid.length;
@@ -2980,8 +2991,8 @@ function exportToExcel() {
     // 创建工作表
     const ws = XLSX.utils.aoa_to_sheet(grid);
 
-    // 列宽：座位10，过道3
-    ws['!cols'] = colTypes.map(t => ({ wch: t === 'aisle' ? 3 : 10 }));
+    // 列宽：行标签8，座位10，过道3
+    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 8 : (t === 'aisle' ? 3 : 10) }));
 
     // 行高：座位28，空行10，讲台26
     ws['!rows'] = [];
@@ -2992,7 +3003,10 @@ function exportToExcel() {
     // 合并讲台单元格
     ws['!merges'] = [{ s: { r: podiumRowIdx, c: podiumStartCol }, e: { r: podiumRowIdx, c: podiumEndCol } }];
 
-    // 为座位格应用样式（空座位也保留框线）
+    // 隐藏网格线
+    ws['!views'] = [{ showGridLines: false }];
+
+    // 为座位格应用样式（空座位也保留框线，行标签列不加边框）
     for (let r = 0; r < maxRows; r++) {
         for (let c = 0; c < totalCols; c++) {
             if (seatCellMap[r][c]) {
@@ -3003,6 +3017,11 @@ function exportToExcel() {
                     ws[cellRef] = { t: 's', v: '', s: { border: thinBorder, alignment: centerAlign, font: cellFont } };
                 }
             }
+        }
+        // 行标签样式：居中、宋体11pt、无边框
+        const labelRef = XLSX.utils.encode_cell({ r: r, c: 0 });
+        if (ws[labelRef]) {
+            ws[labelRef].s = { alignment: centerAlign, font: cellFont };
         }
     }
 
