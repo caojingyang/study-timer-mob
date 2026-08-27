@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>高二（13）班智能选座系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --boy-bg: #dbeafe;
+            --boy-text: #1e40af;
+            --boy-border: #93c5fd;
+            --girl-bg: #fce7f3;
+            --girl-text: #db2777;
+            --girl-border: #f9a8d4;
+            --star-border: #f59e0b;
+            --star-bg: #fef3c7;
+            --star-text: #92400e;
+            --progress-border: #22c55e;
+            --progress-bg: #dcfce7;
+            --progress-text: #166534;
+            --seat-border: #94a3b8;
+            --seat-empty-bg: #f8fafc;
+            --skipped-border: #94a3b8;
+            --skipped-bg: #f1f5f9;
+            --skipped-text: #64748b;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #1e293b;
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+            color: white;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        /* Main layout */
+        .main-container {
+            display: flex;
+            gap: 18px;
+            padding: 18px;
+            height: calc(100vh - 76px);
+        }
+        .left-panel {
+            flex: 1;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            padding: 22px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .right-panel {
+            flex: 0 0 120px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .right-header {
+            padding: 12px 10px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .right-header h3 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .right-header .sub {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+            font-weight: 400;
+        }
+        .student-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            position: relative;
+        }
+        .student-list::-webkit-scrollbar { width: 8px; }
+        .student-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .student-list::-webkit-scrollbar-track { background: transparent; }
+        /* Star / Progress groups */
+        .name-group {
+            border: 2px dashed var(--star-border);
+            border-radius: 10px;
+            padding: 8px 6px 6px;
+            background: rgba(254, 243, 199, 0.25);
+            position: relative;
+        }
+        .name-group.progress-group {
+            border-color: var(--progress-border);
+            background: rgba(220, 252, 231, 0.3);
+        }
+        .name-group.skipped-group {
+            border-color: var(--skipped-border);
+            background: #f8fafc;
+        }
+        .name-group-title {
+            position: absolute;
+            top: -9px;
+            left: 8px;
+            background: white;
+            padding: 0 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .name-group.star-group .name-group-title { color: var(--star-text); }
+        .name-group.progress-group .name-group-title { color: var(--progress-text); }
+        .name-group.skipped-group .name-group-title { color: var(--skipped-text); }
+        .group-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 2px;
+        }
+        .student-card {
+            padding: 4px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: grab;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border: 2px dashed var(--seat-border);
+            text-align: center;
+            position: relative;
+            box-sizing: border-box;
+            width: 78px;
+            min-height: 52px;
+            align-self: center;
+            background: var(--seat-empty-bg);
+            touch-action: none;
+        }
+        .student-card:hover { transform: translateX(3px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .student-card:active { cursor: grabbing; }
+        .student-card.boy { background: var(--boy-bg); color: var(--boy-text); border-color: var(--boy-border); }
+        .student-card.girl { background: #fbcfe8; color: #9d174d; border-color: #f472b6; }
+        .student-card.star { border: 2px dashed var(--star-border); background: var(--star-bg); color: var(--star-text); }
+        .student-card.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); color: var(--progress-text); }
+        .student-card.skipped {
+            border: 2px dashed var(--skipped-border);
+            background: var(--skipped-bg);
+            color: var(--skipped-text);
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+        .student-card.skipped:hover { transform: none; box-shadow: none; }
+        .student-card.seated {
+            opacity: 0.4;
+            text-decoration: line-through;
+            cursor: not-allowed;
+        }
+        .student-card.seated:hover { transform: none; box-shadow: none; }
+        .student-card.current {
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3);
+            animation: pulseCard 1.6s ease-in-out infinite;
+        }
+        @keyframes pulseCard {
+            0%,100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3); }
+            50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.25), 0 6px 18px rgba(99,102,241,0.35); }
+        }
+        .student-card.dragging { opacity: 0.5; }
+        .card-number {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 1;
+        }
+        .student-card.star .card-number { background: var(--star-border); }
+        .student-card.progress .card-number { background: var(--progress-border); }
+        .right-footer {
+            padding: 8px 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn {
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; }
+        .btn-secondary:hover { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+        .btn-warning:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-lg { padding: 16px 30px; font-size: 18px; border-radius: 14px; }
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            color: #94a3b8;
+        }
+        .empty-state-icon { font-size: 80px; }
+        .empty-state-text { font-size: 22px; font-weight: 600; }
+        /* Seating area */
+        .seating-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            transform-origin: top center;
+        }
+        .seating-scale-wrapper {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+        .seat-groups-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .seat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .seat-row {
+            display: flex;
+            gap: 8px;
+        }
+        .seat {
+            border: 2px dashed var(--seat-border);
+            border-radius: 10px;
+            min-height: 52px;
+            min-width: 78px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--seat-empty-bg);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px;
+            text-align: center;
+            position: relative;
+            user-select: none;
+            touch-action: none;
+        }
+        .seat:hover { border-color: var(--primary-light); background: var(--primary-bg); }
+        .seat.drag-over {
+            background: #c7d2fe;
+            border-color: var(--primary);
+            border-style: solid;
+            transform: scale(1.06);
+        }
+        .seat.occupied {
+            border-style: solid;
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            cursor: grab;
+        }
+        .seat.occupied.boy { background: var(--boy-bg); border-color: var(--boy-border); color: var(--boy-text); }
+        .seat.occupied.girl { background: #fbcfe8; border-color: #f472b6; color: #9d174d; }
+        .seat.occupied.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
+        .seat.occupied.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
+        .aisle-spacer { min-width: 24px; }
+        .podium-spacer-row { height: 16px; }
+        .podium-row { display: flex; gap: 12px; width: 100%; }
+        .podium {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            box-shadow: 0 4px 16px rgba(79,70,229,0.2);
+        }
+        /* Left toolbar */
+        .left-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .left-toolbar h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .seating-info { font-size: 14px; color: #64748b; margin-top: 4px; }
+        .toolbar-actions { display: flex; gap: 10px; }
+        /* Selection indicator */
+        .selection-indicator {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 14px;
+            padding: 14px 22px;
+            margin-bottom: 14px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #92400e;
+            justify-content: center;
+        }
+        .selection-indicator.active { display: flex; }
+        .selection-indicator .next-name {
+            background: white;
+            padding: 5px 14px;
+            border-radius: 10px;
+            color: #1e40af;
+            font-weight: 700;
+        }
+        /* Drag overlay (drop back to list) */
+        .drag-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px;
+            z-index: 10;
+            pointer-events: none;
+            border-radius: 14px;
+        }
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white;
+            border-radius: 18px;
+            padding: 26px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95) translateY(10px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .modal-card.large { width: 900px; }
+        .modal-card.medium { width: 560px; }
+        .modal-card.small { width: 420px; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .modal-title { font-size: 22px; font-weight: 700; color: #1e293b; }
+        .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #64748b;
+        }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { margin-bottom: 16px; }
+        .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus { border-color: var(--primary-light); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #475569; }
+        /* Custom drag ghost */
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.92;
+            transform: translate(-50%, -50%);
+            transition: none;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 14px 26px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            animation: toastIn 0.3s ease;
+            max-width: 80vw;
+            text-align: center;
+        }
+        @keyframes toastIn {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        .toast.warning { background: #d97706; }
+        /* Completed screen */
+        .completed-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #334155;
+        }
+        .completed-screen .icon { font-size: 80px; }
+        .completed-screen h2 { font-size: 28px; margin: 0; }
+        .completed-screen p { font-size: 16px; color: #64748b; margin: 0; }
+        /* 禁止文本选中 */
+        .student-card, .seat.occupied {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .left-panel, .right-panel { flex: 1; width: 100%; }
+            .right-panel { max-height: 350px; width: 100%; }
+            .header-title { font-size: 16px; }
+            .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
+            .student-card { width: 60px; min-height: 44px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Main App -->
+<div id="appContent">
+
+<!-- Header -->
+<div class="app-header">
+    <button class="back-btn" onclick="goBack()"><i class="fa fa-arrow-left"></i> 返回</button>
+    <div class="header-title">
+        <span style="font-size:30px;">🪑</span>
+        <span>高二（13）班智能选座系统</span>
+    </div>
+    <div style="width:96px;"></div>
+</div>
+
+<!-- Main Container -->
+<div class="main-container">
+    <!-- Left Panel: Seating Area -->
+    <div class="left-panel" id="leftPanel">
+        <!-- Content rendered dynamically -->
+    </div>
+
+    <!-- Right Panel: Star / Progress Student List -->
+    <div class="right-panel" id="rightPanel">
+        <div class="right-header">
+            <h3><i class="fa fa-trophy"></i> 选座名单</h3>
+            <div class="sub" id="selectionInfo">加载中...</div>
+        </div>
+        <div class="student-list" id="studentList">
+            <div class="drag-overlay" id="dragOverlay">
+                <div>
+                    <i class="fa fa-arrows" style="font-size:26px;margin-bottom:6px;display:block;"></i>
+                    <span style="font-size:14px;">移到此处取消入座</span>
+                </div>
+            </div>
+        </div>
+        <div class="right-footer">
+            <button class="btn btn-warning" style="width:100%;padding:8px 10px;font-size:13px;" id="skipBtn" onclick="showSkipPassword()">
+                <i class="fa fa-forward"></i> 跳过
+            </button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Modal Container -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+        <!-- Modal content rendered here -->
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== CONFIG ====================
+const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
+
+// 班级花名册（用于查询性别，与 seat.html 保持一致）
+const DEFAULT_STUDENTS = [
+  {"name":"毕子昂","gender":"男"},{"name":"蔡峻熙","gender":"男"},{"name":"曹健","gender":"男"},
+  {"name":"曹敬杨","gender":"男"},{"name":"曹星瀚","gender":"男"},{"name":"陈骏昕","gender":"男"},
+  {"name":"崔贤俊","gender":"男"},{"name":"桂博岳","gender":"男"},{"name":"郭奕晨","gender":"男"},
+  {"name":"洪高远","gender":"男"},{"name":"靖永诚","gender":"男"},{"name":"黎孟翔","gender":"男"},
+  {"name":"李天诚","gender":"男"},{"name":"刘明磊","gender":"男"},{"name":"茆钰鸿","gender":"男"},
+  {"name":"秦家浩","gender":"男"},{"name":"盛泽宇","gender":"男"},{"name":"唐一晨","gender":"男"},
+  {"name":"陶杨","gender":"男"},{"name":"王明锐","gender":"男"},{"name":"王泰格","gender":"男"},
+  {"name":"王逸谦","gender":"男"},{"name":"王宇皓","gender":"男"},{"name":"王梓帆","gender":"男"},
+  {"name":"文靖涵","gender":"男"},{"name":"夏浩岩","gender":"男"},{"name":"徐赵暄","gender":"男"},
+  {"name":"许健翔","gender":"男"},{"name":"许元非","gender":"男"},{"name":"许志强","gender":"男"},
+  {"name":"杨添翼","gender":"男"},{"name":"尹吴子恒","gender":"男"},{"name":"张瑞杨","gender":"男"},
+  {"name":"张伟杰","gender":"男"},{"name":"张子豪","gender":"男"},{"name":"张梓宸","gender":"男"},
+  {"name":"鲍文萱","gender":"女"},{"name":"鲍谷歌","gender":"女"},{"name":"蔡欣瑜","gender":"女"},
+  {"name":"邓羽宸","gender":"女"},{"name":"黄梦怡","gender":"女"},{"name":"刘思颖","gender":"女"},
+  {"name":"刘以柯","gender":"女"},{"name":"刘紫涵","gender":"女"},{"name":"罗梦雪","gender":"女"},
+  {"name":"潘紫萱","gender":"女"},{"name":"强丽敏","gender":"女"},{"name":"秦卿","gender":"女"},
+  {"name":"宋欣雨","gender":"女"},{"name":"孙沁萱","gender":"女"},
+  {"name":"陶绮","gender":"女"},{"name":"汪学萍","gender":"女"},{"name":"王欣悦","gender":"女"},
+  {"name":"王雨涵","gender":"女"},{"name":"王雨桐","gender":"女"},{"name":"吴紫昕","gender":"女"},
+  {"name":"谢然","gender":"女"},{"name":"许亦优","gender":"女"},{"name":"杨霏菲","gender":"女"},
+  {"name":"赵子琳","gender":"女"},{"name":"宗钰晨","gender":"女"}
+];
+
+// ==================== STATE ====================
+const state = {
+    record: null,            // 当前 seat_choose 记录
+    seatChooseId: null,
+    currentTemplate: null,
+    arrangement: {},         // seatId -> {name, gender}  （不含跳过信息）
+    starStudents: [],        // [{name, rank, gender?}]
+    progressStudents: [],    // [{name, order, gender?}]
+    skippedStudents: [],     // [{name, gender, origin}]
+    selectionOrder: [],      // 顺序选座名单（姓名数组）
+    currentIndex: 0,         // 下一位选座者在 selectionOrder 中的下标
+    genderMap: {},           // 姓名 -> 性别
+    phase: 'loading'         // 'loading' | 'empty' | 'arranging' | 'completed'
+};
+
+let saveTimer = null;
+let toastTimer = null;
+
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+    buildGenderMap();
+    await loadLatestSeatChoose();
+}
+
+// 构建姓名 -> 性别 的映射
+function buildGenderMap() {
+    state.genderMap = {};
+    for (const s of DEFAULT_STUDENTS) {
+        state.genderMap[s.name] = s.gender;
+    }
+}
+
+function getGender(name, fallback) {
+    if (fallback) return fallback;
+    return state.genderMap[name] || '男';
+}
+
+// 返回上一页
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = './';
+    }
+}
+
+// ==================== DATABASE READ ====================
+async function loadLatestSeatChoose() {
+    state.phase = 'loading';
+    renderLeftPanel();
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose?order=created_at.desc&limit=1', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        let data = [];
+        if (resp.ok) {
+            data = await resp.json();
+        }
+        if (!Array.isArray(data) || data.length === 0) {
+            // 教师暂未推送座位表
+            state.phase = 'empty';
+            renderLeftPanel();
+            renderStudentList();
+            return;
+        }
+        const rec = data[0];
+        state.record = rec;
+        state.seatChooseId = rec.id;
+
+        // 已完成（数据库标记 或 本地 localStorage 标记）
+        const localDone = localStorage.getItem('seat_choose_done_' + rec.id) === '1';
+        if (rec.is_completed === true || localDone) {
+            state.phase = 'completed';
+            renderLeftPanel();
+            renderStudentList();
+            return;
+        }
+
+        parseRecord(rec);
+        state.phase = 'arranging';
+        buildSelectionOrder();
+        renderLeftPanel();
+        renderStudentList();
+        updateSelectionIndicator();
+    } catch(e) {
+        console.warn('加载座位表失败:', e);
+        state.phase = 'empty';
+        renderLeftPanel();
+        renderStudentList();
+        showToast('加载座位表失败，请检查网络', 'error');
+    }
+}
+
+// 解析推送记录
+function parseRecord(rec) {
+    // 模板布局
+    const layout = typeof rec.template_layout === 'string' ? JSON.parse(rec.template_layout) : (rec.template_layout || {});
+    state.currentTemplate = layout;
+
+    // 当前排座结果（含 __skipped__ 跳过信息）
+    const rawArr = typeof rec.arrangement === 'string' ? JSON.parse(rec.arrangement) : (rec.arrangement || {});
+    state.arrangement = {};
+    state.skippedStudents = [];
+    if (rawArr && typeof rawArr === 'object') {
+        for (const k in rawArr) {
+            if (k === '__skipped__') {
+                const sk = rawArr[k];
+                if (Array.isArray(sk)) state.skippedStudents = sk.slice();
+            } else {
+                state.arrangement[k] = rawArr[k];
+            }
+        }
+    }
+
+    // 学习之星
+    const stars = typeof rec.star_students === 'string' ? JSON.parse(rec.star_students) : (rec.star_students || []);
+    state.starStudents = (Array.isArray(stars) ? stars : []).filter(s => s && s.name);
+
+    // 进步之星
+    const progress = typeof rec.progress_students === 'string' ? JSON.parse(rec.progress_students) : (rec.progress_students || []);
+    state.progressStudents = (Array.isArray(progress) ? progress : []).filter(s => s && s.name);
+
+    // 将已跳过的同学从 star / progress 中移除（保证不参与顺序选座）
+    const skippedNames = state.skippedStudents.map(s => s.name);
+    state.starStudents = state.starStudents.filter(s => !skippedNames.includes(s.name));
+    state.progressStudents = state.progressStudents.filter(s => !skippedNames.includes(s.name));
+
+    // 补全性别
+    state.starStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+    state.progressStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+    state.skippedStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+}
+
+// ==================== SELECTION ORDER ====================
+function buildSelectionOrder() {
+    const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999)).map(s => s.name);
+    const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999)).map(s => s.name);
+    state.selectionOrder = [...stars, ...progress];
+    recomputeIndex();
+}
+
+// 重算下一位选座者：顺序名单中第一个未入座者
+function recomputeIndex() {
+    let i = 0;
+    for (; i < state.selectionOrder.length; i++) {
+        if (!isSeated(state.selectionOrder[i])) break;
+    }
+    state.currentIndex = i;
+}
+
+function isSeated(name) {
+    for (const k in state.arrangement) {
+        if (state.arrangement[k] && state.arrangement[k].name === name) return true;
+    }
+    return false;
+}
+
+function nextExpectedName() {
+    if (state.currentIndex < state.selectionOrder.length) {
+        return state.selectionOrder[state.currentIndex];
+    }
+    return null;
+}
+
+function isSelectionDone() {
+    return state.currentIndex >= state.selectionOrder.length;
+}
+
+// ==================== LEFT PANEL ====================
+function renderLeftPanel() {
+    const panel = document.getElementById('leftPanel');
+
+    if (state.phase === 'loading') {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <i class="fa fa-spinner fa-spin" style="font-size:54px;"></i>
+                <div class="empty-state-text">正在加载座位表...</div>
+            </div>`;
+        return;
+    }
+
+    if (state.phase === 'empty') {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-text">教师暂未推送座位表</div>
+                <div style="font-size:15px;color:#94a3b8;">请等待教师推送座位表后再进行选座</div>
+            </div>`;
+        return;
+    }
+
+    if (state.phase === 'completed') {
+        panel.innerHTML = `
+            <div class="completed-screen">
+                <div class="icon">✅</div>
+                <h2>本次选座已完成</h2>
+                <p>座位安排已保存，如需重新选座请联系教师重新推送座位表。</p>
+                <button class="btn btn-secondary btn-lg" onclick="goBack()"><i class="fa fa-arrow-left"></i> 返回</button>
+            </div>`;
+        return;
+    }
+
+    // arranging
+    renderArranging(panel);
+}
+
+function renderArranging(panel) {
+    const seatedCount = Object.keys(state.arrangement).length;
+    const totalSelectable = state.selectionOrder.length;
+    const done = isSelectionDone();
+
+    panel.innerHTML = `
+        <div class="left-toolbar">
+            <div>
+                <h3><i class="fa fa-table"></i> 选座区域</h3>
+                <div class="seating-info">已选座：${seatedCount}/${totalSelectable} · 请按右侧名单顺序拖动到座位</div>
+            </div>
+            <div class="toolbar-actions">
+                <button class="btn btn-success ${done ? 'btn-lg' : ''}" onclick="confirmSave()" ${totalSelectable === 0 ? 'disabled' : ''}>
+                    <i class="fa fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+        <div class="selection-indicator" id="selectionIndicator">
+            <i class="fa fa-info-circle"></i>
+            <span>下一位选座的同学：</span>
+            <span class="next-name" id="nextStudentName"></span>
+        </div>
+        <div class="seating-scale-wrapper" id="seatingScaleWrapper">
+            <div class="seating-container" id="seatingContainer"></div>
+        </div>`;
+
+    renderSeats();
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+// ==================== SEAT RENDERING ====================
+function renderSeats() {
+    const container = document.getElementById('seatingContainer');
+    if (!container || !state.currentTemplate) return;
+
+    container.innerHTML = '';
+    const template = state.currentTemplate;
+
+    const groupsRow = document.createElement('div');
+    groupsRow.className = 'seat-groups-row';
+
+    let seatGroupIdx = 0;
+    const groups = template.groups || [];
+    // 计算最大占用行数（含offset）
+    const seatGroups = groups.filter(g => !g.aisle);
+    const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
+
+    for (const g of groups) {
+        if (g.aisle) {
+            const spacer = document.createElement('div');
+            spacer.className = 'aisle-spacer';
+            groupsRow.appendChild(spacer);
+        } else {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'seat-group';
+            // 有offset的组：向下平移
+            const offset = g.offset || 0;
+            if (offset > 0) {
+                const seatHeight = 52;
+                const rowGap = 8;
+                groupDiv.style.marginTop = (offset * (seatHeight + rowGap)) + 'px';
+            }
+            for (let r = 0; r < g.rows; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                for (let c = 0; c < g.cols; c++) {
+                    const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
+                    const seat = createSeat(seatId);
+                    rowDiv.appendChild(seat);
+                }
+                groupDiv.appendChild(rowDiv);
+            }
+            groupsRow.appendChild(groupDiv);
+            seatGroupIdx++;
+        }
+    }
+    container.appendChild(groupsRow);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'podium-spacer-row';
+    container.appendChild(spacer);
+
+    renderPodium(container, template);
+
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+function renderPodium(container, template) {
+    const podiumStart = template.podium ? template.podium.startGroup : 0;
+    const podiumEnd = template.podium ? template.podium.endGroup : 0;
+
+    let beforeFlex = 0, podiumFlex = 0, afterFlex = 0;
+    let seatGroupIdx = 0;
+    for (const g of (template.groups || [])) {
+        if (g.aisle) {
+            if (seatGroupIdx > podiumStart && seatGroupIdx <= podiumEnd) podiumFlex += 1;
+            else if (seatGroupIdx <= podiumStart) beforeFlex += 1;
+            else afterFlex += 1;
+        } else {
+            if (seatGroupIdx >= podiumStart && seatGroupIdx <= podiumEnd) podiumFlex += g.cols;
+            else if (seatGroupIdx < podiumStart) beforeFlex += g.cols;
+            else afterFlex += g.cols;
+            seatGroupIdx++;
+        }
+    }
+
+    const podiumRow = document.createElement('div');
+    podiumRow.className = 'podium-row';
+    podiumRow.style.width = '100%';
+
+    if (beforeFlex > 0) {
+        const before = document.createElement('div');
+        before.style.flex = beforeFlex;
+        podiumRow.appendChild(before);
+    }
+    const podium = document.createElement('div');
+    podium.className = 'podium';
+    podium.style.flex = Math.max(podiumFlex, 1);
+    podium.textContent = '讲　台';
+    podiumRow.appendChild(podium);
+    if (afterFlex > 0) {
+        const after = document.createElement('div');
+        after.style.flex = afterFlex;
+        podiumRow.appendChild(after);
+    }
+    container.appendChild(podiumRow);
+}
+
+function createSeat(seatId) {
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.id = seatId;
+    seat.dataset.seatId = seatId;
+    seat.dataset.dropTarget = 'seat';
+
+    const occupied = state.arrangement[seatId];
+    if (occupied) {
+        seat.classList.add('occupied');
+        seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
+
+        if (isStar(occupied.name)) seat.classList.add('star');
+        else if (isProgress(occupied.name)) seat.classList.add('progress');
+
+        seat.textContent = occupied.name;
+        seat.dataset.studentName = occupied.name;
+        seat.dataset.gender = occupied.gender;
+
+        // 自定义拖动：移动已入座的学生
+        seat.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            startCustomDrag({
+                type: 'move',
+                fromSeat: seatId,
+                name: occupied.name,
+                gender: occupied.gender,
+                sourceElement: seat
+            }, e);
+        });
+        seat.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const touch = e.touches[0];
+            startCustomDrag({
+                type: 'move',
+                fromSeat: seatId,
+                name: occupied.name,
+                gender: occupied.gender,
+                sourceElement: seat
+            }, { clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+    } else {
+        seat.textContent = '';
+    }
+    return seat;
+}
+
+function isStar(name) {
+    return state.starStudents.some(s => s.name === name);
+}
+function isProgress(name) {
+    return state.progressStudents.some(s => s.name === name);
+}
+
+// 座位表自动缩放以适应左侧面板
+function scaleSeatingContainer() {
+    const wrapper = document.getElementById('seatingScaleWrapper');
+    const container = document.getElementById('seatingContainer');
+    if (!wrapper || !container) return;
+
+    container.style.transform = 'scale(1)';
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) return;
+
+    const scaleX = (wrapperRect.width - 8) / containerRect.width;
+    const scaleY = (wrapperRect.height - 8) / containerRect.height;
+    const scale = Math.min(scaleX, scaleY, 1);
+    if (scale < 1) {
+        container.style.transform = `scale(${scale})`;
+        container.style.transformOrigin = 'top center';
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (state.phase === 'arranging') {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(scaleSeatingContainer, 100);
+    }
+});
+
+// ==================== STUDENT LIST (RIGHT PANEL) ====================
+function renderStudentList() {
+    const container = document.getElementById('studentList');
+    const info = document.getElementById('selectionInfo');
+
+    // 保留 dragOverlay
+    const overlay = document.getElementById('dragOverlay');
+    container.innerHTML = '';
+    if (overlay) container.appendChild(overlay);
+
+    if (state.phase === 'loading') {
+        info.textContent = '加载中...';
+        return;
+    }
+    if (state.phase === 'empty') {
+        info.textContent = '暂无名单';
+        return;
+    }
+    if (state.phase === 'completed') {
+        info.textContent = '选座已完成';
+        return;
+    }
+
+    const nextName = nextExpectedName();
+    const remaining = state.selectionOrder.length - state.currentIndex;
+    info.textContent = nextName ? `下一位：${nextName}（剩余 ${remaining} 人）` : '选座完成，请点击保存';
+
+    // 学习之星（按年排）
+    const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    // 进步之星（按顺序）
+    const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999));
+    // 已跳过
+    const skipped = state.skippedStudents;
+
+    if (stars.length > 0) {
+        const group = makeNameGroup('star', '学习之星', stars.map((s, i) => ({
+            name: s.name, gender: s.gender, order: i + 1, type: 'star'
+        })), nextName);
+        container.appendChild(group);
+    }
+    if (progress.length > 0) {
+        const group = makeNameGroup('progress', '进步之星', progress.map(s => ({
+            name: s.name, gender: s.gender, order: s.order, type: 'progress'
+        })), nextName);
+        container.appendChild(group);
+    }
+
+    if (stars.length === 0 && progress.length === 0) {
+        container.innerHTML += '<div style="text-align:center;padding:30px;color:#94a3b8;">暂无选座名单</div>';
+    }
+}
+
+function makeNameGroup(type, title, items, nextName) {
+    const group = document.createElement('div');
+    group.className = 'name-group ' + (type === 'star' ? 'star-group' : (type === 'progress' ? 'progress-group' : 'skipped-group'));
+    const t = document.createElement('div');
+    t.className = 'name-group-title';
+    const icon = type === 'star' ? 'fa-star' : (type === 'progress' ? 'fa-trophy' : 'fa-ban');
+    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（${items.length}人）`;
+    group.appendChild(t);
+
+    const cards = document.createElement('div');
+    cards.className = 'group-cards';
+    items.forEach(item => {
+        cards.appendChild(createStudentCard(item, nextName));
+    });
+    group.appendChild(cards);
+    return group;
+}
+
+function createStudentCard(item, nextName) {
+    const card = document.createElement('div');
+    card.className = `student-card ${item.gender === '男' ? 'boy' : 'girl'} ${item.type}`;
+    card.dataset.name = item.name;
+    card.dataset.gender = item.gender;
+    card.dataset.dragType = 'student';
+
+    const seated = isSeated(item.name);
+    if (seated) card.classList.add('seated');
+    if (item.name === nextName && !seated) card.classList.add('current');
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = item.name;
+    nameSpan.style.pointerEvents = 'none';
+    card.appendChild(nameSpan);
+
+    const badge = document.createElement('span');
+    badge.className = 'card-number';
+    badge.textContent = item.order;
+    card.appendChild(badge);
+
+    // 已入座或已跳过：不可拖动
+    if (seated || item.type === 'skipped') {
+        card.style.cursor = 'not-allowed';
+        return card;
+    }
+
+    // 自定义拖动：按下时启动
+    card.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        startCustomDrag({
+            type: 'student',
+            name: item.name,
+            gender: item.gender,
+            sourceElement: card
+        }, e);
+    });
+    card.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startCustomDrag({
+            type: 'student',
+            name: item.name,
+            gender: item.gender,
+            sourceElement: card
+        }, { clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+
+    return card;
+}
+
+// ==================== CUSTOM DRAG SYSTEM ====================
+let _dragState = {
+    active: false,
+    data: null,
+    ghost: null,
+    currentTarget: null
+};
+
+function startCustomDrag(data, e) {
+    if (data.type === 'student') {
+        if (isSeated(data.name)) return; // 已入座不拖动
+    }
+
+    _dragState.active = true;
+    _dragState.data = data;
+    _dragState.currentTarget = null;
+
+    const ghost = data.sourceElement.cloneNode(true);
+    ghost.className = 'drag-ghost ' + data.sourceElement.className;
+    ghost.style.width = data.sourceElement.offsetWidth + 'px';
+    ghost.style.height = data.sourceElement.offsetHeight + 'px';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    document.body.appendChild(ghost);
+    _dragState.ghost = ghost;
+
+    if (data.sourceElement) {
+        data.sourceElement.style.opacity = '0.4';
+    }
+
+    document.addEventListener('mousemove', _onDragMove);
+    document.addEventListener('mouseup', _onDragEnd);
+    document.addEventListener('touchmove', _onDragMoveTouch, { passive: false });
+    document.addEventListener('touchend', _onDragEndTouch);
+}
+
+function _onDragMove(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    _updateGhostPosition(e.clientX, e.clientY);
+    _checkDropTarget(e.clientX, e.clientY);
+}
+function _onDragMoveTouch(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    _updateGhostPosition(touch.clientX, touch.clientY);
+    _checkDropTarget(touch.clientX, touch.clientY);
+}
+function _updateGhostPosition(x, y) {
+    if (_dragState.ghost) {
+        _dragState.ghost.style.left = x + 'px';
+        _dragState.ghost.style.top = y + 'px';
+    }
+}
+function _checkDropTarget(x, y) {
+    if (_dragState.currentTarget) {
+        _dragState.currentTarget.classList.remove('drag-over');
+        _dragState.currentTarget = null;
+    }
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+    if (_dragState.ghost) _dragState.ghost.style.display = 'block';
+    if (!elem) return;
+
+    let seatEl = elem.closest('.seat[data-drop-target="seat"]');
+    if (seatEl) {
+        seatEl.classList.add('drag-over');
+        _dragState.currentTarget = seatEl;
+    }
+
+    const listEl = elem.closest('#studentList');
+    if (listEl && _dragState.data.type === 'move') {
+        const overlay = document.getElementById('dragOverlay');
+        if (overlay) overlay.style.display = 'flex';
+    } else {
+        const overlay = document.getElementById('dragOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+}
+function _onDragEnd(e) {
+    if (!_dragState.active) return;
+    _finishDrag(e.clientX, e.clientY);
+}
+function _onDragEndTouch(e) {
+    if (!_dragState.active) return;
+    const touch = e.changedTouches[0];
+    _finishDrag(touch.clientX, touch.clientY);
+}
+function _finishDrag(x, y) {
+    const data = _dragState.data;
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+
+    if (elem) {
+        const seatEl = elem.closest('.seat[data-drop-target="seat"]');
+        if (seatEl) {
+            const seatId = seatEl.dataset.seatId;
+            handleDrop(seatId, data);
+        }
+        if (data.type === 'move') {
+            const listEl = elem.closest('#studentList');
+            if (listEl) {
+                removeStudentFromSeat(data.fromSeat);
+                showToast(`已将 ${data.name} 移回名单`, 'success');
+            }
+        }
+    }
+    _cleanupDrag();
+}
+function _cleanupDrag() {
+    if (_dragState.ghost) { _dragState.ghost.remove(); _dragState.ghost = null; }
+    if (_dragState.data && _dragState.data.sourceElement) {
+        _dragState.data.sourceElement.style.opacity = '';
+    }
+    const overlay = document.getElementById('dragOverlay');
+    if (overlay) overlay.style.display = 'none';
+    _dragState.active = false;
+    _dragState.data = null;
+    _dragState.currentTarget = null;
+    document.removeEventListener('mousemove', _onDragMove);
+    document.removeEventListener('mouseup', _onDragEnd);
+    document.removeEventListener('touchmove', _onDragMoveTouch);
+    document.removeEventListener('touchend', _onDragEndTouch);
+}
+
+// ==================== DROP HANDLING ====================
+function handleDrop(seatId, data) {
+    if (data.type === 'student') {
+        // 顺序检查
+        if (state.currentIndex < state.selectionOrder.length) {
+            const expected = state.selectionOrder[state.currentIndex];
+            if (data.name !== expected) {
+                showToast(`请按照右侧名单顺序选择座位，下一位选座的同学：${expected}`, 'warning', 4000);
+                return;
+            }
+        }
+
+        if (state.arrangement[seatId]) {
+            showToast('该座位已有人，请先移走原有学生', 'warning');
+            return;
+        }
+
+        removeStudentFromAllSeats(data.name);
+        state.arrangement[seatId] = { name: data.name, gender: data.gender };
+
+        recomputeIndex();
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+
+        if (isSelectionDone()) {
+            showToast('全部选座完成，请点击"保存"按钮', 'success', 4000);
+        }
+        debouncedSave();
+
+    } else if (data.type === 'move') {
+        if (state.arrangement[seatId]) {
+            // 交换座位
+            const temp = state.arrangement[seatId];
+            state.arrangement[seatId] = { name: data.name, gender: data.gender };
+            state.arrangement[data.fromSeat] = temp;
+        } else {
+            delete state.arrangement[data.fromSeat];
+            state.arrangement[seatId] = { name: data.name, gender: data.gender };
+        }
+        recomputeIndex();
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        debouncedSave();
+    }
+}
+
+function removeStudentFromAllSeats(name) {
+    for (const seatId in state.arrangement) {
+        if (state.arrangement[seatId] && state.arrangement[seatId].name === name) {
+            delete state.arrangement[seatId];
+        }
+    }
+}
+function removeStudentFromSeat(seatId) {
+    if (state.arrangement[seatId]) {
+        delete state.arrangement[seatId];
+        recomputeIndex();
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        debouncedSave();
+    }
+}
+
+function updateSelectionIndicator() {
+    const indicator = document.getElementById('selectionIndicator');
+    const nameEl = document.getElementById('nextStudentName');
+    if (!indicator) return;
+
+    const next = nextExpectedName();
+    if (next) {
+        indicator.classList.add('active');
+        nameEl.textContent = next;
+    } else {
+        indicator.classList.remove('active');
+    }
+}
+
+// ==================== SKIP PERSON ====================
+function showSkipPassword() {
+    if (state.phase !== 'arranging') {
+        showToast('当前无需跳过', 'info');
+        return;
+    }
+    const currentName = nextExpectedName();
+    if (!currentName) {
+        showToast('选座已完成，无需跳过', 'info');
+        return;
+    }
+
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    window._skipTargetName = currentName;
+
+    showModal('small', '验证密码 · 跳过 ' + currentName, `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${escapeHtml(currentName)}</strong> 的选座，跳过后该同学将排列至进步之星后，不再参与顺序选座。</p>
+            <p style="margin-bottom:12px;font-size:14px;color:#94a3b8;">请输入当前用户密码或管理员密码以确认跳过</p>
+            <div class="form-group">
+                <input type="password" class="input-field" id="skipPasswordInput" placeholder="请输入密码" autofocus autocomplete="off">
+            </div>
+            <div style="font-size:13px;color:#94a3b8;">提示：管理员密码为当前月日时分（8位数字）。</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-warning" onclick="confirmSkip()">确认跳过</button>
+        </div>
+    `);
+    const input = document.getElementById('skipPasswordInput');
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmSkip(); });
+    setTimeout(() => input.focus(), 100);
+}
+
+// 生成管理员密码：月日时分（8位数字，24小时制，不足补0）
+function getAdminPassword() {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    return mm + dd + hh + mi;
+}
+
+async function confirmSkip() {
+    const input = document.getElementById('skipPasswordInput');
+    const password = input ? input.value : '';
+    if (!password) {
+        showToast('请输入密码', 'warning');
+        return;
+    }
+
+    const targetName = window._skipTargetName;
+    if (!targetName) {
+        closeModal();
+        return;
+    }
+
+    // 1) 管理员密码校验
+    const adminOk = (password === getAdminPassword());
+
+    // 2) 用户密码校验（查询 users 表，按 real_name 或 username 匹配，SHA-256 比对）
+    let userOk = false;
+    if (!adminOk) {
+        try {
+            const hash = await sha256(password);
+            const url = SUPABASE_URL + '/rest/v1/users?or=(real_name.ilike.' + encodeURIComponent(targetName) + ',username.ilike.' + encodeURIComponent(targetName) + ')&select=password_hash,real_name,username';
+            const resp = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+            if (resp.ok) {
+                const rows = await resp.json();
+                if (Array.isArray(rows) && rows.length > 0) {
+                    userOk = rows.some(r => r.password_hash && r.password_hash === hash);
+                }
+            }
+        } catch(e) {
+            console.warn('用户密码校验失败:', e);
+        }
+    }
+
+    if (!adminOk && !userOk) {
+        showToast('密码错误，请重新输入', 'error');
+        if (input) { input.value = ''; input.focus(); }
+        return;
+    }
+
+    closeModal();
+
+    // 执行跳过
+    // 先从座位上移除（若已入座）
+    removeStudentFromAllSeats(targetName);
+
+    // 判断来源
+    let gender = '男';
+    let origin = 'star';
+    const inStar = state.starStudents.find(s => s.name === targetName);
+    const inProg = state.progressStudents.find(s => s.name === targetName);
+    if (inStar) {
+        gender = inStar.gender || getGender(targetName);
+        origin = 'star';
+        state.starStudents = state.starStudents.filter(s => s.name !== targetName);
+    } else if (inProg) {
+        gender = inProg.gender || getGender(targetName);
+        origin = 'progress';
+        state.progressStudents = state.progressStudents.filter(s => s.name !== targetName);
+    } else {
+        gender = getGender(targetName);
+        origin = 'progress';
+    }
+
+    // 加入跳过名单（排列至进步之星后）
+    if (!state.skippedStudents.some(s => s.name === targetName)) {
+        state.skippedStudents.push({ name: targetName, gender: gender, origin: origin });
+    }
+
+    buildSelectionOrder();
+    renderSeats();
+    renderStudentList();
+    updateSelectionIndicator();
+
+    showToast(`已跳过 ${targetName}`, 'success');
+    debouncedSave();
+}
+
+// SHA-256（与 mobile.html 保持一致）
+async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ==================== SAVE ====================
+function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveArrangement(), 1000);
+}
+
+// 每次修改保存至数据库（仅更新 arrangement / 跳过信息 / 进步之星顺序）
+async function saveArrangement() {
+    if (state.phase !== 'arranging' || !state.seatChooseId) return;
+    try {
+        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
+        const body = {
+            arrangement: JSON.stringify(arrangementToSave),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            updated_at: new Date().toISOString()
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+    } catch(e) {
+        console.warn('保存失败:', e);
+    }
+}
+
+// 选择完成后点击"保存"：标记已完成 + localStorage
+function confirmSave() {
+    if (state.phase !== 'arranging' || !state.seatChooseId) return;
+    const done = isSelectionDone();
+    const msg = done
+        ? '确认保存本次选座结果？保存后将无法再修改座位安排。'
+        : '尚有同学未完成选座，确认提前保存并结束本次选座？保存后将无法再修改座位安排。';
+    showModal('small', '确认保存', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;font-size:16px;">${msg}</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-success" onclick="doSave()">确认保存</button>
+        </div>
+    `);
+}
+
+async function doSave() {
+    closeModal();
+    try {
+        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
+        const body = {
+            arrangement: JSON.stringify(arrangementToSave),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            is_completed: true,
+            updated_at: new Date().toISOString()
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        // localStorage 标记已完成，避免下次打开仍显示座位表
+        localStorage.setItem('seat_choose_done_' + state.seatChooseId, '1');
+        state.phase = 'completed';
+        renderLeftPanel();
+        renderStudentList();
+        showToast('选座结果已保存', 'success');
+    } catch(e) {
+        console.warn('保存失败:', e);
+        showToast('保存失败，请检查网络后重试', 'error');
+    }
+}
+
+// ==================== MODAL / TOAST ====================
+function showModal(size, title, content) {
+    const overlay = document.getElementById('modalOverlay');
+    const card = document.getElementById('modalCard');
+    card.className = 'modal-card ' + size;
+    card.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        ${content}
+    `;
+    overlay.classList.add('active');
+}
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, duration);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+}
+
+function countTotalSeats(template) {
+    if (!template || !template.groups) return 0;
+    return template.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0);
+}
+</script>
+</body>
+</html>
