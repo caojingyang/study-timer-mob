@@ -1023,20 +1023,23 @@ async function continueIncomplete(tableId) {
         const data = await resp.json();
         if (data && data.length > 0) {
             const table = data[0];
-            state.currentTemplate = table.template_layout;
-            state.arrangement = table.arrangement || {};
-            state.students = table.student_list || [...DEFAULT_STUDENTS];
-            state.starStudents = table.star_students || [];
-            state.progressStudents = table.progress_students || [];
+            // CloudBase PostgREST 可能返回 JSON 字符串，需统一解析
+            state.currentTemplate = typeof table.template_layout === 'string' ? JSON.parse(table.template_layout) : (table.template_layout || {});
+            state.arrangement = typeof table.arrangement === 'string' ? JSON.parse(table.arrangement) : (table.arrangement || {});
+            state.students = typeof table.student_list === 'string' ? JSON.parse(table.student_list) : (table.student_list || [...DEFAULT_STUDENTS]);
+            state.starStudents = typeof table.star_students === 'string' ? JSON.parse(table.star_students) : (table.star_students || []);
+            state.progressStudents = typeof table.progress_students === 'string' ? JSON.parse(table.progress_students) : (table.progress_students || []);
             state.seatingTableName = table.name;
             state.seatTableId = table.id;
             state.isCompleted = false;
             state.phase = 'arranging';
+            buildSelectionOrder();
             renderStudentList();
             renderLeftPanel();
             showToast(`已恢复座位表: ${table.name}`, 'success');
         }
     } catch(e) {
+        console.error('恢复座位表失败:', e);
         showToast('恢复座位表失败', 'error');
     }
 }
