@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>高二（13）班智能排座系统</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- pinyin-pro 用于拼音/首字母搜索 -->
     <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.2/dist/index.js"></script>
+    <!-- SheetJS 用于 Excel 导入导出 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Font Awesome 本地 CSS -->
     <link rel="stylesheet" href="font-awesome.min.css">
     <style>
+        /* ==================== CSS 变量与全局样式 ==================== */
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -17,9 +22,9 @@
             --boy-bg: #dbeafe;
             --boy-text: #1e40af;
             --boy-border: #93c5fd;
-            --girl-bg: #fce7f3;
-            --girl-text: #db2777;
-            --girl-border: #f9a8d4;
+            --girl-bg: #fbcfe8;
+            --girl-text: #9d174d;
+            --girl-border: #f472b6;
             --star-border: #f59e0b;
             --star-bg: #fef3c7;
             --progress-border: #22c55e;
@@ -28,14 +33,15 @@
             --seat-empty-bg: #f8fafc;
         }
         * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
         body {
-            margin: 0;
-            background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #fff0f6 100%);
-            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             color: #1e293b;
         }
-        /* Header */
+
+        /* ==================== 顶部标题栏 ==================== */
         .app-header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
             color: white;
@@ -70,7 +76,15 @@
             gap: 6px;
         }
         .back-btn:hover { background: rgba(255,255,255,0.35); }
-        /* Mobile banner */
+        .header-user {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ==================== 手机端提示横幅 ==================== */
         .mobile-banner {
             background: linear-gradient(90deg, #f59e0b, #f97316);
             color: white;
@@ -85,7 +99,8 @@
             from { transform: translateY(-100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        /* Main layout */
+
+        /* ==================== 主区域布局 ==================== */
         .main-container {
             display: flex;
             gap: 16px;
@@ -93,155 +108,136 @@
             height: calc(100vh - 60px);
         }
         .left-panel {
-            flex: 0 0 65%;
+            flex: 1;
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.06);
             padding: 20px;
-            overflow: auto;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         .right-panel {
-            flex: 0 0 35%;
+            flex: 0 0 auto;
+            width: 200px;
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
         .right-header {
-            padding: 16px 16px 8px;
+            padding: 12px 10px 8px;
             border-bottom: 1px solid #f1f5f9;
         }
         .right-header h3 {
-            margin: 0 0 10px;
-            font-size: 16px;
+            margin: 0 0 8px;
+            font-size: 14px;
             font-weight: 700;
             color: #334155;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
+
+        /* ==================== 搜索框 ==================== */
         .search-box {
             width: 100%;
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 2px solid #e2e8f0;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 12px;
             outline: none;
             transition: border-color 0.2s;
         }
         .search-box:focus { border-color: var(--primary-light); }
+
+        /* ==================== 学生名单 ==================== */
         .student-list {
             flex: 1;
             overflow-y: auto;
-            padding: 12px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
             position: relative;
         }
         .student-list::-webkit-scrollbar { width: 6px; }
         .student-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .student-list::-webkit-scrollbar-track { background: transparent; }
         .student-card {
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: grab;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            user-select: none;
-            border: 2px solid transparent;
-        }
-        .student-card:hover { transform: translateX(4px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .student-card:active { cursor: grabbing; }
-        .student-card.boy {
-            background: var(--boy-bg);
-            color: var(--boy-text);
-            border-color: var(--boy-border);
-        }
-        .student-card.girl {
-            background: var(--girl-bg);
-            color: var(--girl-text);
-            border-color: var(--girl-border);
-        }
-        .student-card.star {
-            border: 2px dashed var(--star-border);
-            background: var(--star-bg);
-        }
-        .student-card.progress {
-            border: 2px dashed var(--progress-border);
-            background: var(--progress-bg);
-        }
-        .student-card.seated {
-            opacity: 0.4;
-            text-decoration: line-through;
-        }
-        .student-card.dragging { opacity: 0.5; }
-        .card-number {
-            background: var(--progress-border);
-            color: white;
-            border-radius: 50%;
-            width: 22px;
-            height: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        .right-footer {
-            padding: 12px 16px;
-            border-top: 1px solid #f1f5f9;
-        }
-        .btn {
-            padding: 10px 20px;
+            padding: 4px;
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
+            cursor: grab;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border: 2px dashed var(--seat-border);
+            text-align: center;
+            position: relative;
+            box-sizing: border-box;
+            width: 78px;
+            min-height: 52px;
+            align-self: center;
+            background: var(--seat-empty-bg);
+        }
+        .student-card:hover { transform: translateX(3px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .student-card:active { cursor: grabbing; }
+        .student-card.boy { background: var(--boy-bg); color: var(--boy-text); border-color: var(--boy-border); }
+        .student-card.girl { background: var(--girl-bg); color: var(--girl-text); border-color: var(--girl-border); }
+        .student-card.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
+        .student-card.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
+        .student-card.seated { opacity: 0.4; text-decoration: line-through; }
+        .card-number {
+            position: absolute;
+            top: -6px; right: -6px;
+            background: var(--progress-border);
+            color: white;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 1;
+        }
+        .right-footer { padding: 10px; border-top: 1px solid #f1f5f9; }
+
+        /* ==================== 按钮 ==================== */
+        .btn {
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all 0.15s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            box-shadow: 0 2px 8px rgba(99,102,241,0.3);
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
         .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
-        .btn-secondary {
-            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-            color: #475569;
-        }
+        .btn-secondary { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; }
         .btn-secondary:hover { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
-        .btn-success {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: white;
-            box-shadow: 0 2px 8px rgba(34,197,94,0.3);
-        }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
         .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
-        .btn-warning {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-        }
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-        }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
         .btn-lg { padding: 14px 28px; font-size: 16px; border-radius: 12px; }
-        /* Empty state */
+
+        /* ==================== 空状态 ==================== */
         .empty-state {
             flex: 1;
             display: flex;
@@ -254,33 +250,33 @@
         .empty-state-icon { font-size: 64px; }
         .empty-state-text { font-size: 18px; font-weight: 500; }
         .empty-state-buttons { display: flex; gap: 16px; }
-        /* Seating area */
+
+        /* ==================== 座位区域 ==================== */
         .seating-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
             padding: 20px 0;
+            transform-origin: top center;
         }
-        .seat-groups-row {
+        .seating-scale-wrapper {
+            flex: 1;
+            overflow: hidden;
             display: flex;
-            gap: 12px;
+            justify-content: center;
             align-items: flex-start;
+            position: relative;
         }
-        .seat-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .seat-row {
-            display: flex;
-            gap: 8px;
-        }
+        .seat-groups-row { display: flex; gap: 12px; align-items: flex-start; }
+        .seat-group { display: flex; flex-direction: column; gap: 8px; }
+        .seat-row { display: flex; gap: 8px; }
         .seat {
             border: 2px dashed var(--seat-border);
             border-radius: 10px;
             min-height: 52px;
             min-width: 78px;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -310,16 +306,9 @@
         .seat.occupied.girl { background: var(--girl-bg); border-color: var(--girl-border); color: var(--girl-text); }
         .seat.occupied.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
         .seat.occupied.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
-        .aisle-spacer {
-            min-width: 24px;
-        }
-        .podium-spacer-row {
-            height: 16px;
-        }
-        .podium-row {
-            display: flex;
-            gap: 12px;
-        }
+        .aisle-spacer { min-width: 24px; }
+        .podium-spacer-row { height: 16px; }
+        .podium-row { display: flex; gap: 12px; }
         .podium {
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
@@ -331,7 +320,8 @@
             letter-spacing: 8px;
             box-shadow: 0 4px 16px rgba(79,70,229,0.2);
         }
-        /* Drag overlay */
+
+        /* ==================== 拖拽遮罩 ==================== */
         .drag-overlay {
             position: absolute;
             inset: 0;
@@ -340,14 +330,15 @@
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
-            border-radius: 0 0 16px 16px;
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             z-index: 10;
+            pointer-events: none;
         }
-        /* Modal */
+
+        /* ==================== 模态框 ==================== */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -394,13 +385,9 @@
         }
         .modal-close:hover { background: #e2e8f0; }
         .modal-body { margin-bottom: 16px; }
-        .modal-footer {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 16px;
-        }
-        /* Template cards */
+        .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+
+        /* ==================== 模板/历史卡片 ==================== */
         .template-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -414,10 +401,8 @@
             transition: all 0.2s;
         }
         .template-card:hover { border-color: var(--primary-light); box-shadow: 0 4px 16px rgba(99,102,241,0.15); transform: translateY(-2px); }
-        .template-card.selected { border-color: var(--primary); background: var(--primary-bg); }
         .template-card-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
         .template-card-info { font-size: 13px; color: #64748b; }
-        /* History cards */
         .history-card {
             border: 2px solid #e2e8f0;
             border-radius: 12px;
@@ -429,21 +414,15 @@
         .history-card-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
         .history-card-meta { font-size: 13px; color: #64748b; margin-bottom: 10px; }
         .history-card-actions { display: flex; gap: 8px; }
-        /* Preview table */
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .preview-table th, .preview-table td {
-            border: 1px solid #e2e8f0;
-            padding: 6px 10px;
-            text-align: center;
-        }
+
+        /* ==================== 预览表格 ==================== */
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .preview-table th, .preview-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: center; }
         .preview-table th { background: #f8fafc; font-weight: 600; }
         .preview-table th.highlighted { background: #fef3c7; border: 2px solid #f59e0b; }
         .preview-table td.highlighted { background: #fffbeb; }
-        /* Star selection grid */
+
+        /* ==================== 星选网格 ==================== */
         .star-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -477,7 +456,8 @@
             align-items: center;
             justify-content: center;
         }
-        /* No permission */
+
+        /* ==================== 无权限界面 ==================== */
         .no-permission {
             display: none;
             position: fixed;
@@ -493,7 +473,8 @@
         .no-permission i { font-size: 64px; color: #ef4444; }
         .no-permission h2 { font-size: 28px; margin: 0; }
         .no-permission p { font-size: 16px; color: #94a3b8; }
-        /* Toast */
+
+        /* ==================== Toast 提示 ==================== */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -517,7 +498,8 @@
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
         .toast.warning { background: #d97706; }
-        /* Selection indicator */
+
+        /* ==================== 选座顺序指示器 ==================== */
         .selection-indicator {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
             border: 2px solid #f59e0b;
@@ -539,7 +521,8 @@
             color: #1e40af;
             font-weight: 700;
         }
-        /* Seating toolbar */
+
+        /* ==================== 座位工具栏 ==================== */
         .seating-toolbar {
             display: flex;
             gap: 12px;
@@ -547,13 +530,9 @@
             margin-top: 16px;
             flex-wrap: wrap;
         }
-        .seating-info {
-            text-align: center;
-            font-size: 14px;
-            color: #64748b;
-            margin-bottom: 8px;
-        }
-        /* Input */
+        .seating-info { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 8px; }
+
+        /* ==================== 表单元素 ==================== */
         .input-field {
             width: 100%;
             padding: 10px 14px;
@@ -566,7 +545,8 @@
         .input-field:focus { border-color: var(--primary-light); }
         .form-group { margin-bottom: 16px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #475569; }
-        /* File upload */
+
+        /* ==================== 文件上传区 ==================== */
         .file-upload-area {
             border: 2px dashed #cbd5e1;
             border-radius: 12px;
@@ -577,32 +557,8 @@
         }
         .file-upload-area:hover { border-color: var(--primary-light); background: var(--primary-bg); }
         .file-upload-area i { font-size: 40px; color: #94a3b8; margin-bottom: 8px; }
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-container { flex-direction: column; height: auto; }
-            .left-panel, .right-panel { flex: 1; width: 100%; }
-            .right-panel { max-height: 400px; }
-            .header-title { font-size: 16px; }
-            .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
-            .star-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-        /* Group builder */
-        .group-builder { display: flex; flex-direction: column; gap: 8px; }
-        .group-builder-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-        }
-        .group-builder-item input {
-            width: 60px;
-            padding: 4px 8px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            text-align: center;
-        }
+
+        /* ==================== 标签 ==================== */
         .info-badge {
             display: inline-flex;
             align-items: center;
@@ -614,84 +570,107 @@
         }
         .badge-star { background: #fef3c7; color: #92400e; }
         .badge-progress { background: #dcfce7; color: #166534; }
-        .badge-boy { background: var(--boy-bg); color: var(--boy-text); }
-        .badge-girl { background: var(--girl-bg); color: var(--girl-text); }
+
+        /* ==================== 拖拽幽灵元素 ==================== */
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.9;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; height: auto; }
+            .left-panel, .right-panel { flex: 1; width: 100%; }
+            .right-panel { max-height: 350px; width: 100%; }
+            .header-title { font-size: 16px; }
+            .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
+            .student-card { width: 60px; min-height: 44px; font-size: 12px; }
+            .star-grid { grid-template-columns: repeat(4, 1fr); }
+        }
     </style>
 </head>
 <body>
 
-<!-- No Permission Screen -->
+<!-- ==================== 无权限界面 ==================== -->
 <div class="no-permission" id="noPermissionScreen">
     <i class="fa fa-lock"></i>
-    <h2>无权限访问排座系统</h2>
-    <p>您没有排座系统的访问权限，请联系管理员。</p>
-    <a href="./" class="back-btn" style="margin-top:10px;">返回</a>
+    <h2>无访问权限</h2>
+    <p>您没有权限访问此页面，请联系管理员。</p>
 </div>
 
-<!-- Main App (hidden until permission check passes) -->
+<!-- ==================== 主应用内容 ==================== -->
 <div id="appContent" style="display:none;">
+    <!-- 顶部标题栏 -->
+    <header class="app-header">
+        <a href="javascript:history.back()" class="back-btn">
+            <i class="fa fa-arrow-left"></i> 返回移动端
+        </a>
+        <div class="header-title">🪑 高二（13）班智能排座系统</div>
+        <div class="header-user" id="headerUser">
+            <i class="fa fa-user-circle"></i>
+            <span id="userName">用户</span>
+        </div>
+    </header>
 
-<!-- Header -->
-<div class="app-header">
-    <a href="./" class="back-btn"><i class="fa fa-arrow-left"></i> 返回移动端</a>
-    <div class="header-title">
-        <span style="font-size:26px;">🪑</span>
-        <span>高二（13）班智能排座系统</span>
-    </div>
-    <div style="width:120px;"></div>
-</div>
-
-<!-- Mobile Banner -->
-<div class="mobile-banner" id="mobileBanner">
-    <i class="fa fa-desktop"></i> 电脑上打开此网页效果更佳
-</div>
-
-<!-- Main Container -->
-<div class="main-container">
-    <!-- Left Panel: Seating Area -->
-    <div class="left-panel" id="leftPanel">
-        <!-- Content rendered dynamically -->
+    <!-- 手机端提示横幅 -->
+    <div class="mobile-banner" id="mobileBanner">
+        <i class="fa fa-mobile"></i> 建议在电脑上打开此网页效果更佳
     </div>
 
-    <!-- Right Panel: Student List -->
-    <div class="right-panel" id="rightPanel">
-        <div class="right-header">
-            <h3><i class="fa fa-users"></i> 学生名单 <span id="studentCount" style="font-size:13px;color:#94a3b8;font-weight:400;"></span></h3>
-            <input type="text" class="search-box" id="searchBox" placeholder="搜索姓名 / 拼音 / 首字母...">
-        </div>
-        <div class="student-list" id="studentList">
-            <!-- Student cards rendered here -->
-        </div>
-        <div class="drag-overlay" id="dragOverlay">
-            <div>
-                <i class="fa fa-arrows" style="font-size:32px;margin-bottom:8px;display:block;"></i>
-                移动到此处可重新安排该同学座位
+    <!-- 主区域：左侧座位区 + 右侧名单区 -->
+    <div class="main-container">
+        <!-- 左侧座位区域 -->
+        <div class="left-panel" id="leftPanel"></div>
+        <!-- 右侧学生名单 -->
+        <div class="right-panel">
+            <div class="right-header">
+                <h3><i class="fa fa-users"></i> 学生名单</h3>
+                <input type="text" class="search-box" id="searchBox" placeholder="搜索姓名/拼音..." oninput="filterStudentList(this.value)">
+            </div>
+            <div class="student-list" id="studentList">
+                <div class="drag-overlay" id="dragOverlay">
+                    <div>
+                        <i class="fa fa-trash" style="font-size:28px;"></i><br>
+                        松开移回名单
+                    </div>
+                </div>
+            </div>
+            <div class="right-footer">
+                <button class="btn btn-warning" style="width:100%;" onclick="startStarSelection()">
+                    <i class="fa fa-trophy"></i> 学习之星、进步之星选座
+                </button>
             </div>
         </div>
-        <div class="right-footer">
-            <button class="btn btn-warning" style="width:100%;" id="starSelectionBtn" onclick="startStarSelection()">
-                <i class="fa fa-trophy"></i> 学习之星、进步之星选座
-            </button>
-        </div>
     </div>
 </div>
 
-</div>
-
-<!-- Modal Container -->
+<!-- ==================== 模态框容器 ==================== -->
 <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-card" id="modalCard">
-        <!-- Modal content rendered here -->
-    </div>
+    <div class="modal-card" id="modalCard"></div>
 </div>
 
-<!-- Toast -->
+<!-- ==================== Toast 容器 ==================== -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ==================== CONFIG ====================
+/* ====================================================================
+ * 高二（13）班智能排座系统
+ * 单文件 HTML 应用，使用自定义鼠标/触摸拖拽系统
+ * ==================================================================== */
+
+/* ==================== 常量配置 ==================== */
+
+// API 地址（Cloudflare Pages 代理到 CloudBase PostgreSQL）
 const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
 
+// 管理员主密码（用于"跳过此人"验证）
+const MASTER_PASSWORD = '@cjyC8Y26@';
+
+// 默认学生名单（57人）
 const DEFAULT_STUDENTS = [
   {"name":"毕子昂","gender":"男"},{"name":"蔡峻熙","gender":"男"},{"name":"曹健","gender":"男"},
   {"name":"曹敬杨","gender":"男"},{"name":"曹星瀚","gender":"男"},{"name":"陈骏昕","gender":"男"},
@@ -716,6 +695,7 @@ const DEFAULT_STUDENTS = [
   {"name":"赵子琳","gender":"女"},{"name":"宗钰晨","gender":"女"}
 ];
 
+// 默认模板（基于用户上传的Excel表格结构）
 const DEFAULT_TEMPLATE = {
     name: "默认模板",
     groups: [
@@ -723,7 +703,7 @@ const DEFAULT_TEMPLATE = {
         {"cols": 0, "rows": 0, "aisle": true},
         {"cols": 2, "rows": 7},
         {"cols": 0, "rows": 0, "aisle": true},
-        {"cols": 1, "rows": 6},
+        {"cols": 1, "rows": 6, "offset": 1},
         {"cols": 0, "rows": 0, "aisle": true},
         {"cols": 2, "rows": 7},
         {"cols": 0, "rows": 0, "aisle": true},
@@ -732,90 +712,124 @@ const DEFAULT_TEMPLATE = {
     podium: {"startGroup": 1, "endGroup": 3}
 };
 
-const MASTER_PASSWORD = '@cjyC8Y26@';
+/* ==================== 全局状态 ==================== */
+let saveTimer = null; // 自动保存的防抖定时器
 
-// ==================== STATE ====================
 const state = {
-    currentUser: null,
-    students: [],
-    originalStudents: [],
-    starStudents: [],     // [{name, rank}]
-    progressStudents: [], // [{name, order}]
-    skippedStudents: [],  // [{name, gender}]
-    currentTemplate: null,
-    templates: [],
-    arrangement: {},       // seatId -> {name, gender}
-    seatingTableName: '',
-    seatTableId: null,
-    isCompleted: false,
-    phase: 'template-selection', // 'template-selection' | 'seat-table-selection' | 'arranging'
-    selectionOrder: [],    // ordered names for sequential seating
-    currentSelectionIndex: 0,
-    orderSelectionActive: false,
-    searchKeyword: '',
-    excelData: null,      // parsed Excel AOA
-    excelHeaders: null,
-    detectedRankCol: -1,
-    nameColIndex: -1,
-    rankColIndex: -1,
-    excelHeaderRowIdx: 0,
-    studentRanks: {},      // name -> rank
-    historySeatTables: [],
+    currentUser: null,           // 当前登录用户
+    students: [],                 // 当前学生列表（顺序可变）
+    originalStudents: [],         // 原始学生列表（不可变）
+    starStudents: [],             // 学习之星 [{name, rank}]
+    progressStudents: [],         // 进步之星 [{name, order, gender}]
+    skippedStudents: [],          // 被跳过的学生 [{name, gender}]
+    currentTemplate: null,        // 当前选中的模板
+    templates: [],                // 模板列表
+    arrangement: {},              // 排座结果 seatId -> {name, gender}
+    seatingTableName: '',         // 当前座位表名称
+    seatTableId: null,            // 当前座位表数据库ID
+    isCompleted: false,           // 是否排座完成
+    phase: 'initial',  // 阶段: initial | seat-table-selection | template-selection | arranging
+    selectionOrder: [],           // 顺序选座的名单顺序
+    currentSelectionIndex: 0,     // 当前顺序选座索引
+    orderSelectionActive: false,  // 是否处于顺序选座模式
+    searchKeyword: '',            // 搜索关键词
+    excelData: null,              // 解析的Excel数据
+    excelHeaders: null,           // Excel表头
+    detectedRankCol: -1,          // 检测到的年排列列索引
+    nameColIndex: -1,             // 姓名列索引
+    rankColIndex: -1,             // 年排列列索引
+    excelHeaderRowIdx: 0,         // 表头行索引
+    studentRanks: {},             // 学生排名 name -> rank
+    historySeatTables: [],        // 历史座位表
 };
 
-// ==================== INITIALIZATION ====================
+/* ==================== 初始化 ==================== */
+// DOM 加载完成后启动应用
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    // Check permission
+    // 检查权限
     if (!checkPermission()) {
         document.getElementById('noPermissionScreen').style.display = 'flex';
         return;
     }
     document.getElementById('appContent').style.display = 'block';
 
-    // Mobile detection
+    // 手机端检测
     detectMobile();
 
-    // Initialize students
+    // 初始化学生名单
     state.students = [...DEFAULT_STUDENTS];
     state.originalStudents = [...DEFAULT_STUDENTS];
     renderStudentList();
 
-    // Load templates from DB
+    // 从数据库加载模板
     await loadTemplates();
 
-    // Add default template if no templates loaded
+    // 若无模板则加入默认模板
     if (state.templates.length === 0) {
         state.templates.push({ ...DEFAULT_TEMPLATE, id: 'default', isDefault: true });
     }
 
-    // Render left panel
+    // 初始阶段：检查未排完座位表
+    state.phase = 'initial';
     renderLeftPanel();
 
-    // Setup drag overlay for student list
-    setupStudentListDrag();
+    // 显示首次使用提示（仅一次），放在最后避免被其他弹窗覆盖
+    showWelcomePrompt();
 }
 
-// ==================== PERMISSION CHECK ====================
+/* ==================== 权限检查 ==================== */
+// 从 localStorage 读取用户数据，检查权限
 function checkPermission() {
     try {
-        const userStr = localStorage.getItem('currentUser');
+        const userStr = localStorage.getItem('mobile_auth_user');
         if (!userStr) return false;
-        const user = JSON.parse(userStr);
-        state.currentUser = user;
-        if (user.isAdmin) return true;
-        if (user.permissions && user.permissions.seatSystem) return true;
+        const data = JSON.parse(userStr);
+        state.currentUser = data;
+        // 显示用户名
+        const displayName = data.username || (data.user_metadata && data.user_metadata.username) || '用户';
+        const nameEl = document.getElementById('userName');
+        if (nameEl) nameEl.textContent = displayName;
+
+        const perms = (data.user_metadata && data.user_metadata.permissions) ? data.user_metadata.permissions : (data.permissions || {});
+        const un = (data.username || '').toLowerCase();
+        const isAdmin = perms.isAdmin || (data.user_metadata && data.user_metadata.is_admin) ||
+                        (un === 'starbusk') || (un === 'admin');
+        if (isAdmin) return true;
+        if (perms.seatSystem) return true;
         return false;
     } catch(e) {
         return false;
     }
 }
 
-// ==================== MOBILE DETECTION ====================
+/* ==================== 首次使用提示 ==================== */
+// 仅显示一次的欢迎提示
+function showWelcomePrompt() {
+    if (localStorage.getItem('seat_welcome_shown')) return;
+    // 延迟500ms确保所有初始化完成后再显示
+    setTimeout(() => {
+        // 先关闭可能打开的弹窗（通过移除active类，不要设置style.display）
+        document.getElementById('modalOverlay').classList.remove('active');
+        showModal('small', '温馨提示', `
+            <div class="modal-body">
+                <div style="text-align:center;padding:20px;">
+                    <i class="fa fa-info-circle" style="font-size:40px;color:var(--primary);"></i>
+                    <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">该智能选座系统会自动保存座位表数据，无需担心因关闭网页带来的数据损失，请您放心使用！</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal(); localStorage.setItem('seat_welcome_shown', '1');">确认</button>
+            </div>
+        `);
+    }, 500);
+}
+
+/* ==================== 手机端检测 ==================== */
+// 检测是否为手机端，显示提示横幅（5秒后消失）
 function detectMobile() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        || (window.screen.width < 768);
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent);
     if (isMobile) {
         const banner = document.getElementById('mobileBanner');
         banner.style.display = 'block';
@@ -823,186 +837,236 @@ function detectMobile() {
     }
 }
 
-// ==================== STUDENT LIST ====================
-function renderStudentList() {
-    const container = document.getElementById('studentList');
-    const countEl = document.getElementById('studentCount');
-    
-    let displayStudents = state.students;
-    
-    // Filter by search
-    if (state.searchKeyword) {
-        displayStudents = state.students.filter(s => matchStudent(s.name, state.searchKeyword));
-    }
-    
-    // Sort: star students first, then progress, then rest
-    displayStudents = sortStudentsForDisplay(displayStudents);
-    
-    container.innerHTML = '';
-    countEl.textContent = `(${displayStudents.length}/${state.students.length}人)`;
-    
-    if (displayStudents.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">未找到匹配的学生</div>';
-        return;
-    }
-    
-    displayStudents.forEach(student => {
-        const card = createStudentCard(student);
-        container.appendChild(card);
-    });
+/* ==================== 工具函数 ==================== */
+
+// HTML 转义，防止XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text == null ? '' : text);
+    return div.innerHTML;
 }
 
-function sortStudentsForDisplay(students) {
-    const starNames = state.starStudents.map(s => s.name);
-    const progressNames = state.progressStudents.map(s => s.name);
-    const skippedNames = state.skippedStudents.map(s => s.name);
-    const seatedNames = Object.values(state.arrangement).map(s => s.name);
-    
-    const stars = [];
-    const progress = [];
-    const skipped = [];
-    const rest = [];
-    
-    for (const student of students) {
-        if (starNames.includes(student.name)) {
-            const star = state.starStudents.find(s => s.name === student.name);
-            stars.push({ ...student, starRank: star ? star.rank : 999 });
-        } else if (progressNames.includes(student.name)) {
-            const prog = state.progressStudents.find(s => s.name === student.name);
-            progress.push({ ...student, progressOrder: prog ? prog.order : 999 });
-        } else if (skippedNames.includes(student.name)) {
-            skipped.push(student);
-        } else {
-            rest.push(student);
-        }
-    }
-    
-    stars.sort((a, b) => a.starRank - b.starRank);
-    progress.sort((a, b) => a.progressOrder - b.progressOrder);
-    
-    return [...stars, ...progress, ...skipped, ...rest];
+// 显示Toast提示
+function showToast(msg, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 2800);
 }
 
-function createStudentCard(student) {
-    const card = document.createElement('div');
-    card.className = `student-card ${student.gender === '男' ? 'boy' : 'girl'}`;
-    card.draggable = true;
-    card.dataset.name = student.name;
-    card.dataset.gender = student.gender;
-    
-    const starNames = state.starStudents.map(s => s.name);
-    const progressNames = state.progressStudents.map(s => s.name);
-    const skippedNames = state.skippedStudents.map(s => s.name);
-    
-    if (starNames.includes(student.name)) {
-        card.classList.add('star');
-    } else if (progressNames.includes(student.name)) {
-        card.classList.add('progress');
-        const prog = state.progressStudents.find(s => s.name === student.name);
-        if (prog) {
-            const badge = document.createElement('span');
-            badge.className = 'card-number';
-            badge.textContent = prog.order;
-            card.appendChild(badge);
-        }
-    }
-    
-    // Check if seated
-    const seatedNames = Object.values(state.arrangement).map(s => s.name);
-    if (seatedNames.includes(student.name)) {
-        card.classList.add('seated');
-    }
-    
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = student.name;
-    card.insertBefore(nameSpan, card.firstChild);
-    
-    // Drag start
-    card.addEventListener('dragstart', (e) => {
-        card.classList.add('dragging');
-        e.dataTransfer.setData('text/plain', JSON.stringify({
-            type: 'student',
-            name: student.name,
-            gender: student.gender
-        }));
-        e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-    });
-    
-    return card;
+// 计算模板的总座位数
+function countTotalSeats(template) {
+    if (!template || !template.groups) return 0;
+    return template.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0);
 }
 
-// ==================== PINYIN SEARCH ====================
-function matchStudent(name, keyword) {
+// 拼音匹配：检查学生姓名是否匹配关键词（支持中文、拼音、首字母）
+function matchPinyin(name, keyword) {
     if (!keyword) return true;
-    const kw = keyword.trim().toLowerCase();
+    const kw = keyword.toLowerCase().trim();
     if (!kw) return true;
-    
-    // Direct match
-    if (name.includes(keyword.trim())) return true;
-    
-    // Pinyin match
+    // 直接包含中文
+    if (name.includes(keyword)) return true;
     try {
-        const pinyinLib = window.pinyinPro;
-        if (pinyinLib && pinyinLib.match) {
-            const result = pinyinLib.match(name, kw);
-            if (result && result.length > 0) return true;
-        }
-        if (pinyinLib && pinyinLib.pinyin) {
-            const fullPinyin = pinyinLib.pinyin(name, { toneType: 'none' }).toLowerCase().replace(/\s/g, '');
-            if (fullPinyin.includes(kw)) return true;
-            const initials = pinyinLib.pinyin(name, { pattern: 'first', toneType: 'none' }).toLowerCase().replace(/\s/g, '');
-            if (initials.includes(kw)) return true;
-        }
-    } catch(e) {
-        console.warn('Pinyin match error:', e);
-    }
-    
+        const { pinyin } = pinyinPro;
+        const fullPinyin = pinyin(name, { toneType: 'none' }).replace(/\s/g, '').toLowerCase();
+        const firstLetters = pinyin(name, { pattern: 'first', toneType: 'none' }).replace(/\s/g, '').toLowerCase();
+        if (fullPinyin.includes(kw)) return true;
+        if (firstLetters.includes(kw)) return true;
+        // 逐字匹配（如输入 "bza" 匹配 "毕子昂"）
+        const chars = name.split('');
+        const charFirst = chars.map(c => pinyin(c, { pattern: 'first', toneType: 'none' }).replace(/\s/g, '').toLowerCase()).join('');
+        if (charFirst.includes(kw)) return true;
+    } catch(e) { /* pinyin-pro 未加载时回退到纯中文匹配 */ }
     return false;
 }
 
-// Search box listener
-document.addEventListener('input', (e) => {
-    if (e.target.id === 'searchBox') {
-        state.searchKeyword = e.target.value;
-        renderStudentList();
-    }
+/* ==================== 模态框系统 ==================== */
+
+// 显示模态框 (size: 'small'|'medium'|'large')
+function showModal(size, title, content) {
+    const overlay = document.getElementById('modalOverlay');
+    const card = document.getElementById('modalCard');
+    card.className = 'modal-card ' + size;
+    card.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">${escapeHtml(title)}</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        ${content}
+    `;
+    overlay.classList.add('active');
+}
+
+// 关闭模态框
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// 点击遮罩关闭模态框
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') closeModal();
 });
 
-// ==================== LEFT PANEL RENDERING ====================
+/* ==================== 左侧面板渲染 ==================== */
+
+// 根据当前阶段渲染左侧面板
 function renderLeftPanel() {
     const panel = document.getElementById('leftPanel');
-    
-    if (state.phase === 'template-selection') {
+    if (state.phase === 'initial') {
+        // 初始阶段：检查未排完的座位表
+        checkAndShowInitialScreen(panel);
+    } else if (state.phase === 'seat-table-selection') {
+        renderSeatTableSelection(panel);
+    } else if (state.phase === 'template-selection') {
+        // 新建座位表后选择模板
         panel.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🪑</div>
-                <div class="empty-state-text">请选择或上传座位模板</div>
+                <div class="empty-state-text">请选择座位模板</div>
                 <div class="empty-state-buttons">
                     <button class="btn btn-primary btn-lg" onclick="showTemplateLibrary()">
-                        <i class="fa fa-th-large"></i> 从已有模版中选择
-                    </button>
-                    <button class="btn btn-secondary btn-lg" onclick="showUploadTemplate()">
-                        <i class="fa fa-upload"></i> 上传新模版
+                        <i class="fa fa-th-large"></i> 从模板库中选择
                     </button>
                 </div>
             </div>
         `;
-    } else if (state.phase === 'seat-table-selection') {
-        renderSeatTableSelection(panel);
     } else if (state.phase === 'arranging') {
         renderArranging(panel);
     }
 }
 
+// 初始阶段：检查未排完的座位表
+async function checkAndShowInitialScreen(panel) {
+    // 先显示加载中
+    panel.innerHTML = `
+        <div class="empty-state">
+            <div style="font-size:24px;color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i></div>
+            <div class="empty-state-text">正在检查...</div>
+        </div>
+    `;
+
+    try {
+        // 检查是否有未排完的座位表
+        const incomplete = await checkIncompleteSeatTables();
+        if (incomplete && incomplete.length > 0) {
+            // 有未排完的座位表，显示提示
+            const names = incomplete.map(t => escapeHtml(t.name || '未命名')).join('、');
+            panel.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon" style="color:#f59e0b;">⚠️</div>
+                    <div class="empty-state-text">检测到未排完的座位表</div>
+                    <div style="color:#64748b;font-size:14px;margin:8px 0 16px;">${names}（共${incomplete.length}个）</div>
+                    <div class="empty-state-buttons" style="flex-direction:column;gap:8px;">
+                        <button class="btn btn-primary btn-lg" style="width:280px;" onclick="continueIncomplete('${incomplete[0].id}')">
+                            <i class="fa fa-play"></i> 继续排位（${escapeHtml(incomplete[0].name || '未命名')}）
+                        </button>
+                        <button class="btn btn-secondary btn-lg" style="width:280px;" onclick="showNewOrHistoryChoice()">
+                            <i class="fa fa-list"></i> 忽略，新建或从历史选择
+                        </button>
+                        <button class="btn btn-danger btn-lg" style="width:280px;" onclick="deleteIncompleteAndNew('${incomplete[0].id}')">
+                            <i class="fa fa-trash"></i> 删除并新建
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // 无未排完的座位表，显示新建/历史按钮
+            panel.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🪑</div>
+                    <div class="empty-state-text">班级智能排座系统</div>
+                    <div class="empty-state-buttons" style="flex-direction:column;gap:12px;">
+                        <button class="btn btn-primary btn-lg" style="width:280px;" onclick="startNewSeatTable()">
+                            <i class="fa fa-plus"></i> 新建座位表
+                        </button>
+                        <button class="btn btn-secondary btn-lg" style="width:280px;" onclick="showHistorySeatTables()">
+                            <i class="fa fa-history"></i> 查看历史座位表
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch(e) {
+        // 查询失败，直接显示新建/历史按钮
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🪑</div>
+                <div class="empty-state-text">班级智能排座系统</div>
+                <div class="empty-state-buttons" style="flex-direction:column;gap:12px;">
+                    <button class="btn btn-primary btn-lg" style="width:280px;" onclick="startNewSeatTable()">
+                        <i class="fa fa-plus"></i> 新建座位表
+                    </button>
+                    <button class="btn btn-secondary btn-lg" style="width:280px;" onclick="showHistorySeatTables()">
+                        <i class="fa fa-history"></i> 查看历史座位表
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 显示新建或从历史选择的选择界面
+function showNewOrHistoryChoice() {
+    state.phase = 'initial';
+    renderLeftPanel();
+}
+
+// 继续未排完的座位表
+async function continueIncomplete(tableId) {
+    try {
+        const resp = await fetch(`${SUPABASE_URL}/rest/v1/seat_tables?id=eq.${tableId}&select=*`);
+        const data = await resp.json();
+        if (data && data.length > 0) {
+            const table = data[0];
+            state.currentTemplate = table.template_layout;
+            state.arrangement = table.arrangement || {};
+            state.students = table.student_list || [...DEFAULT_STUDENTS];
+            state.starStudents = table.star_students || [];
+            state.progressStudents = table.progress_students || [];
+            state.seatingTableName = table.name;
+            state.seatTableId = table.id;
+            state.isCompleted = false;
+            state.phase = 'arranging';
+            renderStudentList();
+            renderLeftPanel();
+            showToast(`已恢复座位表: ${table.name}`, 'success');
+        }
+    } catch(e) {
+        showToast('恢复座位表失败', 'error');
+    }
+}
+
+// 删除未排完的座位表并新建
+async function deleteIncompleteAndNew(tableId) {
+    showModal('small', '二次确认', `
+        <div class="modal-body">
+            <p style="text-align:center;padding:20px;color:#475569;">确定要删除此座位表并新建吗？此操作不可恢复。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="closeModal(); confirmDeleteAndNew('${tableId}')">确认删除</button>
+        </div>
+    `);
+}
+
+async function confirmDeleteAndNew(tableId) {
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_tables?id=eq.${tableId}`, { method: 'DELETE' });
+        showToast('已删除', 'success');
+    } catch(e) {}
+    startNewSeatTable();
+}
+
+// 渲染座位表选择界面（已选模板后）
 function renderSeatTableSelection(panel) {
     const templateName = state.currentTemplate ? state.currentTemplate.name : '';
     panel.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <h3 style="margin:0;font-size:18px;color:#334155;">
-                <i class="fa fa-check-circle" style="color:#22c55e;"></i> 已选择模板：${templateName}
+                <i class="fa fa-check-circle" style="color:#22c55e;"></i> 已选择模板：${escapeHtml(templateName)}
             </h3>
             <button class="btn btn-secondary btn-sm" onclick="changeTemplate()">
                 <i class="fa fa-exchange"></i> 更换模板
@@ -1024,23 +1088,22 @@ function renderSeatTableSelection(panel) {
             </div>
         </div>
     `;
-    // Render template preview (mini)
     renderSeatsPreview(document.getElementById('templatePreview'));
 }
 
+// 渲染排座界面
 function renderArranging(panel) {
     const seatedCount = Object.keys(state.arrangement).length;
     const totalSeats = countTotalSeats(state.currentTemplate);
-    
     panel.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <div>
                 <h3 style="margin:0;font-size:18px;color:#334155;display:flex;align-items:center;gap:8px;">
-                    <i class="fa fa-table"></i> ${state.seatingTableName}
+                    <i class="fa fa-table"></i> ${escapeHtml(state.seatingTableName)}
                 </h3>
                 <div class="seating-info" style="margin-top:4px;">
-                    已排座：${seatedCount}/${totalSeats} 
-                    ${state.currentTemplate ? '· 模板：' + state.currentTemplate.name : ''}
+                    已排座：${seatedCount}/${totalSeats}
+                    ${state.currentTemplate ? ' · 模板：' + escapeHtml(state.currentTemplate.name) : ''}
                 </div>
             </div>
             <div style="display:flex;gap:8px;">
@@ -1057,7 +1120,7 @@ function renderArranging(panel) {
             <span>当前选座顺序 — 下一位：</span>
             <span class="next-name" id="nextStudentName"></span>
         </div>
-        <div style="flex:1;overflow:auto;">
+        <div style="flex:1;overflow:hidden;" class="seating-scale-wrapper" id="seatingScaleWrapper">
             <div class="seating-container" id="seatingContainer"></div>
         </div>
         <div class="seating-toolbar">
@@ -1070,41 +1133,47 @@ function renderArranging(panel) {
             </button>
         </div>
     `;
-    
     renderSeats();
     updateSelectionIndicator();
     updateModeToggleBtn();
 }
 
-function renderSeatsPreview(container) {
-    if (!state.currentTemplate) return;
+/* ==================== 座位渲染 ==================== */
+
+// 渲染主座位区域
+function renderSeats() {
+    const container = document.getElementById('seatingContainer');
+    if (!container || !state.currentTemplate) return;
+    container.innerHTML = '';
     const template = state.currentTemplate;
-    const seatGroups = template.groups.filter(g => !g.aisle);
-    
-    // Build groups row
+
+    // 构建座位组行
     const groupsRow = document.createElement('div');
     groupsRow.className = 'seat-groups-row';
-    
+
     let seatGroupIdx = 0;
     for (const g of template.groups) {
         if (g.aisle) {
+            // 过道：空白间隔
             const spacer = document.createElement('div');
             spacer.className = 'aisle-spacer';
-            spacer.style.minWidth = '16px';
             groupsRow.appendChild(spacer);
         } else {
+            // 座位组
             const groupDiv = document.createElement('div');
             groupDiv.className = 'seat-group';
-            groupDiv.style.flex = g.cols;
+            // 如果组有offset，向下平移
+            if (g.offset && g.offset > 0) {
+                const seatHeight = 52; // 座位最小高度
+                const rowGap = 8; // 座位行间距
+                groupDiv.style.marginTop = (g.offset * (seatHeight + rowGap)) + 'px';
+            }
             for (let r = 0; r < g.rows; r++) {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = 'seat-row';
                 for (let c = 0; c < g.cols; c++) {
-                    const seat = document.createElement('div');
-                    seat.className = 'seat';
-                    seat.style.minHeight = '28px';
-                    seat.style.minWidth = '40px';
-                    seat.style.fontSize = '10px';
+                    const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
+                    const seat = createSeat(seatId, seatGroupIdx, r, c);
                     rowDiv.appendChild(seat);
                 }
                 groupDiv.appendChild(rowDiv);
@@ -1114,27 +1183,81 @@ function renderSeatsPreview(container) {
         }
     }
     container.appendChild(groupsRow);
-    
-    // Podium spacer
-    const podiumSpacer = document.createElement('div');
-    podiumSpacer.style.height = '8px';
-    container.appendChild(podiumSpacer);
-    
-    // Podium
-    renderPodium(container, template, true);
+
+    // 讲台与座位间空一行
+    const spacer = document.createElement('div');
+    spacer.className = 'podium-spacer-row';
+    container.appendChild(spacer);
+
+    // 讲台
+    renderPodium(container, template, false);
+
+    // 桌面端自动缩放
+    requestAnimationFrame(() => scaleSeatingContainer());
 }
 
+// 创建单个座位元素
+function createSeat(seatId, groupIdx, row, col) {
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.id = seatId;
+    seat.dataset.seatId = seatId;
+    seat.dataset.dropTarget = 'seat';
+
+    const occupied = state.arrangement[seatId];
+    if (occupied) {
+        // 已入座：实线边框，按性别着色
+        seat.classList.add('occupied');
+        seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
+
+        // 学习之星/进步之星高亮
+        const starNames = state.starStudents.map(s => s.name);
+        const progressNames = state.progressStudents.map(s => s.name);
+        if (starNames.includes(occupied.name)) seat.classList.add('star');
+        if (progressNames.includes(occupied.name)) seat.classList.add('progress');
+
+        seat.textContent = occupied.name;
+        seat.dataset.studentName = occupied.name;
+        seat.dataset.gender = occupied.gender;
+
+        // 已入座座位支持拖拽移动
+        seat.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            startCustomDrag({
+                type: 'move',
+                fromSeat: seatId,
+                name: occupied.name,
+                gender: occupied.gender,
+                sourceElement: seat
+            }, e);
+        });
+        seat.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const touch = e.touches[0];
+            startCustomDrag({
+                type: 'move',
+                fromSeat: seatId,
+                name: occupied.name,
+                gender: occupied.gender,
+                sourceElement: seat
+            }, { clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+    } else {
+        seat.textContent = '';
+    }
+    return seat;
+}
+
+// 渲染讲台（根据模板的 podium 配置合并居中显示）
 function renderPodium(container, template, mini = false) {
     const podiumStart = template.podium ? template.podium.startGroup : 0;
     const podiumEnd = template.podium ? template.podium.endGroup : 0;
-    
-    // Calculate flex values for podium row
-    const seatGroups = template.groups.filter(g => !g.aisle);
-    let beforeFlex = 0;
-    let podiumFlex = 0;
-    let afterFlex = 0;
-    
-    let colCount = 0;
+
+    // 用 flex 值计算讲台前、讲台、讲台后的宽度比例
+    let beforeFlex = 0, podiumFlex = 0, afterFlex = 0;
     let seatGroupIdx = 0;
     for (const g of template.groups) {
         if (g.aisle) {
@@ -1156,17 +1279,16 @@ function renderPodium(container, template, mini = false) {
             seatGroupIdx++;
         }
     }
-    
+
     const podiumRow = document.createElement('div');
     podiumRow.className = 'podium-row';
     podiumRow.style.width = '100%';
-    
+
     if (beforeFlex > 0) {
         const before = document.createElement('div');
         before.style.flex = beforeFlex;
         podiumRow.appendChild(before);
     }
-    
     const podium = document.createElement('div');
     podium.className = 'podium';
     podium.style.flex = podiumFlex;
@@ -1177,42 +1299,46 @@ function renderPodium(container, template, mini = false) {
         podium.style.letterSpacing = '4px';
     }
     podiumRow.appendChild(podium);
-    
     if (afterFlex > 0) {
         const after = document.createElement('div');
         after.style.flex = afterFlex;
         podiumRow.appendChild(after);
     }
-    
     container.appendChild(podiumRow);
 }
 
-function renderSeats() {
-    const container = document.getElementById('seatingContainer');
-    if (!container || !state.currentTemplate) return;
-    
-    container.innerHTML = '';
+// 渲染模板预览（缩小版座位）
+function renderSeatsPreview(container) {
+    if (!state.currentTemplate) return;
     const template = state.currentTemplate;
-    
-    // Build groups row
     const groupsRow = document.createElement('div');
     groupsRow.className = 'seat-groups-row';
-    
+
     let seatGroupIdx = 0;
     for (const g of template.groups) {
         if (g.aisle) {
             const spacer = document.createElement('div');
             spacer.className = 'aisle-spacer';
+            spacer.style.minWidth = '16px';
             groupsRow.appendChild(spacer);
         } else {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'seat-group';
+            // 如果组有offset，向下平移（预览模式缩小尺寸）
+            if (g.offset && g.offset > 0) {
+                const previewSeatHeight = 28;
+                const previewRowGap = 4;
+                groupDiv.style.marginTop = (g.offset * (previewSeatHeight + previewRowGap)) + 'px';
+            }
             for (let r = 0; r < g.rows; r++) {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = 'seat-row';
                 for (let c = 0; c < g.cols; c++) {
-                    const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
-                    const seat = createSeat(seatId, seatGroupIdx, r, c);
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    seat.style.minHeight = '28px';
+                    seat.style.minWidth = '40px';
+                    seat.style.fontSize = '10px';
                     rowDiv.appendChild(seat);
                 }
                 groupDiv.appendChild(rowDiv);
@@ -1222,77 +1348,301 @@ function renderSeats() {
         }
     }
     container.appendChild(groupsRow);
-    
-    // Podium spacer
-    const spacer = document.createElement('div');
-    spacer.className = 'podium-spacer-row';
-    container.appendChild(spacer);
-    
-    // Podium
-    renderPodium(container, template, false);
+
+    const podiumSpacer = document.createElement('div');
+    podiumSpacer.style.height = '8px';
+    container.appendChild(podiumSpacer);
+    renderPodium(container, template, true);
 }
 
-function createSeat(seatId, groupIdx, row, col) {
-    const seat = document.createElement('div');
-    seat.className = 'seat';
-    seat.id = seatId;
-    seat.dataset.seatId = seatId;
-    
-    const occupied = state.arrangement[seatId];
-    if (occupied) {
-        seat.classList.add('occupied');
-        seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
-        
-        const starNames = state.starStudents.map(s => s.name);
-        const progressNames = state.progressStudents.map(s => s.name);
-        if (starNames.includes(occupied.name)) seat.classList.add('star');
-        if (progressNames.includes(occupied.name)) seat.classList.add('progress');
-        
-        seat.textContent = occupied.name;
-        seat.draggable = true;
-        seat.dataset.studentName = occupied.name;
-        seat.dataset.gender = occupied.gender;
-        
-        // Drag occupied seat
-        seat.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', JSON.stringify({
-                type: 'move',
-                fromSeat: seatId,
-                name: occupied.name,
-                gender: occupied.gender
-            }));
-            e.dataTransfer.effectAllowed = 'move';
-            seat.style.opacity = '0.5';
-        });
-        seat.addEventListener('dragend', () => {
-            seat.style.opacity = '1';
-        });
-    } else {
-        seat.textContent = '';
+// 座位表自动缩放以适应左侧面板（桌面端）
+function scaleSeatingContainer() {
+    const wrapper = document.getElementById('seatingScaleWrapper');
+    const container = document.getElementById('seatingContainer');
+    if (!wrapper || !container) return;
+    container.style.transform = 'scale(1)';
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) return;
+    const scaleX = wrapperRect.width / containerRect.width;
+    const scaleY = wrapperRect.height / containerRect.height;
+    const scale = Math.min(scaleX, scaleY, 1); // 不放大超过100%
+    if (scale < 1) {
+        container.style.transform = `scale(${scale})`;
+        container.style.transformOrigin = 'top center';
     }
-    
-    // Drop zone
-    seat.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        seat.classList.add('drag-over');
-    });
-    seat.addEventListener('dragleave', () => {
-        seat.classList.remove('drag-over');
-    });
-    seat.addEventListener('drop', (e) => {
-        e.preventDefault();
-        seat.classList.remove('drag-over');
-        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-        handleDrop(seatId, data);
-    });
-    
-    return seat;
 }
 
+// 窗口大小变化时重新缩放
+window.addEventListener('resize', () => {
+    if (state.phase === 'arranging') {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(scaleSeatingContainer, 100);
+    }
+});
+
+/* ==================== 学生名单渲染 ==================== */
+
+// 渲染右侧学生名单
+function renderStudentList() {
+    const list = document.getElementById('studentList');
+    // 保留 dragOverlay 元素
+    const overlay = document.getElementById('dragOverlay');
+    list.innerHTML = '';
+    if (overlay) list.appendChild(overlay);
+
+    const seatedNames = Object.values(state.arrangement).map(s => s.name);
+    const keyword = state.searchKeyword;
+
+    state.students.forEach(student => {
+        // 搜索过滤
+        if (keyword && !matchPinyin(student.name, keyword)) return;
+
+        const card = document.createElement('div');
+        card.className = `student-card ${student.gender === '男' ? 'boy' : 'girl'}`;
+        card.textContent = student.name;
+        card.dataset.name = student.name;
+        card.dataset.gender = student.gender;
+
+        // 学习之星/进步之星高亮
+        const starInfo = state.starStudents.find(s => s.name === student.name);
+        const progressInfo = state.progressStudents.find(s => s.name === student.name);
+        if (starInfo) {
+            card.classList.add('star');
+        } else if (progressInfo) {
+            card.classList.add('progress');
+            const badge = document.createElement('span');
+            badge.className = 'card-number';
+            badge.textContent = progressInfo.order;
+            card.appendChild(badge);
+        }
+
+        // 已入座学生半透明
+        if (seatedNames.includes(student.name)) {
+            card.classList.add('seated');
+        }
+
+        // 拖拽事件（仅未入座学生可拖）
+        if (!seatedNames.includes(student.name)) {
+            card.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                startCustomDrag({
+                    type: 'student',
+                    name: student.name,
+                    gender: student.gender,
+                    sourceElement: card
+                }, e);
+            });
+            card.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                startCustomDrag({
+                    type: 'student',
+                    name: student.name,
+                    gender: student.gender,
+                    sourceElement: card
+                }, { clientX: touch.clientX, clientY: touch.clientY });
+            }, { passive: false });
+        }
+        list.appendChild(card);
+    });
+
+    // 无匹配结果提示
+    if (list.children.length <= 1) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'text-align:center;color:#94a3b8;padding:20px;font-size:13px;';
+        empty.textContent = keyword ? '未找到匹配学生' : '暂无学生';
+        list.appendChild(empty);
+    }
+}
+
+// 搜索过滤学生名单
+function filterStudentList(value) {
+    state.searchKeyword = value;
+    renderStudentList();
+}
+
+/* ==================== 自定义拖拽系统（鼠标+触摸） ==================== */
+// 使用自定义事件系统实现可靠的拖拽，不依赖HTML5原生drag API
+
+let _dragState = {
+    active: false,       // 是否正在拖拽
+    data: null,          // 拖拽数据 {type, name, gender, sourceElement, fromSeat}
+    ghost: null,         // 跟随鼠标的幽灵元素
+    currentTarget: null  // 当前高亮的目标座位
+};
+
+// 开始拖拽
+function startCustomDrag(data, e) {
+    // 已入座的学生卡片不可拖动
+    if (data.type === 'student') {
+        const seatedNames = Object.values(state.arrangement).map(s => s.name);
+        if (seatedNames.includes(data.name)) return;
+    }
+
+    _dragState.active = true;
+    _dragState.data = data;
+    _dragState.currentTarget = null;
+
+    // 创建拖拽幽灵元素（克隆源元素）
+    const ghost = data.sourceElement.cloneNode(true);
+    ghost.className = 'drag-ghost ' + data.sourceElement.className.replace('drag-ghost', '');
+    ghost.style.width = data.sourceElement.offsetWidth + 'px';
+    ghost.style.height = data.sourceElement.offsetHeight + 'px';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    document.body.appendChild(ghost);
+    _dragState.ghost = ghost;
+
+    // 高亮源元素
+    if (data.sourceElement) {
+        data.sourceElement.style.opacity = '0.4';
+    }
+
+    // 添加全局事件监听
+    document.addEventListener('mousemove', _onDragMove);
+    document.addEventListener('mouseup', _onDragEnd);
+    document.addEventListener('touchmove', _onDragMoveTouch, { passive: false });
+    document.addEventListener('touchend', _onDragEndTouch);
+}
+
+// 鼠标移动处理
+function _onDragMove(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    _updateGhostPosition(e.clientX, e.clientY);
+    _checkDropTarget(e.clientX, e.clientY);
+}
+
+// 触摸移动处理
+function _onDragMoveTouch(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    _updateGhostPosition(touch.clientX, touch.clientY);
+    _checkDropTarget(touch.clientX, touch.clientY);
+}
+
+// 更新幽灵元素位置
+function _updateGhostPosition(x, y) {
+    if (_dragState.ghost) {
+        _dragState.ghost.style.left = x + 'px';
+        _dragState.ghost.style.top = y + 'px';
+    }
+}
+
+// 检查鼠标下方的放置目标
+function _checkDropTarget(x, y) {
+    // 清除之前的高亮
+    if (_dragState.currentTarget) {
+        _dragState.currentTarget.classList.remove('drag-over');
+        _dragState.currentTarget = null;
+    }
+
+    // 临时隐藏幽灵元素以便 elementFromPoint 获取下方元素
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+    if (_dragState.ghost) _dragState.ghost.style.display = 'block';
+
+    if (!elem) return;
+
+    // 检查是否悬停在座位上
+    const seatEl = elem.closest('.seat[data-drop-target="seat"]');
+    if (seatEl) {
+        seatEl.classList.add('drag-over');
+        _dragState.currentTarget = seatEl;
+    }
+
+    // 检查是否悬停在学生列表区域（仅移动操作显示取消遮罩）
+    const listEl = elem.closest('#studentList');
+    const overlay = document.getElementById('dragOverlay');
+    if (listEl && _dragState.data.type === 'move') {
+        if (overlay) overlay.style.display = 'flex';
+    } else {
+        if (overlay) overlay.style.display = 'none';
+    }
+}
+
+// 鼠标释放处理
+function _onDragEnd(e) {
+    if (!_dragState.active) return;
+    _finishDrag(e.clientX, e.clientY);
+}
+
+// 触摸释放处理
+function _onDragEndTouch(e) {
+    if (!_dragState.active) return;
+    const touch = e.changedTouches[0];
+    _finishDrag(touch.clientX, touch.clientY);
+}
+
+// 完成拖拽：检测放置目标并执行操作
+function _finishDrag(x, y) {
+    const data = _dragState.data;
+
+    // 临时隐藏幽灵元素以获取下方元素
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+
+    if (elem) {
+        // 放置到座位
+        const seatEl = elem.closest('.seat[data-drop-target="seat"]');
+        if (seatEl) {
+            const seatId = seatEl.dataset.seatId;
+            handleDrop(seatId, data);
+        }
+
+        // 放置到学生列表（仅移动操作 → 移回名单取消排位）
+        if (data.type === 'move') {
+            const listEl = elem.closest('#studentList');
+            if (listEl) {
+                removeStudentFromSeat(data.fromSeat);
+                showToast(`已将 ${data.name} 移回名单`, 'success');
+            }
+        }
+    }
+
+    _cleanupDrag();
+}
+
+// 清理拖拽状态
+function _cleanupDrag() {
+    // 移除幽灵元素
+    if (_dragState.ghost) {
+        _dragState.ghost.remove();
+        _dragState.ghost = null;
+    }
+    // 恢复源元素透明度
+    if (_dragState.data && _dragState.data.sourceElement) {
+        _dragState.data.sourceElement.style.opacity = '';
+    }
+    // 清除目标高亮
+    if (_dragState.currentTarget) {
+        _dragState.currentTarget.classList.remove('drag-over');
+    }
+    // 隐藏取消遮罩
+    const overlay = document.getElementById('dragOverlay');
+    if (overlay) overlay.style.display = 'none';
+    // 移除事件监听
+    document.removeEventListener('mousemove', _onDragMove);
+    document.removeEventListener('mouseup', _onDragEnd);
+    document.removeEventListener('touchmove', _onDragMoveTouch);
+    document.removeEventListener('touchend', _onDragEndTouch);
+
+    _dragState.active = false;
+    _dragState.data = null;
+    _dragState.currentTarget = null;
+}
+
+/* ==================== 放置处理 ==================== */
+
+// 处理拖拽放置到座位
 function handleDrop(seatId, data) {
     if (data.type === 'student') {
-        // Check order if active
+        // 从名单拖到座位
+
+        // 顺序选座模式：必须按名单顺序
         if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
             const expectedName = state.selectionOrder[state.currentSelectionIndex];
             if (data.name !== expectedName) {
@@ -1300,20 +1650,19 @@ function handleDrop(seatId, data) {
                 return;
             }
         }
-        
-        // Check if seat is occupied
+
+        // 目标座位已有人
         if (state.arrangement[seatId]) {
             showToast('该座位已有人，请先移走原有学生', 'warning');
             return;
         }
-        
-        // Remove from any other seat
+
+        // 从其他座位移除（防止重复）
         removeStudentFromAllSeats(data.name);
-        
-        // Place in seat
+        // 放入座位
         state.arrangement[seatId] = { name: data.name, gender: data.gender };
-        
-        // Advance selection order
+
+        // 推进顺序选座
         if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
             state.currentSelectionIndex++;
             if (state.currentSelectionIndex >= state.selectionOrder.length) {
@@ -1321,31 +1670,33 @@ function handleDrop(seatId, data) {
                 showToast('顺序选座完成，现在可以自由排座', 'success');
             }
         }
-        
+
         renderSeats();
         renderStudentList();
         updateSelectionIndicator();
         updateModeToggleBtn();
         debouncedSave();
-        
+
     } else if (data.type === 'move') {
-        // Moving from one seat to another
+        // 从一个座位移动到另一个座位
         if (state.arrangement[seatId]) {
-            // Swap seats
+            // 目标有人 → 交换座位
             const temp = state.arrangement[seatId];
             state.arrangement[seatId] = { name: data.name, gender: data.gender };
             state.arrangement[data.fromSeat] = temp;
         } else {
-            // Move to empty seat
+            // 目标为空 → 移动
             delete state.arrangement[data.fromSeat];
             state.arrangement[seatId] = { name: data.name, gender: data.gender };
         }
         renderSeats();
         renderStudentList();
+        updateModeToggleBtn();
         debouncedSave();
     }
 }
 
+// 从所有座位中移除指定学生
 function removeStudentFromAllSeats(name) {
     for (const seatId in state.arrangement) {
         if (state.arrangement[seatId].name === name) {
@@ -1354,61 +1705,24 @@ function removeStudentFromAllSeats(name) {
     }
 }
 
+// 从指定座位移除学生（拖回名单）
 function removeStudentFromSeat(seatId) {
     if (state.arrangement[seatId]) {
         delete state.arrangement[seatId];
         renderSeats();
         renderStudentList();
+        updateModeToggleBtn();
         debouncedSave();
     }
 }
 
-// ==================== STUDENT LIST DRAG (remove from seat) ====================
-function setupStudentListDrag() {
-    const list = document.getElementById('studentList');
-    const overlay = document.getElementById('dragOverlay');
-    
-    list.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    });
-    
-    list.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        if (e.target === list || list.contains(e.target)) {
-            overlay.style.display = 'flex';
-        }
-    });
-    
-    list.addEventListener('dragleave', (e) => {
-        if (!list.contains(e.relatedTarget)) {
-            overlay.style.display = 'none';
-        }
-    });
-    
-    list.addEventListener('drop', (e) => {
-        e.preventDefault();
-        overlay.style.display = 'none';
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            if (data.type === 'move') {
-                removeStudentFromSeat(data.fromSeat);
-                showToast(`已将 ${data.name} 移回名单`, 'success');
-            }
-        } catch(err) {}
-    });
-    
-    list.addEventListener('dragend', () => {
-        overlay.style.display = 'none';
-    });
-}
+/* ==================== 顺序选座 ==================== */
 
-// ==================== SELECTION ORDER ====================
+// 更新选座顺序指示器
 function updateSelectionIndicator() {
     const indicator = document.getElementById('selectionIndicator');
     const nameEl = document.getElementById('nextStudentName');
     if (!indicator) return;
-    
     if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
         indicator.classList.add('active');
         nameEl.textContent = state.selectionOrder[state.currentSelectionIndex];
@@ -1417,10 +1731,10 @@ function updateSelectionIndicator() {
     }
 }
 
+// 更新模式切换按钮显示
 function updateModeToggleBtn() {
     const btn = document.getElementById('modeToggleBtn');
     if (!btn) return;
-    
     if (state.orderSelectionActive) {
         const remaining = state.selectionOrder.length - state.currentSelectionIndex;
         btn.innerHTML = `<i class="fa fa-list-ol"></i> 顺序选座中（剩余${remaining}人）`;
@@ -1441,12 +1755,12 @@ function updateModeToggleBtn() {
     }
 }
 
+// 切换/结束顺序选座模式
 function toggleSelectionMode() {
     if (state.orderSelectionActive) {
-        // End ordered selection early
+        // 提前结束顺序选座，剩余学生加入跳过列表
         const remaining = state.selectionOrder.length - state.currentSelectionIndex;
         if (remaining > 0) {
-            // Add remaining ordered students to skipped list
             for (let i = state.currentSelectionIndex; i < state.selectionOrder.length; i++) {
                 const name = state.selectionOrder[i];
                 const student = state.students.find(s => s.name === name) || { name, gender: '男' };
@@ -1466,19 +1780,15 @@ function toggleSelectionMode() {
     }
 }
 
-// ==================== SKIP PERSON ====================
+// 显示跳过此人密码验证框
 function showSkipPassword() {
-    if (!state.orderSelectionActive || state.currentSelectionIndex >= state.selectionOrder.length) {
-        showToast('当前无需跳过', 'info');
-        return;
-    }
-    
-    const currentName = state.selectionOrder[state.currentSelectionIndex];
-    showModal('small', '验证密码', `
+    if (!state.orderSelectionActive) return;
+    const currentName = state.selectionOrder[state.currentSelectionIndex] || '';
+    showModal('small', '跳过此人验证', `
         <div class="modal-body">
-            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${currentName}</strong> 的选座</p>
-            <p style="margin-bottom:12px;font-size:13px;color:#94a3b8;">请输入当前用户密码或主密码以确认跳过</p>
+            <p style="text-align:center;color:#475569;margin-bottom:12px;">即将跳过：<strong style="color:#d97706;">${escapeHtml(currentName)}</strong></p>
             <div class="form-group">
+                <label class="form-label">请输入管理员密码</label>
                 <input type="password" class="input-field" id="skipPasswordInput" placeholder="请输入密码" autofocus>
             </div>
         </div>
@@ -1492,27 +1802,22 @@ function showSkipPassword() {
     });
 }
 
+// 确认跳过此人
 function confirmSkip() {
     const input = document.getElementById('skipPasswordInput');
     const password = input.value;
-    
-    // Check master password
+    // 验证管理员主密码
     if (password !== MASTER_PASSWORD) {
-        // Try to check user password via API (if available)
-        // For now, only master password is accepted
         showToast('密码错误，请重新输入', 'error');
         input.value = '';
         input.focus();
         return;
     }
-    
     const skippedName = state.selectionOrder[state.currentSelectionIndex];
     const student = state.students.find(s => s.name === skippedName) || { name: skippedName, gender: '男' };
-    
-    // Add to skipped list
+    // 加入跳过列表
     state.skippedStudents.push(student);
-    
-    // Advance selection
+    // 推进选座顺序
     state.currentSelectionIndex++;
     if (state.currentSelectionIndex >= state.selectionOrder.length) {
         state.orderSelectionActive = false;
@@ -1520,7 +1825,6 @@ function confirmSkip() {
     } else {
         showToast(`已跳过 ${skippedName}，下一位：${state.selectionOrder[state.currentSelectionIndex]}`, 'success');
     }
-    
     closeModal();
     renderStudentList();
     renderSeats();
@@ -1529,7 +1833,9 @@ function confirmSkip() {
     debouncedSave();
 }
 
-// ==================== TEMPLATE LIBRARY ====================
+/* ==================== 模板库管理 ==================== */
+
+// 从数据库加载模板列表
 async function loadTemplates() {
     try {
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_templates', {
@@ -1558,21 +1864,21 @@ async function loadTemplates() {
     } catch(e) {
         console.warn('Failed to load templates:', e);
     }
-    
-    // Always include default template
+    // 始终包含默认模板
     const hasDefault = state.templates.some(t => t.name === '默认模板');
     if (!hasDefault) {
         state.templates.unshift({ ...DEFAULT_TEMPLATE, id: 'default', isDefault: true });
     }
 }
 
+// 显示模板库选择弹窗
 function showTemplateLibrary() {
     const templateCards = state.templates.map((t, i) => {
         const seatGroups = t.groups ? t.groups.filter(g => !g.aisle) : [];
         const totalSeats = seatGroups.reduce((sum, g) => sum + g.cols * g.rows, 0);
         return `
             <div class="template-card" onclick="selectTemplate(${i})">
-                <div class="template-card-name">${t.name}</div>
+                <div class="template-card-name">${escapeHtml(t.name)}</div>
                 <div class="template-card-info">
                     <i class="fa fa-th"></i> ${seatGroups.length}组座位<br>
                     <i class="fa fa-chair"></i> 共${totalSeats}个座位
@@ -1580,30 +1886,34 @@ function showTemplateLibrary() {
             </div>
         `;
     }).join('');
-    
+
     showModal('large', '选择座位模板', `
         <div class="modal-body">
             <div class="template-grid">${templateCards}</div>
+            <div style="text-align:center;margin-top:16px;">
+                <a href="javascript:void(0)" onclick="showSubmitTemplateForm()" style="color:var(--primary);text-decoration:underline;font-size:14px;cursor:pointer;">未找到所需的模板？</a>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-primary" onclick="showUploadTemplate()">
-                <i class="fa fa-upload"></i> 上传新模版
-            </button>
         </div>
     `);
 }
 
+// 选择模板
 function selectTemplate(index) {
     const template = state.templates[index];
-    // Deep clone to avoid mutation
+    // 深拷贝防止修改原对象
     state.currentTemplate = JSON.parse(JSON.stringify(template));
-    state.phase = 'seat-table-selection';
+    state.phase = 'arranging';  // 修复：选择模板后直接进入排座阶段，不再返回座位表选择界面
     closeModal();
+    buildSelectionOrder();
     renderLeftPanel();
+    renderStudentList();
     showToast(`已选择模板：${template.name}`, 'success');
 }
 
+// 更换模板
 function changeTemplate() {
     state.phase = 'template-selection';
     state.currentTemplate = null;
@@ -1611,840 +1921,84 @@ function changeTemplate() {
     renderLeftPanel();
 }
 
-// ==================== UPLOAD TEMPLATE ====================
-function showUploadTemplate() {
-    showModal('medium', '上传新模版', `
+// 显示提交模板需求表单
+function showSubmitTemplateForm() {
+    showModal('medium', '提交模板需求', `
         <div class="modal-body">
-            <p style="margin-bottom:16px;color:#475569;">上传一张座位表格图片或Excel文件，系统将智能识别座位布局。</p>
-            <div class="file-upload-area" onclick="document.getElementById('templateFileInput').click()">
-                <i class="fa fa-cloud-upload"></i>
-                <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传文件</div>
-                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls) 或图片 (.png, .jpg)</div>
-            </div>
-            <input type="file" id="templateFileInput" style="display:none;" accept=".xlsx,.xls,.png,.jpg,.jpeg" onchange="handleTemplateUpload(event)">
-            <div id="templatePreviewArea" style="margin-top:16px;"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-        </div>
-    `);
-}
-
-function handleTemplateUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const ext = file.name.split('.').pop().toLowerCase();
-    
-    if (ext === 'xlsx' || ext === 'xls') {
-        handleTemplateExcel(file);
-    } else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
-        handleTemplateImage(file);
-    } else {
-        showToast('不支持的文件格式', 'error');
-    }
-}
-
-function handleTemplateExcel(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
-            const merges = ws['!merges'] || [];
-            
-            // Auto-detect template structure
-            const detected = detectTemplateFromAOA(aoa, merges);
-            
-            showTemplateConfigForm(detected, file.name);
-        } catch(err) {
-            showToast('Excel解析失败：' + err.message, 'error');
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-function handleTemplateImage(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const previewArea = document.getElementById('templatePreviewArea');
-        previewArea.innerHTML = `
-            <div style="text-align:center;">
-                <img src="${e.target.result}" style="max-width:100%;max-height:300px;border-radius:8px;border:2px solid #e2e8f0;">
-            </div>
-            <p style="margin-top:12px;font-size:13px;color:#94a3b8;text-align:center;">图片预览 — 请参考图片手动配置模板结构</p>
-        `;
-        
-        // Show manual config form with default structure
-        const defaultDetected = {
-            name: file.name.replace(/\.[^.]+$/, ''),
-            groups: JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.groups)),
-            podium: JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.podium))
-        };
-        showTemplateConfigForm(defaultDetected, file.name, true);
-    };
-    reader.readAsDataURL(file);
-}
-
-function detectTemplateFromAOA(aoa, merges) {
-    const maxRows = aoa.length;
-    const maxCols = aoa.reduce((max, row) => Math.max(max, (row || []).length), 0);
-    
-    // Detect podium from merged cells containing "讲台"
-    let podiumRow = -1;
-    let podiumStartCol = -1;
-    let podiumEndCol = -1;
-    for (const merge of merges) {
-        const val = aoa[merge.s.r] && aoa[merge.s.r][merge.s.c];
-        if (val && String(val).includes('讲台')) {
-            podiumRow = merge.s.r;
-            podiumStartCol = merge.s.c;
-            podiumEndCol = merge.e.c;
-        }
-    }
-    
-    // Also check for "讲台" text in cells
-    if (podiumRow === -1) {
-        for (let r = 0; r < maxRows; r++) {
-            for (let c = 0; c < maxCols; c++) {
-                const val = aoa[r] && aoa[r][c];
-                if (val && String(val).includes('讲台')) {
-                    podiumRow = r;
-                    podiumStartCol = c;
-                    podiumEndCol = c;
-                    break;
-                }
-            }
-            if (podiumRow !== -1) break;
-        }
-    }
-    
-    // Find data rows (exclude podium and title rows)
-    const dataEndRow = podiumRow > 0 ? podiumRow - 1 : maxRows - 1;
-    
-    // Detect column groups
-    let colHasData = new Array(maxCols).fill(false);
-    for (let r = 0; r <= dataEndRow; r++) {
-        for (let c = 0; c < maxCols; c++) {
-            const val = aoa[r] && aoa[r][c];
-            if (val !== undefined && val !== null && String(val).trim() !== '' && !String(val).includes('讲台')) {
-                colHasData[c] = true;
-            }
-        }
-    }
-    
-    // Group contiguous columns
-    let groups = [];
-    let currentStart = -1;
-    for (let c = 0; c < maxCols; c++) {
-        if (colHasData[c]) {
-            if (currentStart === -1) currentStart = c;
-        } else {
-            if (currentStart !== -1) {
-                groups.push({ startCol: currentStart, endCol: c - 1 });
-                currentStart = -1;
-            }
-        }
-    }
-    if (currentStart !== -1) groups.push({ startCol: currentStart, endCol: maxCols - 1 });
-    
-    // Build template groups
-    let templateGroups = [];
-    let seatGroupIndices = [];
-    for (let i = 0; i < groups.length; i++) {
-        const g = groups[i];
-        const cols = g.endCol - g.startCol + 1;
-        // Count rows with data in this group
-        let rows = 0;
-        for (let r = 0; r <= dataEndRow; r++) {
-            let hasData = false;
-            for (let c = g.startCol; c <= g.endCol; c++) {
-                const val = aoa[r] && aoa[r][c];
-                if (val !== undefined && val !== null && String(val).trim() !== '' && !String(val).includes('讲台')) {
-                    hasData = true;
-                    break;
-                }
-            }
-            if (hasData) rows++;
-        }
-        templateGroups.push({ cols, rows });
-        seatGroupIndices.push(i);
-        if (i < groups.length - 1) {
-            templateGroups.push({ cols: 0, rows: 0, aisle: true });
-        }
-    }
-    
-    // Determine podium position
-    let podium = { startGroup: 0, endGroup: Math.max(0, seatGroupIndices.length - 1) };
-    if (podiumStartCol >= 0 && podiumEndCol >= 0) {
-        let startG = -1, endG = -1;
-        for (let i = 0; i < groups.length; i++) {
-            const g = groups[i];
-            if (g.startCol >= podiumStartCol && g.endCol <= podiumEndCol) {
-                const seatIdx = seatGroupIndices.indexOf(i);
-                if (seatIdx !== -1) {
-                    if (startG === -1) startG = seatIdx;
-                    endG = seatIdx;
-                }
-            } else if (g.endCol >= podiumStartCol && g.startCol <= podiumEndCol) {
-                const seatIdx = seatGroupIndices.indexOf(i);
-                if (seatIdx !== -1) {
-                    if (startG === -1) startG = seatIdx;
-                    endG = seatIdx;
-                }
-            }
-        }
-        if (startG >= 0) podium = { startGroup: startG, endGroup: endG };
-    }
-    
-    return {
-        name: '上传模版',
-        groups: templateGroups.length > 0 ? templateGroups : JSON.parse(JSON.stringify(DEFAULT_TEMPLATE.groups)),
-        podium: podium
-    };
-}
-
-function showTemplateConfigForm(detected, fileName, isFromImage = false) {
-    const seatGroups = detected.groups.filter(g => !g.aisle);
-    const totalSeats = seatGroups.reduce((sum, g) => sum + g.cols * g.rows, 0);
-    
-    let groupItems = '';
-    let seatIdx = 0;
-    detected.groups.forEach((g, i) => {
-        if (g.aisle) {
-            groupItems += `<div class="group-builder-item" style="background:#f8fafc;color:#94a3b8;">过道</div>`;
-        } else {
-            groupItems += `
-                <div class="group-builder-item">
-                    <span style="font-weight:600;min-width:60px;">第${seatIdx + 1}组</span>
-                    <label>列数:</label>
-                    <input type="number" value="${g.cols}" min="1" max="10" data-group-idx="${seatIdx}" data-field="cols">
-                    <label>排数:</label>
-                    <input type="number" value="${g.rows}" min="1" max="20" data-group-idx="${seatIdx}" data-field="rows">
-                </div>
-            `;
-            seatIdx++;
-        }
-    });
-    
-    const modalContent = `
-        <div class="modal-body">
+            <p style="margin-bottom:16px;color:#475569;">填写模板名称并上传座位表文件，我们将为您匹配模板。</p>
             <div class="form-group">
                 <label class="form-label">模板名称</label>
-                <input type="text" class="input-field" id="templateNameInput" value="${detected.name || fileName.replace(/\.[^.]+$/, '')}" placeholder="请输入模板名称">
+                <input type="text" class="input-field" id="submitTemplateNameInput" placeholder="请输入模板名称">
             </div>
             <div class="form-group">
-                <label class="form-label">座位组配置（共${seatGroups.length}组，${totalSeats}座）</label>
-                <div class="group-builder">${groupItems}</div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">讲台位置（第几组到第几组下方）</label>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span>第</span>
-                    <input type="number" class="input-field" style="width:80px;" id="podiumStartInput" value="${detected.podium.startGroup + 1}" min="1">
-                    <span>组 到 第</span>
-                    <input type="number" class="input-field" style="width:80px;" id="podiumEndInput" value="${detected.podium.endGroup + 1}" min="1">
-                    <span>组</span>
+                <label class="form-label">上传座位表文件</label>
+                <div class="file-upload-area" onclick="document.getElementById('submitTemplateFileInput').click()">
+                    <i class="fa fa-cloud-upload"></i>
+                    <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传文件</div>
+                    <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls) 或图片 (.png, .jpg)</div>
                 </div>
-            </div>
-            <div class="seating-info" style="background:#f8fafc;padding:12px;border-radius:8px;">
-                <i class="fa fa-info-circle"></i> 模板将保存至数据库，所有用户可见
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-primary" onclick="saveTemplateFromForm()">保存模板</button>
-        </div>
-    `;
-    
-    // Replace modal content
-    document.getElementById('modalCard').className = 'modal-card medium';
-    document.getElementById('modalCard').innerHTML = `
-        <div class="modal-header">
-            <div class="modal-title">配置模板</div>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        ${modalContent}
-    `;
-    
-    // Store detected data for saving
-    window._detectedTemplate = detected;
-}
-
-function saveTemplateFromForm() {
-    const name = document.getElementById('templateNameInput').value.trim();
-    if (!name) {
-        showToast('请输入模板名称', 'error');
-        return;
-    }
-    
-    const detected = window._detectedTemplate;
-    const inputs = document.querySelectorAll('[data-group-idx]');
-    
-    // Update group configs
-    const seatGroups = detected.groups.filter(g => !g.aisle);
-    inputs.forEach(input => {
-        const idx = parseInt(input.dataset.groupIdx);
-        const field = input.dataset.field;
-        const val = parseInt(input.value);
-        if (seatGroups[idx]) {
-            seatGroups[idx][field] = val;
-        }
-    });
-    
-    const podiumStart = parseInt(document.getElementById('podiumStartInput').value) - 1;
-    const podiumEnd = parseInt(document.getElementById('podiumEndInput').value) - 1;
-    
-    const template = {
-        name: name,
-        groups: detected.groups,
-        podium: { startGroup: podiumStart, endGroup: podiumEnd }
-    };
-    
-    // Save to database
-    saveTemplateToDB(template);
-}
-
-async function saveTemplateToDB(template) {
-    try {
-        const layout = JSON.stringify({
-            groups: template.groups,
-            podium: template.podium
-        });
-        
-        const body = {
-            name: template.name,
-            layout: layout,
-            created_by: state.currentUser ? state.currentUser.id : null,
-            created_at: new Date().toISOString()
-        };
-        
-        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_templates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        
-        if (resp.ok) {
-            const data = await resp.json();
-            template.id = data[0] ? data[0].id : Date.now();
-        }
-    } catch(e) {
-        console.warn('Failed to save template to DB:', e);
-    }
-    
-    // Add to local templates
-    state.templates.push(template);
-    closeModal();
-    showToast(`模板"${template.name}"保存成功`, 'success');
-    
-    // Auto-select the new template
-    selectTemplate(state.templates.length - 1);
-}
-
-// ==================== STAR SELECTION ====================
-function startStarSelection() {
-    showModal('medium', '学习之星、进步之星选座', `
-        <div class="modal-body">
-            <div style="text-align:center;margin-bottom:16px;">
-                <i class="fa fa-trophy" style="font-size:48px;color:#f59e0b;"></i>
-                <p style="margin-top:8px;font-size:16px;font-weight:600;">上传排名表格</p>
-            </div>
-            <div class="file-upload-area" onclick="document.getElementById('rankFileInput').click()">
-                <i class="fa fa-file-excel-o"></i>
-                <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传排名表格</div>
-                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls, .csv)</div>
-            </div>
-            <input type="file" id="rankFileInput" style="display:none;" accept=".xlsx,.xls,.csv" onchange="handleRankFileUpload(event)">
-            <div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:8px;font-size:13px;color:#92400e;">
-                <i class="fa fa-shield"></i> 该表格仅在本地处理，不会上传至云端
+                <input type="file" id="submitTemplateFileInput" style="display:none;" accept=".xlsx,.xls,.png,.jpg,.jpeg" onchange="handleSubmitTemplateFile(event)">
+                <div id="submitTemplateFileName" style="margin-top:8px;font-size:13px;color:#64748b;"></div>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitTemplateRequest()">提交</button>
         </div>
     `);
 }
 
-function handleRankFileUpload(event) {
+// 处理模板需求文件选择
+function handleSubmitTemplateFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
-            
-            state.excelData = aoa;
-            
-            // Detect header row (might be row 0 or row 1 if there's a title)
-            let headerRowIdx = -1;
-            const rankKeywords = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
-            const nameKeywords = ['姓名', '名字', '学生'];
-            
-            for (let r = 0; r < Math.min(3, aoa.length); r++) {
-                const row = aoa[r] || [];
-                let hasRank = false;
-                let hasName = false;
-                for (let c = 0; c < row.length; c++) {
-                    const cellVal = String(row[c] || '').trim();
-                    if (rankKeywords.some(kw => cellVal.includes(kw))) hasRank = true;
-                    if (nameKeywords.some(kw => cellVal.includes(kw))) hasName = true;
-                }
-                if (hasRank || hasName) {
-                    headerRowIdx = r;
-                    break;
-                }
-            }
-            
-            if (headerRowIdx === -1) headerRowIdx = 0;
-            
-            state.excelHeaders = aoa[headerRowIdx] || [];
-            state.excelHeaderRowIdx = headerRowIdx;
-            
-            // Find rank column (best match)
-            const rankColPriority = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
-            let bestRankCol = -1;
-            let bestPriority = 999;
-            for (let c = 0; c < state.excelHeaders.length; c++) {
-                const header = String(state.excelHeaders[c] || '').trim();
-                for (let p = 0; p < rankColPriority.length; p++) {
-                    if (header.includes(rankColPriority[p]) && p < bestPriority) {
-                        bestRankCol = c;
-                        bestPriority = p;
-                    }
-                }
-            }
-            state.detectedRankCol = bestRankCol;
-            
-            // Find name column
-            let nameCol = -1;
-            for (let c = 0; c < state.excelHeaders.length; c++) {
-                const header = String(state.excelHeaders[c] || '').trim();
-                if (nameKeywords.some(kw => header.includes(kw))) {
-                    nameCol = c;
-                    break;
-                }
-            }
-            // If no name header, try to match with existing student names
-            if (nameCol === -1) {
-                for (let c = 0; c < state.excelHeaders.length; c++) {
-                    let matchCount = 0;
-                    for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 10, aoa.length); r++) {
-                        const val = aoa[r] && aoa[r][c] ? String(aoa[r][c]).trim() : '';
-                        if (state.originalStudents.some(s => s.name === val)) matchCount++;
-                    }
-                    if (matchCount > 3) { nameCol = c; break; }
-                }
-            }
-            state.nameColIndex = nameCol;
-            state.rankColIndex = bestRankCol;
-            
-            // Show preview modal
-            showExcelPreview(aoa, headerRowIdx, bestRankCol);
-            
-        } catch(err) {
-            showToast('文件解析失败：' + err.message, 'error');
-        }
-    };
-    reader.readAsArrayBuffer(file);
+    document.getElementById('submitTemplateFileName').textContent = '已选择：' + file.name;
+    window._submitTemplateFile = file;
 }
 
-function showExcelPreview(aoa, headerRowIdx, rankCol) {
-    // Show up to 20 rows starting from header row (including header)
-    const startRow = headerRowIdx;
-    const endRow = Math.min(startRow + 20, aoa.length);
-    const maxCols = aoa.slice(startRow, endRow).reduce((max, row) => Math.max(max, (row || []).length), 0);
-    
-    let tableHtml = '<table class="preview-table"><thead><tr>';
-    tableHtml += '<th style="background:#f1f5f9;width:40px;">#</th>';
-    for (let c = 0; c < maxCols; c++) {
-        const isRank = c === rankCol;
-        tableHtml += `<th class="${isRank ? 'highlighted' : ''}">${aoa[headerRowIdx] && aoa[headerRowIdx][c] !== undefined ? escapeHtml(String(aoa[headerRowIdx][c])) : ''}</th>`;
-    }
-    tableHtml += '</tr></thead><tbody>';
-    
-    for (let r = headerRowIdx + 1; r < endRow; r++) {
-        tableHtml += '<tr>';
-        tableHtml += `<td style="background:#f8fafc;color:#94a3b8;">${r - headerRowIdx}</td>`;
-        for (let c = 0; c < maxCols; c++) {
-            const isRank = c === rankCol;
-            const val = aoa[r] && aoa[r][c] !== undefined ? String(aoa[r][c]) : '';
-            tableHtml += `<td class="${isRank ? 'highlighted' : ''}">${escapeHtml(val)}</td>`;
-        }
-        tableHtml += '</tr>';
-    }
-    tableHtml += '</tbody></table>';
-    
-    const rankColName = rankCol >= 0 ? escapeHtml(String(state.excelHeaders[rankCol] || '')) : '未找到';
-    
-    showModal('large', '排名表格预览', `
-        <div class="modal-body">
-            <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-                <span class="info-badge badge-star"><i class="fa fa-star"></i> 检测到年排列：${rankColName}</span>
-                ${rankCol >= 0 ? '<span style="color:#22c55e;font-size:13px;"><i class="fa fa-check"></i> 已高亮</span>' : '<span style="color:#ef4444;font-size:13px;"><i class="fa fa-exclamation"></i> 未找到，请手动选择</span>'}
-            </div>
-            <div style="overflow:auto;max-height:400px;border:1px solid #e2e8f0;border-radius:8px;">
-                ${tableHtml}
-            </div>
-            ${rankCol < 0 ? `
-                <div class="form-group" style="margin-top:12px;">
-                    <label class="form-label">手动选择年排列（表头）</label>
-                    <select class="input-field" id="manualRankColSelect">
-                        <option value="-1">-- 请选择 --</option>
-                        ${state.excelHeaders.map((h, i) => `<option value="${i}">${escapeHtml(String(h || `第${i+1}列`))}</option>`).join('')}
-                    </select>
+// 提交模板需求到数据库
+async function submitTemplateRequest() {
+    const name = document.getElementById('submitTemplateNameInput').value.trim();
+    if (!name) { showToast('请输入模板名称', 'error'); return; }
+    const file = window._submitTemplateFile;
+    if (!file) { showToast('请上传座位表文件', 'error'); return; }
+
+    const fileLink = 'uploads/' + Date.now() + '_' + file.name;
+    try {
+        await fetch(SUPABASE_URL + '/rest/v1/seat_templates_submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                file_link: fileLink,
+                submitted_by: state.currentUser ? state.currentUser.id : null,
+                created_at: new Date().toISOString()
+            })
+        });
+        closeModal();
+        showModal('small', '提交成功', `
+            <div class="modal-body">
+                <div style="text-align:center;padding:16px;">
+                    <i class="fa fa-check-circle" style="font-size:48px;color:#22c55e;"></i>
+                    <p style="margin-top:16px;color:#475569;font-size:15px;">提交成功！将在3个工作日内为您匹配模板</p>
                 </div>
-            ` : ''}
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-secondary" onclick="skipRankSelection()">跳过</button>
-            <button class="btn btn-primary" onclick="confirmRankSelection()">确认</button>
-        </div>
-    `);
-}
-
-function skipRankSelection() {
-    state.detectedRankCol = -1;
-    state.rankColIndex = -1;
-    closeModal();
-    showToast('已跳过年排列选择', 'info');
-    // Show progress star selection with all students
-    showProgressStarModal([]);
-}
-
-function confirmRankSelection() {
-    let rankCol = state.detectedRankCol;
-    
-    // Check manual selection
-    const manualSelect = document.getElementById('manualRankColSelect');
-    if (manualSelect && manualSelect.value !== '-1') {
-        rankCol = parseInt(manualSelect.value);
-        state.detectedRankCol = rankCol;
-        state.rankColIndex = rankCol;
-    }
-    
-    if (rankCol < 0) {
-        showToast('请选择年排列或点击跳过', 'warning');
-        return;
-    }
-    
-    // Parse student ranks
-    const aoa = state.excelData;
-    const headerRowIdx = state.excelHeaderRowIdx !== undefined ? state.excelHeaderRowIdx : 0;
-    const nameCol = state.nameColIndex;
-    
-    state.studentRanks = {};
-    const studentNamesWithRanks = [];
-    
-    for (let r = headerRowIdx + 1; r < aoa.length; r++) {
-        const nameVal = nameCol >= 0 ? (aoa[r] && aoa[r][nameCol]) : null;
-        const rankVal = aoa[r] && aoa[r][rankCol];
-        
-        if (nameVal && String(nameVal).trim()) {
-            const name = String(nameVal).trim();
-            const rank = rankVal ? parseInt(String(rankVal).replace(/[^\d]/g, '')) || 9999 : 9999;
-            state.studentRanks[name] = rank;
-            studentNamesWithRanks.push({ name, rank });
-        }
-    }
-    
-    // Reorder students: clear and re-add in table order
-    const newStudents = [];
-    for (const item of studentNamesWithRanks) {
-        const orig = state.originalStudents.find(s => s.name === item.name);
-        if (orig) {
-            newStudents.push({ ...orig });
-        } else {
-            // Unknown student, try to determine gender
-            newStudents.push({ name: item.name, gender: '男' });
-        }
-    }
-    
-    // Add any students not in the Excel
-    for (const orig of state.originalStudents) {
-        if (!studentNamesWithRanks.some(s => s.name === orig.name)) {
-            newStudents.push({ ...orig });
-        }
-    }
-    
-    state.students = newStudents;
-    
-    // Identify learning stars (rank <= 100)
-    const starStudents = studentNamesWithRanks
-        .filter(s => s.rank > 0 && s.rank <= 100)
-        .sort((a, b) => a.rank - b.rank);
-    
-    state.starStudents = starStudents.map(s => ({ name: s.name, rank: s.rank }));
-    
-    closeModal();
-    renderStudentList();
-    showToast(`已识别 ${state.starStudents.length} 名学习之星`, 'success');
-    
-    // Show progress star selection modal
-    setTimeout(() => showProgressStarModal(starStudents.map(s => s.name)), 300);
-}
-
-function showProgressStarModal(starNames) {
-    const allStudents = state.students;
-    let selectedProgress = [];
-    
-    const renderCards = () => {
-        const grid = document.getElementById('progressStarGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
-        
-        allStudents.forEach(student => {
-            const card = document.createElement('div');
-            card.className = `star-card ${student.gender === '男' ? 'boy' : 'girl'}`;
-            card.textContent = student.name;
-            card.dataset.name = student.name;
-            
-            if (starNames.includes(student.name)) {
-                card.classList.add('is-star');
-                card.title = '该同学为学习之星';
-                card.onclick = () => {
-                    showToast(`该同学为学习之星`, 'info');
-                };
-            } else {
-                const existing = selectedProgress.findIndex(s => s.name === student.name);
-                if (existing >= 0) {
-                    card.classList.add('selected');
-                    const badge = document.createElement('span');
-                    badge.className = 'star-badge';
-                    badge.textContent = existing + 1;
-                    card.appendChild(badge);
-                }
-                card.onclick = () => {
-                    const idx = selectedProgress.findIndex(s => s.name === student.name);
-                    if (idx >= 0) {
-                        selectedProgress.splice(idx, 1);
-                    } else {
-                        selectedProgress.push({ name: student.name, order: selectedProgress.length + 1, gender: student.gender });
-                    }
-                    renderCards();
-                    updateConfirmBtn();
-                };
-            }
-            
-            grid.appendChild(card);
-        });
-    };
-    
-    const updateConfirmBtn = () => {
-        const btn = document.getElementById('progressConfirmBtn');
-        if (btn) {
-            if (selectedProgress.length === 0) {
-                btn.textContent = '跳过';
-                btn.className = 'btn btn-secondary';
-            } else {
-                btn.textContent = `确认（已选${selectedProgress.length}人）`;
-                btn.className = 'btn btn-success';
-            }
-        }
-    };
-    
-    showModal('large', '选择进步之星', `
-        <div class="modal-body">
-            <p style="margin-bottom:12px;color:#475569;font-size:14px;">
-                请点击选择进步之星同学（按点击顺序排列）。黄色框为学习之星，不可选择。
-            </p>
-            <div class="form-group">
-                <input type="text" class="input-field" id="progressSearchInput" placeholder="输入姓名或单字查找..." oninput="filterProgressCards(this.value)">
             </div>
-            <div class="star-grid" id="progressStarGrid"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-secondary" id="progressConfirmBtn" onclick="confirmProgressStars()">跳过</button>
-        </div>
-    `);
-    
-    renderCards();
-    updateConfirmBtn();
-    
-    // Store selected for confirm
-    window._selectedProgress = () => selectedProgress;
-}
-
-function filterProgressCards(keyword) {
-    const cards = document.querySelectorAll('#progressStarGrid .star-card');
-    cards.forEach(card => {
-        const name = card.dataset.name || '';
-        if (!keyword || matchStudent(name, keyword)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-function confirmProgressStars() {
-    const selected = window._selectedProgress ? window._selectedProgress() : [];
-    state.progressStudents = selected.map((s, i) => ({ name: s.name, order: i + 1, gender: s.gender }));
-    
-    // Re-sort students: stars first (by rank), then progress (by order), then rest
-    reorderStudentsForSelection();
-    
-    closeModal();
-    renderStudentList();
-    
-    // Build selection order
-    buildSelectionOrder();
-    
-    showToast(`已选择 ${state.progressStudents.length} 名进步之星`, 'success');
-}
-
-function reorderStudentsForSelection() {
-    const starNames = state.starStudents.map(s => s.name);
-    const progressNames = state.progressStudents.map(s => s.name);
-    
-    const stars = [];
-    const progress = [];
-    const rest = [];
-    
-    for (const student of state.students) {
-        if (starNames.includes(student.name)) {
-            const star = state.starStudents.find(s => s.name === student.name);
-            stars.push({ ...student, rank: star ? star.rank : 999 });
-        } else if (progressNames.includes(student.name)) {
-            const prog = state.progressStudents.find(s => s.name === student.name);
-            progress.push({ ...student, order: prog ? prog.order : 999 });
-        } else {
-            rest.push(student);
-        }
-    }
-    
-    stars.sort((a, b) => a.rank - b.rank);
-    progress.sort((a, b) => a.order - b.order);
-    
-    state.students = [...stars.map(s => { const {rank, ...rest} = s; return rest; }), ...progress.map(s => { const {order, ...rest} = s; return rest; }), ...rest];
-}
-
-function buildSelectionOrder() {
-    const starNames = state.starStudents.sort((a, b) => a.rank - b.rank).map(s => s.name);
-    const progressNames = state.progressStudents.map(s => s.name);
-    
-    state.selectionOrder = [...starNames, ...progressNames];
-    state.currentSelectionIndex = 0;
-    state.orderSelectionActive = state.selectionOrder.length > 0;
-    
-    if (state.phase === 'arranging') {
-        updateSelectionIndicator();
-        updateModeToggleBtn();
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">确认</button>
+            </div>
+        `);
+    } catch(e) {
+        showToast('提交失败，请重试', 'error');
     }
 }
 
-// ==================== SEAT TABLE OPERATIONS ====================
+/* ==================== 座位表管理 ==================== */
+
+// 开始新建座位表
 async function startNewSeatTable() {
-    // Check for incomplete seat tables
-    const incomplete = await checkIncompleteSeatTables();
-    
-    if (incomplete && incomplete.length > 0) {
-        showIncompleteModal(incomplete, () => promptNewSeatTableName());
-    } else {
-        promptNewSeatTableName();
-    }
-}
-
-async function checkIncompleteSeatTables() {
-    try {
-        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?is_completed=eq.false', {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        if (resp.ok) {
-            const data = await resp.json();
-            if (Array.isArray(data)) {
-                // Filter out records older than 90 days
-                const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
-                return data.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
-            }
-        }
-    } catch(e) {
-        console.warn('Failed to check incomplete tables:', e);
-    }
-    return [];
-}
-
-function showIncompleteModal(incomplete, onIgnore) {
-    const namesList = incomplete.map(t => `<div style="padding:8px;background:#fef3c7;border-radius:6px;margin-bottom:4px;">${escapeHtml(t.name)} — 更新于 ${new Date(t.updated_at || t.created_at).toLocaleDateString()}</div>`).join('');
-    const ids = incomplete.map(t => t.id);
-    window._incompleteIgnore = onIgnore;
-    window._incompleteIds = ids;
-    
-    showModal('medium', '检测到未排完的座位表', `
-        <div class="modal-body">
-            <p style="margin-bottom:12px;color:#475569;">以下座位表还有空位未排完：</p>
-            ${namesList}
-            <p style="margin-top:12px;font-size:13px;color:#94a3b8;">请选择如何处理：</p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal(); if(window._incompleteIgnore) window._incompleteIgnore();">忽略</button>
-            <button class="btn btn-danger" onclick="confirmDeleteIncomplete()">删除并新建座位表</button>
-            <button class="btn btn-primary" onclick="continueArranging()">继续排位</button>
-        </div>
-    `);
-}
-
-function confirmDeleteIncomplete() {
-    showModal('small', '确认删除', `
-        <div class="modal-body">
-            <p style="text-align:center;color:#475569;">确定要删除这些未排完的座位表吗？此操作不可撤销。</p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-danger" onclick="deleteAndCreateNew()">确认删除</button>
-        </div>
-    `);
-}
-
-async function deleteAndCreateNew() {
-    const ids = window._incompleteIds || [];
-    for (const id of ids) {
-        try {
-            await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } catch(e) {
-            console.warn('Failed to delete:', e);
-        }
-    }
+    // 先关闭可能打开的弹窗
     closeModal();
-    showToast('已删除未排完的座位表', 'success');
-    promptNewSeatTableName();
-}
-
-async function continueArranging() {
-    const ids = window._incompleteIds || [];
-    if (ids.length === 0) return;
-    
-    try {
-        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + ids[0], {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data && data.length > 0) {
-                loadSeatTable(data[0]);
-                closeModal();
-                return;
-            }
-        }
-    } catch(e) {
-        console.warn('Failed to load seat table:', e);
-    }
-    showToast('加载失败', 'error');
-}
-
-function promptNewSeatTableName() {
-    closeModal();
+    // 直接弹出输入名称框
     setTimeout(() => {
         showModal('small', '新建座位表', `
             <div class="modal-body">
@@ -2464,46 +2018,137 @@ function promptNewSeatTableName() {
     }, 100);
 }
 
+// 创建新座位表
 function createNewSeatTable() {
     const name = document.getElementById('seatTableNameInput').value.trim();
-    if (!name) {
-        showToast('请输入座位表名称', 'error');
-        return;
-    }
-    
+    if (!name) { showToast('请输入座位表名称', 'error'); return; }
     state.seatingTableName = name;
     state.seatTableId = null;
     state.arrangement = {};
     state.isCompleted = false;
-    state.phase = 'arranging';
-    
-    // Build selection order if stars/progress exist
+    state.currentTemplate = null;  // 重置模板，需要用户选择
+    state.phase = 'template-selection';  // 进入模板选择阶段
     buildSelectionOrder();
-    
     closeModal();
     renderLeftPanel();
-    showToast(`已创建座位表：${name}`, 'success');
-    saveSeatTable();
+    showToast(`已创建座位表：${name}，请选择模板`, 'success');
 }
 
-// ==================== HISTORY ====================
-async function showHistorySeatTables() {
+// 检查未排完的座位表
+async function checkIncompleteSeatTables() {
     try {
-        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?order=updated_at.desc', {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?is_completed=eq.false', {
             headers: { 'Content-Type': 'application/json' }
         });
-        
-        let tables = [];
         if (resp.ok) {
-            tables = await resp.json();
+            const data = await resp.json();
+            if (Array.isArray(data)) {
+                // 过滤超过90天的记录
+                const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+                return data.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
+            }
         }
-        
-        // Filter out records older than 90 days
+    } catch(e) {
+        console.warn('Failed to check incomplete tables:', e);
+    }
+    return [];
+}
+
+// 显示未排完座位表的处理选项
+function showIncompleteModal(incomplete, onIgnore) {
+    const namesList = incomplete.map(t =>
+        `<div style="padding:8px;background:#fef3c7;border-radius:6px;margin-bottom:4px;">${escapeHtml(t.name)} — 更新于 ${new Date(t.updated_at || t.created_at).toLocaleDateString()}</div>`
+    ).join('');
+    window._incompleteIgnore = onIgnore;
+    window._incompleteIds = incomplete.map(t => t.id);
+
+    showModal('medium', '检测到未排完的座位表', `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;">以下座位表还有空位未排完：</p>
+            ${namesList}
+            <p style="margin-top:12px;font-size:13px;color:#94a3b8;">请选择如何处理：</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal(); if(window._incompleteIgnore) window._incompleteIgnore();">忽略</button>
+            <button class="btn btn-danger" onclick="confirmDeleteIncomplete()">删除并新建座位表</button>
+            <button class="btn btn-primary" onclick="continueArranging()">继续排位</button>
+        </div>
+    `);
+}
+
+// 确认删除未排完的座位表
+function confirmDeleteIncomplete() {
+    showModal('small', '确认删除', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;">确定要删除这些未排完的座位表吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="deleteAndCreateNew()">确认删除</button>
+        </div>
+    `);
+}
+
+// 删除未排完的座位表并新建
+async function deleteAndCreateNew() {
+    const ids = window._incompleteIds || [];
+    for (const id of ids) {
+        try {
+            await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch(e) { console.warn('Failed to delete:', e); }
+    }
+    closeModal();
+    showToast('已删除未排完的座位表', 'success');
+    promptNewSeatTableName();
+}
+
+// 继续排位（加载第一个未排完的座位表）
+async function continueArranging() {
+    const ids = window._incompleteIds || [];
+    if (ids.length === 0) return;
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + ids[0], {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                loadSeatTable(data[0]);
+                closeModal();
+                return;
+            }
+        }
+    } catch(e) { console.warn('Failed to load seat table:', e); }
+    showToast('加载失败', 'error');
+}
+
+/* ==================== 历史座位表 ==================== */
+
+// 显示历史座位表（可修改/另存/删除）
+async function showHistorySeatTables() {
+    showModal('medium', '历史座位表', `
+        <div class="modal-body">
+            <div style="text-align:center;padding:40px;color:#94a3b8;">
+                <i class="fa fa-spinner fa-spin" style="font-size:32px;"></i>
+                <p style="margin-top:12px;">加载中...</p>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+    `);
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?order=updated_at.desc&limit=200', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        let tables = [];
+        if (resp.ok) tables = await resp.json();
+        // 过滤超过90天的记录
         const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
         tables = tables.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
-        
         state.historySeatTables = tables;
-        
+
         if (tables.length === 0) {
             showModal('medium', '历史座位表', `
                 <div class="modal-body">
@@ -2512,13 +2157,11 @@ async function showHistorySeatTables() {
                         <p style="margin-top:12px;">暂无历史座位表</p>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
-                </div>
+                <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
             `);
             return;
         }
-        
+
         const cards = tables.map(t => {
             const arrangement = typeof t.arrangement === 'string' ? JSON.parse(t.arrangement) : (t.arrangement || {});
             const seatCount = Object.keys(arrangement).length;
@@ -2526,7 +2169,6 @@ async function showHistorySeatTables() {
             const totalSeats = templateLayout.groups ? templateLayout.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0) : 0;
             const incomplete = !t.is_completed;
             const updatedDate = new Date(t.updated_at || t.created_at).toLocaleDateString();
-            
             return `
                 <div class="history-card ${incomplete ? 'incomplete' : ''}">
                     <div class="history-card-name">${escapeHtml(t.name)} ${incomplete ? '<span class="info-badge badge-star" style="margin-left:4px;">未完成</span>' : '<span class="info-badge badge-progress" style="margin-left:4px;">已完成</span>'}</div>
@@ -2537,25 +2179,89 @@ async function showHistorySeatTables() {
                     <div class="history-card-actions">
                         <button class="btn btn-primary btn-sm" onclick="editHistorySeatTable('${t.id}')"><i class="fa fa-edit"></i> 修改</button>
                         <button class="btn btn-secondary btn-sm" onclick="saveAsNewHistorySeatTable('${t.id}')"><i class="fa fa-copy"></i> 另存为</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHistorySeatTable('${t.id}')"><i class="fa fa-trash"></i> 删除</button>
                     </div>
                 </div>
             `;
         }).join('');
-        
+
         showModal('large', '历史座位表', `
             <div class="modal-body">
                 <div class="template-grid">${cards}</div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
         `);
-        
     } catch(e) {
         showToast('加载历史座位表失败', 'error');
     }
 }
 
+// 从历史记录中选择（自动复制副本，不修改原记录）
+async function showHistoryForCopy() {
+    showModal('medium', '从历史记录中选择', `
+        <div class="modal-body">
+            <div style="text-align:center;padding:40px;color:#94a3b8;">
+                <i class="fa fa-spinner fa-spin" style="font-size:32px;"></i>
+                <p style="margin-top:12px;">加载中...</p>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+    `);
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?order=updated_at.desc&limit=200', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        let tables = [];
+        if (resp.ok) tables = await resp.json();
+        const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        tables = tables.filter(t => new Date(t.updated_at || t.created_at).getTime() > ninetyDaysAgo);
+
+        if (tables.length === 0) {
+            showModal('medium', '从历史记录中选择', `
+                <div class="modal-body">
+                    <div style="text-align:center;padding:40px;color:#94a3b8;">
+                        <i class="fa fa-inbox" style="font-size:48px;"></i>
+                        <p style="margin-top:12px;">暂无历史座位表</p>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+            `);
+            return;
+        }
+
+        const cards = tables.map(t => {
+            const arrangement = typeof t.arrangement === 'string' ? JSON.parse(t.arrangement) : (t.arrangement || {});
+            const seatCount = Object.keys(arrangement).length;
+            const templateLayout = typeof t.template_layout === 'string' ? JSON.parse(t.template_layout) : (t.template_layout || {});
+            const totalSeats = templateLayout.groups ? templateLayout.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0) : 0;
+            const updatedDate = new Date(t.updated_at || t.created_at).toLocaleDateString();
+            return `
+                <div class="history-card" style="cursor:pointer;" onclick="saveAsNewHistorySeatTable('${t.id}')">
+                    <div class="history-card-name">${escapeHtml(t.name)}</div>
+                    <div class="history-card-meta">
+                        <i class="fa fa-calendar"></i> ${updatedDate}<br>
+                        <i class="fa fa-chair"></i> ${seatCount}/${totalSeats} 座位已排
+                    </div>
+                    <div style="text-align:center;color:var(--primary);font-size:13px;margin-top:8px;">
+                        <i class="fa fa-copy"></i> 点击复制为副本
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        showModal('large', '从历史记录中选择', `
+            <div class="modal-body">
+                <p style="margin-bottom:12px;color:#94a3b8;font-size:13px;">点击座位表将自动复制一个副本，不会修改原记录。</p>
+                <div class="template-grid">${cards}</div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+        `);
+    } catch(e) {
+        showToast('加载历史座位表失败', 'error');
+    }
+}
+
+// 修改历史座位表（直接加载原记录）
 async function editHistorySeatTable(id) {
     try {
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
@@ -2573,6 +2279,7 @@ async function editHistorySeatTable(id) {
     showToast('加载失败', 'error');
 }
 
+// 另存为新的座位表（复制副本）
 async function saveAsNewHistorySeatTable(id) {
     try {
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
@@ -2607,13 +2314,10 @@ async function saveAsNewHistorySeatTable(id) {
     showToast('操作失败', 'error');
 }
 
+// 确认另存为新座位表
 async function confirmSaveAsNew(originalId) {
     const newName = document.getElementById('newSeatTableNameInput').value.trim();
-    if (!newName) {
-        showToast('请输入名称', 'error');
-        return;
-    }
-    
+    if (!newName) { showToast('请输入名称', 'error'); return; }
     try {
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + originalId, {
             headers: { 'Content-Type': 'application/json' }
@@ -2634,13 +2338,11 @@ async function confirmSaveAsNew(originalId) {
                     updated_at: new Date().toISOString(),
                     is_completed: false
                 };
-                
                 const postResp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newRow)
                 });
-                
                 if (postResp.ok) {
                     const postData = await postResp.json();
                     if (postData && postData.length > 0) {
@@ -2652,37 +2354,59 @@ async function confirmSaveAsNew(originalId) {
                 return;
             }
         }
-    } catch(e) {
-        console.warn('Save as new failed:', e);
-    }
+    } catch(e) { console.warn('Save as new failed:', e); }
     showToast('操作失败', 'error');
 }
 
+// 删除历史座位表
+async function deleteHistorySeatTable(id) {
+    showModal('small', '确认删除', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;">确定要删除此座位表吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="confirmDeleteHistory('${id}')">确认删除</button>
+        </div>
+    `);
+}
+
+// 确认删除历史座位表
+async function confirmDeleteHistory(id) {
+    try {
+        await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + id, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        closeModal();
+        showToast('已删除座位表', 'success');
+        showHistorySeatTables(); // 刷新列表
+    } catch(e) {
+        showToast('删除失败', 'error');
+    }
+}
+
+// 加载座位表数据到状态
 function loadSeatTable(tableData) {
     state.seatingTableName = tableData.name;
     state.seatTableId = tableData.id;
     state.isCompleted = tableData.is_completed || false;
-    
-    // Parse arrangement
+    // 解析排座结果
     state.arrangement = typeof tableData.arrangement === 'string' ? JSON.parse(tableData.arrangement) : (tableData.arrangement || {});
-    
-    // Parse template
+    // 解析模板
     const layout = typeof tableData.template_layout === 'string' ? JSON.parse(tableData.template_layout) : (tableData.template_layout || {});
     state.currentTemplate = layout;
-    
-    // Parse students
+    // 解析学生列表
     if (tableData.student_list) {
         state.students = typeof tableData.student_list === 'string' ? JSON.parse(tableData.student_list) : tableData.student_list;
     }
-    
-    // Parse star/progress students
+    // 解析学习之星/进步之星
     if (tableData.star_students) {
         state.starStudents = typeof tableData.star_students === 'string' ? JSON.parse(tableData.star_students) : tableData.star_students;
     }
     if (tableData.progress_students) {
         state.progressStudents = typeof tableData.progress_students === 'string' ? JSON.parse(tableData.progress_students) : tableData.progress_students;
     }
-    
     state.phase = 'arranging';
     buildSelectionOrder();
     renderLeftPanel();
@@ -2690,48 +2414,38 @@ function loadSeatTable(tableData) {
     showToast(`已加载座位表：${tableData.name}`, 'success');
 }
 
-// ==================== DATABASE SAVE ====================
-let saveTimer = null;
+/* ==================== 数据库自动保存 ==================== */
+
+// 防抖保存（1秒内多次操作只保存一次）
 function debouncedSave() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveSeatTable(), 1000);
 }
 
+// 保存当前座位表到数据库
 async function saveSeatTable() {
     if (state.phase !== 'arranging' || !state.seatingTableName) return;
-    
     try {
-        const templateLayout = JSON.stringify(state.currentTemplate);
-        const arrangement = JSON.stringify(state.arrangement);
-        const studentList = JSON.stringify(state.students);
-        const starStudents = JSON.stringify(state.starStudents);
-        const progressStudents = JSON.stringify(state.progressStudents);
-        
-        const totalSeats = countTotalSeats(state.currentTemplate);
-        const seatedCount = Object.keys(state.arrangement).length;
-        const isCompleted = seatedCount >= totalSeats;
-        
         const body = {
             name: state.seatingTableName,
-            template_layout: templateLayout,
-            arrangement: arrangement,
-            student_list: studentList,
-            star_students: starStudents,
-            progress_students: progressStudents,
+            template_layout: JSON.stringify(state.currentTemplate),
+            arrangement: JSON.stringify(state.arrangement),
+            student_list: JSON.stringify(state.students),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
             created_by: state.currentUser ? state.currentUser.id : null,
             updated_at: new Date().toISOString(),
-            is_completed: isCompleted
+            is_completed: Object.keys(state.arrangement).length >= countTotalSeats(state.currentTemplate)
         };
-        
         if (state.seatTableId) {
-            // Update existing
+            // 更新已有记录
             await fetch(SUPABASE_URL + '/rest/v1/seat_tables?id=eq.' + state.seatTableId, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
         } else {
-            // Create new
+            // 创建新记录
             body.created_at = new Date().toISOString();
             const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables', {
                 method: 'POST',
@@ -2740,9 +2454,7 @@ async function saveSeatTable() {
             });
             if (resp.ok) {
                 const data = await resp.json();
-                if (data && data.length > 0) {
-                    state.seatTableId = data[0].id;
-                }
+                if (data && data.length > 0) state.seatTableId = data[0].id;
             }
         }
     } catch(e) {
@@ -2750,42 +2462,472 @@ async function saveSeatTable() {
     }
 }
 
-// ==================== EXPORT TO EXCEL ====================
+/* ==================== 学习之星/进步之星选座 ==================== */
+
+// 开始学习之星、进步之星选座流程
+function startStarSelection() {
+    showModal('medium', '学习之星、进步之星选座', `
+        <div class="modal-body">
+            <div style="text-align:center;margin-bottom:16px;">
+                <i class="fa fa-trophy" style="font-size:48px;color:#f59e0b;"></i>
+                <p style="margin-top:8px;font-size:16px;font-weight:600;">上传排名表格</p>
+            </div>
+            <div class="file-upload-area" onclick="document.getElementById('rankFileInput').click()">
+                <i class="fa fa-file-excel-o"></i>
+                <div style="font-size:16px;font-weight:600;margin-top:8px;">点击上传排名表格</div>
+                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">支持 Excel (.xlsx, .xls, .csv)</div>
+            </div>
+            <input type="file" id="rankFileInput" style="display:none;" accept=".xlsx,.xls,.csv" onchange="handleRankFileUpload(event)">
+            <div style="margin-top:12px;padding:10px;background:#fef3c7;border-radius:8px;font-size:13px;color:#92400e;">
+                <i class="fa fa-shield"></i> 该表格仅在本地处理，不会上传至云端
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        </div>
+    `);
+}
+
+// 处理排名表格上传
+function handleRankFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            state.excelData = aoa;
+
+            // 检测表头行
+            const rankKeywords = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
+            const nameKeywords = ['姓名', '名字', '学生'];
+            let headerRowIdx = -1;
+            for (let r = 0; r < Math.min(3, aoa.length); r++) {
+                const row = aoa[r] || [];
+                let hasRank = false, hasName = false;
+                for (let c = 0; c < row.length; c++) {
+                    const cellVal = String(row[c] || '').trim();
+                    if (rankKeywords.some(kw => cellVal.includes(kw))) hasRank = true;
+                    if (nameKeywords.some(kw => cellVal.includes(kw))) hasName = true;
+                }
+                if (hasRank || hasName) { headerRowIdx = r; break; }
+            }
+            if (headerRowIdx === -1) headerRowIdx = 0;
+            state.excelHeaders = aoa[headerRowIdx] || [];
+            state.excelHeaderRowIdx = headerRowIdx;
+
+            // 查找年排列（按优先级匹配）
+            const rankColPriority = ['年排', '年级排名', '总分年排', '总分排名', '理六科排名', '排名'];
+            let bestRankCol = -1, bestPriority = 999;
+            for (let c = 0; c < state.excelHeaders.length; c++) {
+                const header = String(state.excelHeaders[c] || '').trim();
+                for (let p = 0; p < rankColPriority.length; p++) {
+                    if (header.includes(rankColPriority[p]) && p < bestPriority) {
+                        bestRankCol = c;
+                        bestPriority = p;
+                    }
+                }
+            }
+            state.detectedRankCol = bestRankCol;
+
+            // 查找姓名列
+            let nameCol = -1;
+            for (let c = 0; c < state.excelHeaders.length; c++) {
+                const header = String(state.excelHeaders[c] || '').trim();
+                if (nameKeywords.some(kw => header.includes(kw))) { nameCol = c; break; }
+            }
+            // 若无姓名表头，尝试匹配已知学生名
+            if (nameCol === -1) {
+                for (let c = 0; c < state.excelHeaders.length; c++) {
+                    let matchCount = 0;
+                    for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 10, aoa.length); r++) {
+                        const val = aoa[r] && aoa[r][c] ? String(aoa[r][c]).trim() : '';
+                        if (state.originalStudents.some(s => s.name === val)) matchCount++;
+                    }
+                    if (matchCount > 3) { nameCol = c; break; }
+                }
+            }
+            state.nameColIndex = nameCol;
+            state.rankColIndex = bestRankCol;
+            showExcelPreview(aoa, headerRowIdx, bestRankCol);
+        } catch(err) {
+            showToast('文件解析失败：' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// 显示排名表格预览（高亮年排列）
+function showExcelPreview(aoa, headerRowIdx, rankCol) {
+    const startRow = headerRowIdx;
+    const endRow = Math.min(startRow + 20, aoa.length);
+    const maxCols = aoa.slice(startRow, endRow).reduce((max, row) => Math.max(max, (row || []).length), 0);
+
+    let tableHtml = '<table class="preview-table"><thead><tr>';
+    tableHtml += '<th style="background:#f1f5f9;width:40px;">#</th>';
+    for (let c = 0; c < maxCols; c++) {
+        const isRank = c === rankCol;
+        tableHtml += `<th class="${isRank ? 'highlighted' : ''}">${aoa[headerRowIdx] && aoa[headerRowIdx][c] !== undefined ? escapeHtml(String(aoa[headerRowIdx][c])) : ''}</th>`;
+    }
+    tableHtml += '</tr></thead><tbody>';
+    for (let r = headerRowIdx + 1; r < endRow; r++) {
+        tableHtml += '<tr>';
+        tableHtml += `<td style="background:#f8fafc;color:#94a3b8;">${r - headerRowIdx}</td>`;
+        for (let c = 0; c < maxCols; c++) {
+            const isRank = c === rankCol;
+            const val = aoa[r] && aoa[r][c] !== undefined ? String(aoa[r][c]) : '';
+            tableHtml += `<td class="${isRank ? 'highlighted' : ''}">${escapeHtml(val)}</td>`;
+        }
+        tableHtml += '</tr>';
+    }
+    tableHtml += '</tbody></table>';
+
+    const rankColName = rankCol >= 0 ? escapeHtml(String(state.excelHeaders[rankCol] || '')) : '未找到';
+    showModal('large', '排名表格预览', `
+        <div class="modal-body">
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <span class="info-badge badge-star"><i class="fa fa-star"></i> 检测到年排列：${rankColName}</span>
+                ${rankCol >= 0 ? '<span style="color:#22c55e;font-size:13px;"><i class="fa fa-check"></i> 已高亮</span>' : '<span style="color:#ef4444;font-size:13px;"><i class="fa fa-exclamation"></i> 未找到，请手动选择</span>'}
+            </div>
+            <div style="overflow:auto;max-height:400px;border:1px solid #e2e8f0;border-radius:8px;">${tableHtml}</div>
+            ${rankCol < 0 ? `
+                <div class="form-group" style="margin-top:12px;">
+                    <label class="form-label">手动选择年排列（表头）</label>
+                    <select class="input-field" id="manualRankColSelect">
+                        <option value="-1">-- 请选择 --</option>
+                        ${state.excelHeaders.map((h, i) => `<option value="${i}">${escapeHtml(String(h || '第' + (i+1) + '列'))}</option>`).join('')}
+                    </select>
+                </div>
+            ` : ''}
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-secondary" onclick="skipRankSelection()">跳过</button>
+            <button class="btn btn-primary" onclick="confirmRankSelection()">确认</button>
+        </div>
+    `);
+}
+
+// 跳过年排列选择
+function skipRankSelection() {
+    state.detectedRankCol = -1;
+    state.rankColIndex = -1;
+    closeModal();
+    showToast('已跳过年排列选择', 'info');
+    showProgressStarModal([]);
+}
+
+// 确认年排列选择，识别学习之星
+function confirmRankSelection() {
+    let rankCol = state.detectedRankCol;
+    const manualSelect = document.getElementById('manualRankColSelect');
+    if (manualSelect && manualSelect.value !== '-1') {
+        rankCol = parseInt(manualSelect.value);
+        state.detectedRankCol = rankCol;
+        state.rankColIndex = rankCol;
+    }
+    if (rankCol < 0) { showToast('请选择年排列或点击跳过', 'warning'); return; }
+
+    const aoa = state.excelData;
+    const headerRowIdx = state.excelHeaderRowIdx !== undefined ? state.excelHeaderRowIdx : 0;
+    const nameCol = state.nameColIndex;
+    state.studentRanks = {};
+    const studentNamesWithRanks = [];
+
+    for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+        const nameVal = nameCol >= 0 ? (aoa[r] && aoa[r][nameCol]) : null;
+        const rankVal = aoa[r] && aoa[r][rankCol];
+        if (nameVal && String(nameVal).trim()) {
+            const name = String(nameVal).trim();
+            const rank = rankVal ? parseInt(String(rankVal).replace(/[^\d]/g, '')) || 9999 : 9999;
+            state.studentRanks[name] = rank;
+            studentNamesWithRanks.push({ name, rank });
+        }
+    }
+
+    // 按表格顺序重排学生
+    const newStudents = [];
+    for (const item of studentNamesWithRanks) {
+        const orig = state.originalStudents.find(s => s.name === item.name);
+        newStudents.push(orig ? { ...orig } : { name: item.name, gender: '男' });
+    }
+    // 追加Excel中未包含的学生
+    for (const orig of state.originalStudents) {
+        if (!studentNamesWithRanks.some(s => s.name === orig.name)) newStudents.push({ ...orig });
+    }
+    state.students = newStudents;
+
+    // 识别学习之星（年排前100）
+    const starStudents = studentNamesWithRanks.filter(s => s.rank > 0 && s.rank <= 100).sort((a, b) => a.rank - b.rank);
+    state.starStudents = starStudents.map(s => ({ name: s.name, rank: s.rank }));
+
+    closeModal();
+    renderStudentList();
+    showToast(`已识别 ${state.starStudents.length} 名学习之星`, 'success');
+    setTimeout(() => showProgressStarModal(starStudents.map(s => s.name)), 300);
+}
+
+// 显示进步之星选择弹窗（按点击顺序编号）
+function showProgressStarModal(starNames) {
+    const allStudents = state.students;
+    let selectedProgress = [];
+
+    const renderCards = () => {
+        const grid = document.getElementById('progressStarGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        allStudents.forEach(student => {
+            const card = document.createElement('div');
+            card.className = `star-card ${student.gender === '男' ? 'boy' : 'girl'}`;
+            card.textContent = student.name;
+            card.dataset.name = student.name;
+            if (starNames.includes(student.name)) {
+                // 学习之星不可选择
+                card.classList.add('is-star');
+                card.title = '该同学为学习之星';
+                card.onclick = () => showToast('该同学为学习之星', 'info');
+            } else {
+                const existing = selectedProgress.findIndex(s => s.name === student.name);
+                if (existing >= 0) {
+                    card.classList.add('selected');
+                    const badge = document.createElement('span');
+                    badge.className = 'star-badge';
+                    badge.textContent = existing + 1;
+                    card.appendChild(badge);
+                }
+                card.onclick = () => {
+                    const idx = selectedProgress.findIndex(s => s.name === student.name);
+                    if (idx >= 0) {
+                        selectedProgress.splice(idx, 1);
+                    } else {
+                        selectedProgress.push({ name: student.name, order: selectedProgress.length + 1, gender: student.gender });
+                    }
+                    renderCards();
+                    updateConfirmBtn();
+                };
+            }
+            grid.appendChild(card);
+        });
+    };
+
+    const updateConfirmBtn = () => {
+        const btn = document.getElementById('progressConfirmBtn');
+        if (btn) {
+            if (selectedProgress.length === 0) {
+                btn.textContent = '跳过';
+                btn.className = 'btn btn-secondary';
+            } else {
+                btn.textContent = `确认（已选${selectedProgress.length}人）`;
+                btn.className = 'btn btn-success';
+            }
+        }
+    };
+
+    showModal('large', '选择进步之星', `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;font-size:14px;">请点击选择进步之星同学（按点击顺序排列）。黄色框为学习之星，不可选择。</p>
+            <div class="form-group">
+                <input type="text" class="input-field" id="progressSearchInput" placeholder="输入姓名或单字查找..." oninput="filterProgressCards(this.value)">
+            </div>
+            <div class="star-grid" id="progressStarGrid"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-secondary" id="progressConfirmBtn" onclick="confirmProgressStars()">跳过</button>
+        </div>
+    `);
+    renderCards();
+    updateConfirmBtn();
+    window._selectedProgress = () => selectedProgress;
+}
+
+// 进步之星搜索过滤
+function filterProgressCards(keyword) {
+    const grid = document.getElementById('progressStarGrid');
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.star-card');
+    cards.forEach(card => {
+        const name = card.dataset.name || '';
+        if (!keyword || matchPinyin(name, keyword)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// 确认进步之星选择
+function confirmProgressStars() {
+    const selected = window._selectedProgress ? window._selectedProgress() : [];
+    state.progressStudents = selected.map((s, i) => ({ name: s.name, order: i + 1, gender: s.gender }));
+    // 重排学生：学习之星(按排名) → 进步之星(按顺序) → 其余
+    reorderStudentsForSelection();
+    closeModal();
+    renderStudentList();
+    buildSelectionOrder();
+    showToast(`已选择 ${state.progressStudents.length} 名进步之星`, 'success');
+    // 选完后提示推送至大屏
+    if (state.starStudents.length > 0 || state.progressStudents.length > 0) {
+        setTimeout(() => promptPushToScreen(), 500);
+    }
+}
+
+// 重排学生名单：学习之星优先，其次进步之星，最后其余
+function reorderStudentsForSelection() {
+    const starNames = state.starStudents.map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    const stars = [], progress = [], rest = [];
+    for (const student of state.students) {
+        if (starNames.includes(student.name)) {
+            const star = state.starStudents.find(s => s.name === student.name);
+            stars.push({ ...student, rank: star ? star.rank : 999 });
+        } else if (progressNames.includes(student.name)) {
+            const prog = state.progressStudents.find(s => s.name === student.name);
+            progress.push({ ...student, order: prog ? prog.order : 999 });
+        } else {
+            rest.push(student);
+        }
+    }
+    stars.sort((a, b) => a.rank - b.rank);
+    progress.sort((a, b) => a.order - b.order);
+    state.students = [
+        ...stars.map(s => { const { rank, ...rest } = s; return rest; }),
+        ...progress.map(s => { const { order, ...rest } = s; return rest; }),
+        ...rest
+    ];
+}
+
+// 构建顺序选座名单
+function buildSelectionOrder() {
+    const starNames = [...state.starStudents].sort((a, b) => a.rank - b.rank).map(s => s.name);
+    const progressNames = state.progressStudents.map(s => s.name);
+    state.selectionOrder = [...starNames, ...progressNames];
+    state.currentSelectionIndex = 0;
+    state.orderSelectionActive = state.selectionOrder.length > 0;
+    if (state.phase === 'arranging') {
+        updateSelectionIndicator();
+        updateModeToggleBtn();
+        const skipBtn = document.getElementById('skipBtn');
+        if (skipBtn) skipBtn.style.display = state.orderSelectionActive ? '' : 'none';
+    }
+}
+
+/* ==================== 推送至班级大屏 ==================== */
+
+// 提示是否推送至大屏
+function promptPushToScreen() {
+    showModal('small', '推送至班级大屏', `
+        <div class="modal-body">
+            <div style="text-align:center;padding:16px;">
+                <i class="fa fa-tv" style="font-size:40px;color:var(--primary);"></i>
+                <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">是否需要推送至班级大屏供学习之星和进步之星选座？</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">否</button>
+            <button class="btn btn-primary" onclick="pushToScreen()">是</button>
+        </div>
+    `);
+}
+
+// 推送座位数据到 seat_choose 表
+async function pushToScreen() {
+    try {
+        const pushId = 'SC' + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const body = {
+            push_id: pushId,
+            seating_table_name: state.seatingTableName || '未命名座位表',
+            template_layout: JSON.stringify(state.currentTemplate),
+            arrangement: JSON.stringify(state.arrangement),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            created_by: state.currentUser ? state.currentUser.id : null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_completed: false
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        showModal('small', '推送成功', `
+            <div class="modal-body">
+                <div style="text-align:center;padding:16px;">
+                    <i class="fa fa-check-circle" style="font-size:48px;color:#22c55e;"></i>
+                    <p style="margin-top:16px;color:#475569;font-size:15px;">推送成功！</p>
+                    <p style="margin-top:8px;color:#94a3b8;font-size:13px;">推送ID：${pushId}</p>
+                    <p style="margin-top:8px;color:#475569;font-size:14px;">大屏端可访问 <span style="color:var(--primary);font-weight:600;">/seat_choose.html</span> 查看</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">确认</button>
+            </div>
+        `);
+    } catch(e) {
+        console.warn('Push to screen failed:', e);
+        showToast('推送失败，请重试', 'error');
+    }
+}
+
+/* ==================== Excel 导出 ==================== */
+
+// 导出当前座位表为 Excel 文件
 function exportToExcel() {
     if (!state.currentTemplate || Object.keys(state.arrangement).length === 0) {
         showToast('请先排座再导出', 'warning');
         return;
     }
-    
+
     const template = state.currentTemplate;
     const arrangement = state.arrangement;
-    
-    // Calculate total columns
+
+    // 计算总列数和列类型（座位/过道）
     let totalCols = 0;
+    let colTypes = [];
     for (const g of template.groups) {
-        totalCols += g.aisle ? 1 : g.cols;
+        if (g.aisle) {
+            totalCols += 1;
+            colTypes.push('aisle');
+        } else {
+            totalCols += g.cols;
+            for (let c = 0; c < g.cols; c++) colTypes.push('seat');
+        }
     }
-    
+
     const seatGroups = template.groups.filter(g => !g.aisle);
-    const maxRows = Math.max(...seatGroups.map(g => g.rows));
-    
-    // Build grid
+    // 最大行数需考虑offset：组实际占用的行数为 rows + offset
+    const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
+
+    // 通用样式：宋体11pt不加粗、居中对齐、thin边框
+    const thinBorder = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    const cellFont = { name: '宋体', sz: 11, bold: false };
+    const centerAlign = { horizontal: 'center', vertical: 'center' };
+
+    // 构建网格数据和座位标记
     let grid = [];
+    let seatCellMap = [];
     for (let r = 0; r < maxRows; r++) {
         let row = new Array(totalCols).fill('');
+        let isSeatRow = new Array(totalCols).fill(false);
         let col = 0;
         let sgIdx = 0;
         for (const g of template.groups) {
             if (g.aisle) {
                 col += 1;
             } else {
+                const offset = g.offset || 0;
                 for (let c = 0; c < g.cols; c++) {
-                    if (r < g.rows) {
-                        const seatId = `seat-${sgIdx}-${r}-${c}`;
+                    // 有offset的组：行号需减去offset，且仅在该组的有效行范围内放置座位
+                    const adjustedRow = r - offset;
+                    if (adjustedRow >= 0 && adjustedRow < g.rows) {
+                        const seatId = `seat-${sgIdx}-${adjustedRow}-${c}`;
                         const student = arrangement[seatId];
-                        if (student) {
-                            row[col + c] = student.name;
-                        }
+                        if (student) row[col + c] = student.name;
+                        isSeatRow[col + c] = true; // 空座位也标记为座位格（保留框线）
                     }
                 }
                 col += g.cols;
@@ -2793,21 +2935,21 @@ function exportToExcel() {
             }
         }
         grid.push(row);
+        seatCellMap.push(isSeatRow);
     }
-    
-    // Empty row between seats and podium
+
+    // 座位与讲台间空一行
     grid.push(new Array(totalCols).fill(''));
-    
-    // Podium row
+    seatCellMap.push(new Array(totalCols).fill(false));
+
+    // 讲台行
     let podiumRow = new Array(totalCols).fill('');
     const podiumStart = template.podium ? template.podium.startGroup : 0;
     const podiumEnd = template.podium ? template.podium.endGroup : 0;
-    
-    // Calculate podium column span
-    let podiumStartCol = -1;
-    let podiumEndCol = -1;
-    let col = 0;
-    let sgIdx = 0;
+
+    // 计算讲台列范围
+    let podiumStartCol = -1, podiumEndCol = -1;
+    let col = 0, sgIdx = 0;
     for (const g of template.groups) {
         if (g.aisle) {
             if (sgIdx > podiumStart && sgIdx <= podiumEnd) {
@@ -2824,151 +2966,60 @@ function exportToExcel() {
             sgIdx++;
         }
     }
-    
-    // Fill podium
-    if (podiumStartCol >= 0 && podiumEndCol >= 0) {
-        for (let c = podiumStartCol; c <= podiumEndCol; c++) {
-            podiumRow[c] = '讲　台';
-        }
-    } else {
-        // Fallback: center podium
+    // 后备：居中
+    if (podiumStartCol < 0 || podiumEndCol < 0) {
         const center = Math.floor(totalCols / 2);
         podiumStartCol = Math.max(0, center - 3);
         podiumEndCol = Math.min(totalCols - 1, center + 3);
-        for (let c = podiumStartCol; c <= podiumEndCol; c++) {
-            podiumRow[c] = '讲　台';
-        }
     }
+    podiumRow[podiumStartCol] = '讲台';
+    const podiumRowIdx = grid.length;
     grid.push(podiumRow);
-    
-    // Create worksheet
+    seatCellMap.push(new Array(totalCols).fill(false));
+
+    // 创建工作表
     const ws = XLSX.utils.aoa_to_sheet(grid);
-    
-    // Set column widths
-    ws['!cols'] = new Array(totalCols).fill({ wch: 10 });
-    
-    // Add merge for podium
-    const podiumRowIdx = grid.length - 1;
-    ws['!merges'] = [
-        { s: { r: podiumRowIdx, c: podiumStartCol }, e: { r: podiumRowIdx, c: podiumEndCol } }
-    ];
-    
-    // Try to add borders to seat cells
-    const borderStyle = {
-        top: { style: 'thin' },
-        bottom: { style: 'thin' },
-        left: { style: 'thin' },
-        right: { style: 'thin' }
-    };
-    
+
+    // 列宽：座位10，过道3
+    ws['!cols'] = colTypes.map(t => ({ wch: t === 'aisle' ? 3 : 10 }));
+
+    // 行高：座位28，空行10，讲台26
+    ws['!rows'] = [];
+    for (let r = 0; r < maxRows; r++) ws['!rows'].push({ hpt: 28 });
+    ws['!rows'].push({ hpt: 10 });
+    ws['!rows'].push({ hpt: 26 });
+
+    // 合并讲台单元格
+    ws['!merges'] = [{ s: { r: podiumRowIdx, c: podiumStartCol }, e: { r: podiumRowIdx, c: podiumEndCol } }];
+
+    // 为座位格应用样式（空座位也保留框线）
     for (let r = 0; r < maxRows; r++) {
-        let col = 0;
-        let sgIdx = 0;
-        for (const g of template.groups) {
-            if (g.aisle) {
-                col += 1;
-            } else {
-                for (let c = 0; c < g.cols; c++) {
-                    if (r < g.rows) {
-                        const cellRef = XLSX.utils.encode_cell({ r: r, c: col + c });
-                        if (ws[cellRef]) {
-                            ws[cellRef].s = { border: borderStyle, alignment: { horizontal: 'center', vertical: 'center' } };
-                        } else {
-                            ws[cellRef] = { t: 's', v: '', s: { border: borderStyle, alignment: { horizontal: 'center', vertical: 'center' } } };
-                        }
-                    }
+        for (let c = 0; c < totalCols; c++) {
+            if (seatCellMap[r][c]) {
+                const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                if (ws[cellRef]) {
+                    ws[cellRef].s = { border: thinBorder, alignment: centerAlign, font: cellFont };
+                } else {
+                    ws[cellRef] = { t: 's', v: '', s: { border: thinBorder, alignment: centerAlign, font: cellFont } };
                 }
-                col += g.cols;
-                sgIdx++;
             }
         }
     }
-    
-    // Style podium cell
+
+    // 讲台格样式
     const podiumCellRef = XLSX.utils.encode_cell({ r: podiumRowIdx, c: podiumStartCol });
     if (ws[podiumCellRef]) {
-        ws[podiumCellRef].s = {
-            border: borderStyle,
-            alignment: { horizontal: 'center', vertical: 'center' },
-            font: { bold: true, sz: 14 }
-        };
+        ws[podiumCellRef].s = { border: thinBorder, alignment: centerAlign, font: cellFont };
+    } else {
+        ws[podiumCellRef] = { t: 's', v: '讲台', s: { border: thinBorder, alignment: centerAlign, font: cellFont } };
     }
-    
-    // Create workbook
+
+    // 创建工作簿并写入文件
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '座位表');
-    
-    // Write file
-    const fileName = (state.seatingTableName || '座位表') + '.xlsx';
-    XLSX.writeFile(wb, fileName);
-    
+    XLSX.writeFile(wb, (state.seatingTableName || '座位表') + '.xlsx');
     showToast('座位表已导出', 'success');
 }
-
-// ==================== UTILITIES ====================
-function countTotalSeats(template) {
-    if (!template || !template.groups) return 0;
-    return template.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showModal(size, title, content) {
-    const overlay = document.getElementById('modalOverlay');
-    const card = document.getElementById('modalCard');
-    card.className = 'modal-card ' + size;
-    card.innerHTML = `
-        <div class="modal-header">
-            <div class="modal-title">${title}</div>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        ${content}
-    `;
-    overlay.classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
-}
-
-// Close modal on overlay click
-document.getElementById('modalOverlay').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modalOverlay')) {
-        closeModal();
-    }
-});
-
-let toastTimer = null;
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = 'toast ' + type;
-    toast.style.display = 'block';
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000);
-}
-
-// Clean up old records (90+ days)
-async function cleanupOldRecords() {
-    try {
-        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-        await fetch(SUPABASE_URL + '/rest/v1/seat_tables?updated_at=lt.' + ninetyDaysAgo, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
-        });
-    } catch(e) {
-        console.warn('Cleanup failed:', e);
-    }
-}
-
-// Run cleanup on load
-cleanupOldRecords();
 
 </script>
 </body>
