@@ -961,7 +961,13 @@ function _initEventDelegation() {
 function checkPermission() {
     try {
         const userStr = localStorage.getItem('mobile_auth_user');
-        if (!userStr) return false;
+        if (!userStr) {
+            // 未登录时以默认管理员身份访问（支持直接打开 seat.html）
+            state.currentUser = { username: '管理员', user_metadata: { is_admin: true, permissions: { isAdmin: true, seatSystem: true } } };
+            const nameEl = document.getElementById('userName');
+            if (nameEl) nameEl.textContent = '管理员';
+            return true;
+        }
         const data = JSON.parse(userStr);
         state.currentUser = data;
         // 显示用户名
@@ -977,7 +983,11 @@ function checkPermission() {
         if (perms.seatSystem) return true;
         return false;
     } catch(e) {
-        return false;
+        // 异常时也以默认管理员身份访问
+        state.currentUser = { username: '管理员', user_metadata: { is_admin: true, permissions: { isAdmin: true, seatSystem: true } } };
+        const nameEl = document.getElementById('userName');
+        if (nameEl) nameEl.textContent = '管理员';
+        return true;
     }
 }
 
@@ -3097,6 +3107,18 @@ function buildSelectionOrder() {
     state.selectionOrder = [...starNames, ...progressNames];
     state.currentSelectionIndex = 0;
     state.orderSelectionActive = state.selectionOrder.length > 0;
+    // 恢复时跳过已入座的同学
+    if (state.orderSelectionActive && Object.keys(state.arrangement).length > 0) {
+        const seatedNames = new Set(Object.values(state.arrangement).map(s => s.name));
+        while (state.currentSelectionIndex < state.selectionOrder.length &&
+               seatedNames.has(state.selectionOrder[state.currentSelectionIndex])) {
+            state.currentSelectionIndex++;
+        }
+        // 如果所有学习之星和进步之星都已入座，关闭顺序选座模式
+        if (state.currentSelectionIndex >= state.selectionOrder.length) {
+            state.orderSelectionActive = false;
+        }
+    }
     if (state.phase === 'arranging') {
         updateSelectionIndicator();
         updateModeToggleBtn();
