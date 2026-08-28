@@ -655,6 +655,30 @@ async function init() {
     await loadLatestSeatChoose();
     // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
     _initEventDelegation();
+    // 显示使用方法弹窗（每次打开都显示）
+    setTimeout(() => _showUsageGuide(), 500);
+}
+
+// 使用方法弹窗（seat_choose.html 版）
+function _showUsageGuide() {
+    showModal('medium', '使用方法', `
+        <div class="modal-body">
+            <div style="padding:12px;">
+                <p style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1e293b;">智能选座系统使用方法</p>
+                <ul style="list-style:none;padding:0;margin:0;line-height:2.2;">
+                    <li><i class="fa fa-list-ol" style="color:#6366f1;width:20px;"></i> 按照右侧名单顺序选择座位</li>
+                    <li><i class="fa fa-arrows" style="color:#6366f1;width:20px;"></i> 拖拽姓名卡片到空座位完成选座</li>
+                    <li><i class="fa fa-exchange" style="color:#6366f1;width:20px;"></i> 已选座位可拖拽移动或拖回</li>
+                    <li><i class="fa fa-forward" style="color:#6366f1;width:20px;"></i> 无法选座时可跳过（需管理员密码）</li>
+                    <li><i class="fa fa-save" style="color:#6366f1;width:20px;"></i> 选座完成后点击"保存"按钮提交</li>
+                    <li><i class="fa fa-cloud-upload" style="color:#6366f1;width:20px;"></i> 系统会自动保存您的选座进度</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" style="width:100%;" onclick="closeModal();">我知道了</button>
+        </div>
+    `);
 }
 
 /* ==================== 事件委托（性能优化） ==================== */
@@ -1169,12 +1193,16 @@ function makeNameGroup(type, title, items, nextName, seatedNameSet) {
     const t = document.createElement('div');
     t.className = 'name-group-title';
     const icon = type === 'star' ? 'fa-star' : (type === 'progress' ? 'fa-trophy' : 'fa-ban');
-    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（${items.length}人）`;
+    // 计算未入座人数
+    const remaining = items.filter(item => !isSeated(item.name, seatedNameSet));
+    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（剩余${remaining.length}人）`;
     group.appendChild(t);
 
     const cards = document.createElement('div');
     cards.className = 'group-cards';
+    // 已入座的同学从右侧删除（不再显示）
     items.forEach(item => {
+        if (isSeated(item.name, seatedNameSet)) return;
         cards.appendChild(createStudentCard(item, nextName, seatedNameSet));
     });
     group.appendChild(cards);
