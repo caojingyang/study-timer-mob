@@ -876,8 +876,24 @@ async function init() {
     // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
     _initEventDelegation();
 
+    // 自动清理超过5天的座位表推送过期数据
+    cleanupExpiredSeatChoose();
+
     // 启动大屏选座自动同步轮询
     _startSeatChoosePolling();
+}
+
+// 清理超过5天的座位表推送数据
+async function cleanupExpiredSeatChoose() {
+    try {
+        const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_choose?created_at=lt.${encodeURIComponent(cutoff)}`, {
+            method: 'DELETE'
+        });
+    } catch(e) {
+        // 静默失败，不影响用户体验
+        console.warn('清理过期数据失败:', e);
+    }
 }
 
 /* ==================== 事件委托（性能优化） ==================== */
@@ -996,19 +1012,31 @@ function checkPermission() {
 
 /* ==================== 弹窗链（自动保存提示 → 恢复提示 → 使用方法） ==================== */
 
-// 弹窗链入口：先显示自动保存提示
+// 弹窗链入口：先检查是否首次打开，再决定是否显示弹窗
 function _showPopupChain(hasIncomplete) {
-    showModal('small', '温馨提示', `
-        <div class="modal-body">
-            <div style="text-align:center;padding:20px;">
-                <i class="fa fa-info-circle" style="font-size:40px;color:var(--primary);"></i>
-                <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">该智能选座系统会自动保存座位表数据，无需担心因关闭网页带来的数据损失，请您放心使用！</p>
+    const firstOpen = !getCookie('seat_first_open');
+    if (firstOpen) {
+        // 首次打开：设置 cookie 并显示完整弹窗链（自动保存提示 → 恢复提示 → 使用方法）
+        setCookie('seat_first_open', '1', 365);
+        showModal('small', '温馨提示', `
+            <div class="modal-body">
+                <div style="text-align:center;padding:20px;">
+                    <i class="fa fa-info-circle" style="font-size:40px;color:var(--primary);"></i>
+                    <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">该智能选座系统会自动保存座位表数据，无需担心因关闭网页带来的数据损失，请您放心使用！</p>
+                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal(); _afterWelcome(${hasIncomplete});">确认</button>
-        </div>
-    `);
+            <div class="modal-footer">
+                <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal(); _afterWelcome(${hasIncomplete});">确认</button>
+            </div>
+        `);
+    } else {
+        // 非首次打开：不显示自动保存提示和使用方法弹窗
+        if (hasIncomplete) {
+            // 只显示恢复提示弹窗
+            _showRecoveryPopup();
+        }
+        // 无未完成座位表时不显示任何弹窗
+    }
 }
 
 // 自动保存提示关闭后的下一步
@@ -1125,6 +1153,18 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = String(text == null ? '' : text);
     return div.innerHTML;
+}
+
+// Cookie 操作：设置 Cookie
+function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+}
+
+// Cookie 操作：获取 Cookie
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
 }
 
 // 显示Toast提示
@@ -1297,6 +1337,16 @@ function showNewOrHistoryChoice() {
 
 // 继续未排完的座位表
 async function continueIncomplete(tableId) {
+    // 左侧座位表区域显示加载状态
+    const panel = document.getElementById('leftPanel');
+    if (panel) {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size:24px;color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i></div>
+                <div class="empty-state-text">正在加载座位表...</div>
+            </div>
+        `;
+    }
     try {
         const resp = await fetch(`${SUPABASE_URL}/rest/v1/seat_tables?id=eq.${tableId}&select=*`);
         const data = await resp.json();
@@ -2430,6 +2480,16 @@ async function continueArranging() {
 
 // 显示历史座位表（可修改/另存/删除）
 async function showHistorySeatTables() {
+    // 左侧座位表区域显示加载状态
+    const panel = document.getElementById('leftPanel');
+    if (panel) {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size:24px;color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i></div>
+                <div class="empty-state-text">正在加载座位表...</div>
+            </div>
+        `;
+    }
     showModal('medium', '历史座位表', `
         <div class="modal-body">
             <div style="text-align:center;padding:40px;color:#94a3b8;">
@@ -2437,7 +2497,7 @@ async function showHistorySeatTables() {
                 <p style="margin-top:12px;">加载中...</p>
             </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(); renderLeftPanel();">关闭</button></div>
     `);
     try {
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_tables?order=updated_at.desc&limit=200', {
@@ -2458,7 +2518,7 @@ async function showHistorySeatTables() {
                         <p style="margin-top:12px;">暂无历史座位表</p>
                     </div>
                 </div>
-                <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+                <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(); renderLeftPanel();">关闭</button></div>
             `);
             return;
         }
@@ -2490,7 +2550,7 @@ async function showHistorySeatTables() {
             <div class="modal-body">
                 <div class="template-grid">${cards}</div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(); renderLeftPanel();">关闭</button></div>
         `);
     } catch(e) {
         showToast('加载历史座位表失败', 'error');
@@ -2689,6 +2749,16 @@ async function confirmDeleteHistory(id) {
 
 // 加载座位表数据到状态
 function loadSeatTable(tableData) {
+    // 左侧座位表区域显示加载状态
+    const panel = document.getElementById('leftPanel');
+    if (panel) {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size:24px;color:#94a3b8;"><i class="fa fa-spinner fa-spin"></i></div>
+                <div class="empty-state-text">正在加载座位表...</div>
+            </div>
+        `;
+    }
     state.seatingTableName = tableData.name;
     state.seatTableId = tableData.id;
     state.isCompleted = tableData.is_completed || false;
@@ -3175,13 +3245,24 @@ function buildSelectionOrder() {
 
 /* ==================== 推送至班级大屏 ==================== */
 
+// 检查是否有未选座的学习之星和进步之星
+function hasUnseatedStarStudents() {
+    const seatedNames = new Set(Object.values(state.arrangement).map(s => s.name));
+    const allStarStudents = [...state.starStudents, ...state.progressStudents];
+    return allStarStudents.some(s => !seatedNames.has(s.name));
+}
+
 // 提示是否推送至大屏
 function promptPushToScreen() {
+    const viewOnly = !hasUnseatedStarStudents();
+    const tipText = viewOnly
+        ? '所有学习之星和进步之星均已入座，将以仅查看模式推送至班级大屏。'
+        : '是否需要推送至班级大屏供学习之星和进步之星选座？';
     showModal('small', '推送至班级大屏', `
         <div class="modal-body">
             <div style="text-align:center;padding:16px;">
                 <i class="fa fa-tv" style="font-size:40px;color:var(--primary);"></i>
-                <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">是否需要推送至班级大屏供学习之星和进步之星选座？</p>
+                <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">${tipText}</p>
             </div>
         </div>
         <div class="modal-footer">
@@ -3194,6 +3275,7 @@ function promptPushToScreen() {
 // 推送座位数据到 seat_choose 表
 async function pushToScreen() {
     try {
+        const viewOnly = !hasUnseatedStarStudents();
         const pushId = 'SC' + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
         const body = {
             push_id: pushId,
@@ -3205,7 +3287,8 @@ async function pushToScreen() {
             created_by: state.currentUser ? state.currentUser.id : '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            is_completed: false
+            is_completed: false,
+            view_only: viewOnly
         };
         const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose', {
             method: 'POST',
@@ -3218,11 +3301,14 @@ async function pushToScreen() {
             showToast('推送失败，请重试', 'error');
             return;
         }
+        const successTip = viewOnly
+            ? '推送成功！已以仅查看模式推送至大屏'
+            : '推送成功！学生可在大屏端进行选座';
         showModal('small', '推送成功', `
             <div class="modal-body">
                 <div style="text-align:center;padding:16px;">
                     <i class="fa fa-check-circle" style="font-size:48px;color:#22c55e;"></i>
-                    <p style="margin-top:16px;color:#475569;font-size:15px;">推送成功！</p>
+                    <p style="margin-top:16px;color:#475569;font-size:15px;">${successTip}</p>
                     <p style="margin-top:8px;color:#94a3b8;font-size:13px;">推送ID：${pushId}</p>
                     <p style="margin-top:8px;color:#475569;font-size:14px;">大屏端可访问 <span style="color:var(--primary);font-weight:600;">/seat_choose.html</span> 查看</p>
                 </div>
@@ -3567,18 +3653,14 @@ function exportToExcel() {
         left: { style: 'thin', color: black },
         right: { style: 'thin', color: black }
     };
-    const borderNone = {
-        top: { style: 'none' },
-        bottom: { style: 'none' },
-        left: { style: 'none' },
-        right: { style: 'none' }
-    };
     const fontCalibri12 = { name: 'Calibri', sz: 12, color: black };
     const alignCenter = { horizontal: 'center', vertical: 'center' };
 
     // 样式对象（复用，避免重复创建）
+    // 有边框样式：用于座位单元格和讲台
     const styleWithBorder = { font: fontCalibri12, alignment: alignCenter, border: borderAll };
-    const styleNoBorder = { font: fontCalibri12, alignment: alignCenter, border: borderNone };
+    // 无边框样式：用于过道、空行、标签列等（不设置border属性，依赖隐藏网格线）
+    const styleNoBorder = { font: fontCalibri12, alignment: alignCenter };
 
     // 手动构建工作表，逐单元格设置值和样式
     const ws = {};
@@ -3602,13 +3684,13 @@ function exportToExcel() {
         const rowLabel = `第${cnNums[maxRows - r] || (maxRows - r)}排`;
         setCell(r, 0, rowLabel, styleNoBorder);
 
-        // B列及以后：座位/过道（有边框）
+        // B列及以后：座位有边框，过道无边框
         let col = 1;
         let sgIdx = 0;
         for (const g of template.groups) {
             if (g.aisle) {
-                // 过道列：空值但有边框
-                setCell(r, col, '', styleWithBorder);
+                // 过道列：无边框
+                setCell(r, col, '', styleNoBorder);
                 col += 1;
             } else {
                 const offset = g.offset || 0;
@@ -3628,51 +3710,29 @@ function exportToExcel() {
         }
     }
 
-    // 空行（座位与讲台之间）
+    // 空行（座位与讲台之间，第8行）：全部无边框
     const emptyRowIdx = maxRows;
-    setCell(emptyRowIdx, 0, '', styleNoBorder); // A列
-    for (let c = 1; c < totalCols; c++) {
-        setCell(emptyRowIdx, c, '', styleWithBorder); // B-N列
+    for (let c = 0; c < totalCols; c++) {
+        setCell(emptyRowIdx, c, '', styleNoBorder);
     }
 
-    // 讲台行
+    // 讲台行（第9行）
     const podiumRowIdx = emptyRowIdx + 1;
-    let podiumStartCol = -1, podiumEndCol = -1;
-    let col = 1, sgIdx = 0;
-    const podiumStart = template.podium ? template.podium.startGroup : 0;
-    const podiumEnd = template.podium ? template.podium.endGroup : 0;
+    // 讲台范围：E列~J列（A=0, E=4, J=9）
+    const podiumStartCol = 4; // E列
+    const podiumEndCol = 9;   // J列
 
-    for (const g of template.groups) {
-        if (g.aisle) {
-            if (sgIdx > podiumStart && sgIdx <= podiumEnd) {
-                if (podiumStartCol === -1) podiumStartCol = col;
-                podiumEndCol = col;
-            }
-            col += 1;
-        } else {
-            if (sgIdx >= podiumStart && sgIdx <= podiumEnd) {
-                if (podiumStartCol === -1) podiumStartCol = col;
-                podiumEndCol = col + g.cols - 1;
-            }
-            col += g.cols;
-            sgIdx++;
+    // 讲台行：先全部设为无边框
+    for (let c = 0; c < totalCols; c++) {
+        setCell(podiumRowIdx, c, '', styleNoBorder);
+    }
+    // E~J列设为有边框（讲台区域）
+    for (let c = podiumStartCol; c <= podiumEndCol; c++) {
+        if (c < totalCols) {
+            let val = '';
+            if (c === podiumStartCol) val = '讲台';
+            setCell(podiumRowIdx, c, val, styleWithBorder);
         }
-    }
-    // 后备：居中
-    if (podiumStartCol < 0 || podiumEndCol < 0) {
-        const center = Math.floor(totalCols / 2);
-        podiumStartCol = Math.max(1, center - 2);
-        podiumEndCol = Math.min(totalCols - 1, center + 2);
-    }
-
-    // 讲台行 A 列：无边框
-    setCell(podiumRowIdx, 0, '', styleNoBorder);
-
-    // 讲台行 B-N 列：全部有边框
-    for (let c = 1; c < totalCols; c++) {
-        let val = '';
-        if (c === podiumStartCol) val = '讲台';
-        setCell(podiumRowIdx, c, val, styleWithBorder);
     }
 
     // 设置范围
