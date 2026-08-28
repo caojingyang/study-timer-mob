@@ -48,7 +48,7 @@
             padding: 16px 28px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
             position: sticky;
             top: 0;
@@ -62,28 +62,15 @@
             gap: 12px;
             letter-spacing: 1px;
         }
-        .back-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .back-btn:hover { background: rgba(255,255,255,0.35); }
         /* Main layout */
         .main-container {
             display: flex;
             gap: 18px;
             padding: 18px;
             height: calc(100vh - 76px);
+        }
+        .main-container.view-only {
+            justify-content: center;
         }
         .left-panel {
             flex: 1;
@@ -95,6 +82,11 @@
             display: flex;
             flex-direction: column;
             position: relative;
+        }
+        .main-container.view-only .left-panel {
+            flex: none;
+            width: 80%;
+            max-width: 1200px;
         }
         .right-panel {
             flex: 0 0 120px;
@@ -209,16 +201,15 @@
             opacity: 0.75;
         }
         .student-card.skipped:hover { transform: none; box-shadow: none; }
-        .student-card.seated {
-            opacity: 0.4;
-            text-decoration: line-through;
-            cursor: not-allowed;
-        }
-        .student-card.seated:hover { transform: none; box-shadow: none; }
         .student-card.current {
             box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3);
             animation: pulseCard 1.6s ease-in-out infinite;
         }
+        .student-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .student-card.disabled:hover { transform: none; box-shadow: none; }
         @keyframes pulseCard {
             0%,100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3); }
             50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.25), 0 6px 18px rgba(99,102,241,0.35); }
@@ -242,6 +233,7 @@
         }
         .student-card.star .card-number { background: var(--star-border); }
         .student-card.progress .card-number { background: var(--progress-border); }
+        .student-card.skipped .card-number { background: var(--skipped-border); }
         .right-footer {
             padding: 8px 10px;
             border-top: 1px solid #f1f5f9;
@@ -267,8 +259,11 @@
         .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
         .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
         .btn-warning:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-lg { padding: 16px 30px; font-size: 18px; border-radius: 14px; }
+        .btn-block { width: 100%; }
         /* Empty state */
         .empty-state {
             flex: 1;
@@ -308,10 +303,6 @@
             flex-direction: column;
             gap: 8px;
         }
-        .seat-row {
-            display: flex;
-            gap: 8px;
-        }
         .seat {
             border: 2px dashed var(--seat-border);
             border-radius: 10px;
@@ -343,12 +334,14 @@
             border-style: solid;
             border-color: var(--primary);
             background: var(--primary-bg);
-            cursor: grab;
+            cursor: not-allowed;
         }
         .seat.occupied.boy { background: var(--boy-bg); border-color: var(--boy-border); color: var(--boy-text); }
         .seat.occupied.girl { background: #fbcfe8; border-color: #f472b6; color: #9d174d; }
         .seat.occupied.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
         .seat.occupied.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
+        .seat.occupied.current-seated { cursor: grab; }
+        .seat.occupied.prefilled { cursor: not-allowed; }
         .aisle-spacer { min-width: 24px; }
         .podium-spacer-row { height: 16px; }
         .podium-row { display: flex; gap: 12px; width: 100%; }
@@ -404,6 +397,11 @@
             border-radius: 10px;
             color: #1e40af;
             font-weight: 700;
+        }
+        .selection-indicator.skipped-phase {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            border-color: #6366f1;
+            color: #3730a3;
         }
         /* Drag overlay (drop back to list) */
         .drag-overlay {
@@ -526,6 +524,15 @@
         .completed-screen .icon { font-size: 80px; }
         .completed-screen h2 { font-size: 28px; margin: 0; }
         .completed-screen p { font-size: 16px; color: #64748b; margin: 0; }
+        /* View-only mode bottom bar */
+        .view-only-bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            margin-top: 10px;
+        }
         /* 禁止文本选中 */
         .student-card, .seat.occupied {
             -webkit-user-select: none;
@@ -551,22 +558,20 @@
 
 <!-- Header -->
 <div class="app-header">
-    <button class="back-btn" onclick="goBack()"><i class="fa fa-arrow-left"></i> 返回</button>
     <div class="header-title">
         <span style="font-size:30px;">🪑</span>
         <span>高二（13）班智能选座系统</span>
     </div>
-    <div style="width:96px;"></div>
 </div>
 
 <!-- Main Container -->
-<div class="main-container">
+<div class="main-container" id="mainContainer">
     <!-- Left Panel: Seating Area -->
     <div class="left-panel" id="leftPanel">
         <!-- Content rendered dynamically -->
     </div>
 
-    <!-- Right Panel: Star / Progress Student List -->
+    <!-- Right Panel: Student List (hidden in view-only mode) -->
     <div class="right-panel" id="rightPanel">
         <div class="right-header">
             <h3><i class="fa fa-trophy"></i> 选座名单</h3>
@@ -581,8 +586,8 @@
             </div>
         </div>
         <div class="right-footer">
-            <button class="btn btn-warning" style="width:100%;padding:8px 10px;font-size:13px;" id="skipBtn" onclick="showSkipPassword()">
-                <i class="fa fa-forward"></i> 跳过
+            <button class="btn btn-warning btn-block" style="padding:10px;font-size:14px;" id="actionBtn" onclick="handleActionBtn()">
+                <i class="fa fa-forward" id="actionBtnIcon"></i> <span id="actionBtnText">跳过当前同学</span>
             </button>
         </div>
     </div>
@@ -637,11 +642,14 @@ const state = {
     arrangement: {},         // seatId -> {name, gender}  （不含跳过信息）
     starStudents: [],        // [{name, rank, gender?}]
     progressStudents: [],    // [{name, order, gender?}]
-    skippedStudents: [],     // [{name, gender, origin}]
-    selectionOrder: [],      // 顺序选座名单（姓名数组）
-    currentIndex: 0,         // 下一位选座者在 selectionOrder 中的下标
+    skippedStudents: [],     // [{name, gender, origin, skippedAt}] 按跳过时间排序
+    prefilledStudents: new Set(), // 推送座位表中预先安排的非星标学生（不可移动）
+    selectionOrder: [],      // 顺序选座名单：正常选座 + 已跳过同学（姓名数组）
+    normalCount: 0,          // 正常选座同学数量（用于区分正常和跳过阶段）
+    currentIndex: 0,         // 当前选座者在 selectionOrder 中的下标
     genderMap: {},           // 姓名 -> 性别
-    phase: 'loading'         // 'loading' | 'empty' | 'arranging' | 'completed'
+    phase: 'loading',        // 'loading' | 'empty' | 'arranging' | 'completed'
+    viewOnly: false          // 是否仅查看模式
 };
 
 let saveTimer = null;
@@ -652,44 +660,39 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
     buildGenderMap();
+    // 自动清理超过5天的过期推送数据
+    cleanupExpiredSeatChoose();
     await loadLatestSeatChoose();
     // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
     _initEventDelegation();
-    // 显示使用方法弹窗（每次打开都显示）
-    setTimeout(() => _showUsageGuide(), 500);
 }
 
-// 使用方法弹窗（seat_choose.html 版）
-function _showUsageGuide() {
-    showModal('medium', '使用方法', `
-        <div class="modal-body">
-            <div style="padding:12px;">
-                <p style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1e293b;">智能选座系统使用方法</p>
-                <ul style="list-style:none;padding:0;margin:0;line-height:2.2;">
-                    <li><i class="fa fa-list-ol" style="color:#6366f1;width:20px;"></i> 按照右侧名单顺序选择座位</li>
-                    <li><i class="fa fa-arrows" style="color:#6366f1;width:20px;"></i> 拖拽姓名卡片到空座位完成选座</li>
-                    <li><i class="fa fa-exchange" style="color:#6366f1;width:20px;"></i> 已选座位可拖拽移动或拖回</li>
-                    <li><i class="fa fa-forward" style="color:#6366f1;width:20px;"></i> 无法选座时可跳过（需管理员密码）</li>
-                    <li><i class="fa fa-save" style="color:#6366f1;width:20px;"></i> 选座完成后点击"保存"按钮提交</li>
-                    <li><i class="fa fa-cloud-upload" style="color:#6366f1;width:20px;"></i> 系统会自动保存您的选座进度</li>
-                </ul>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" style="width:100%;" onclick="closeModal();">我知道了</button>
-        </div>
-    `);
+// 清理超过5天的座位表推送数据
+async function cleanupExpiredSeatChoose() {
+    try {
+        const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_choose?created_at=lt.${encodeURIComponent(cutoff)}`, {
+            method: 'DELETE'
+        });
+    } catch(e) {
+        // 静默失败，不影响用户体验
+        console.warn('清理过期数据失败:', e);
+    }
 }
 
 /* ==================== 事件委托（性能优化） ==================== */
 function _initEventDelegation() {
     const studentList = document.getElementById('studentList');
 
-    // 学生卡片鼠标拖拽
+    // 学生卡片鼠标拖拽（仅当前选座者可拖动）
     studentList.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         const card = e.target.closest('.student-card');
-        if (!card || card.classList.contains('seated') || card.style.cursor === 'not-allowed') return;
+        if (!card) return;
+        // 只有当前选座者可拖动
+        if (!card.classList.contains('current')) return;
+        // 已跳过的不可拖动
+        if (card.classList.contains('skipped')) return;
         e.preventDefault();
         startCustomDrag({
             type: 'student',
@@ -702,7 +705,9 @@ function _initEventDelegation() {
     // 学生卡片触摸拖拽
     studentList.addEventListener('touchstart', (e) => {
         const card = e.target.closest('.student-card');
-        if (!card || card.classList.contains('seated') || card.style.cursor === 'not-allowed') return;
+        if (!card) return;
+        if (!card.classList.contains('current')) return;
+        if (card.classList.contains('skipped')) return;
         e.preventDefault();
         const touch = e.touches[0];
         startCustomDrag({
@@ -715,12 +720,21 @@ function _initEventDelegation() {
 
     // 座位拖拽事件委托：在座位容器上绑定一次
     const seatingContainer = document.getElementById('seatingContainer');
+    if (seatingContainer) {
+        _bindSeatDragEvents(seatingContainer);
+    }
+}
 
-    // 已入座座位鼠标拖拽（移动）
-    seatingContainer.addEventListener('mousedown', (e) => {
+function _bindSeatDragEvents(container) {
+    // 已入座座位鼠标拖拽（仅当前选座者且已入座时可拖回）
+    container.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         const seat = e.target.closest('.seat.occupied');
         if (!seat) return;
+        // 只有当前选座者已入座的座位可以拖回
+        if (!seat.classList.contains('current-seated')) return;
+        // prefilled 的学生不可移动
+        if (seat.classList.contains('prefilled')) return;
         e.preventDefault();
         e.stopPropagation();
         startCustomDrag({
@@ -732,10 +746,12 @@ function _initEventDelegation() {
         }, e);
     });
 
-    // 已入座座位触摸拖拽（移动）
-    seatingContainer.addEventListener('touchstart', (e) => {
+    // 已入座座位触摸拖拽
+    container.addEventListener('touchstart', (e) => {
         const seat = e.target.closest('.seat.occupied');
         if (!seat) return;
+        if (!seat.classList.contains('current-seated')) return;
+        if (seat.classList.contains('prefilled')) return;
         e.preventDefault();
         e.stopPropagation();
         const touch = e.touches[0];
@@ -762,15 +778,6 @@ function getGender(name, fallback) {
     return state.genderMap[name] || '男';
 }
 
-// 返回上一页
-function goBack() {
-    if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        window.location.href = './';
-    }
-}
-
 // ==================== DATABASE READ ====================
 async function loadLatestSeatChoose() {
     state.phase = 'loading';
@@ -784,7 +791,6 @@ async function loadLatestSeatChoose() {
             data = await resp.json();
         }
         if (!Array.isArray(data) || data.length === 0) {
-            // 教师暂未推送座位表
             state.phase = 'empty';
             renderLeftPanel();
             renderStudentList();
@@ -804,11 +810,24 @@ async function loadLatestSeatChoose() {
         }
 
         parseRecord(rec);
+
+        // view_only 模式
+        if (state.viewOnly) {
+            state.phase = 'arranging'; // 复用 arranging 阶段的座位渲染
+            renderLeftPanel();
+            renderStudentList();
+            // 隐藏右侧面板
+            document.getElementById('rightPanel').style.display = 'none';
+            document.getElementById('mainContainer').classList.add('view-only');
+            return;
+        }
+
         state.phase = 'arranging';
         buildSelectionOrder();
         renderLeftPanel();
         renderStudentList();
         updateSelectionIndicator();
+        updateActionButton();
     } catch(e) {
         console.warn('加载座位表失败:', e);
         state.phase = 'empty';
@@ -820,6 +839,9 @@ async function loadLatestSeatChoose() {
 
 // 解析推送记录
 function parseRecord(rec) {
+    // view_only 字段
+    state.viewOnly = rec.view_only === true || rec.view_only === 'true';
+
     // 模板布局
     const layout = typeof rec.template_layout === 'string' ? JSON.parse(rec.template_layout) : (rec.template_layout || {});
     state.currentTemplate = layout;
@@ -847,7 +869,20 @@ function parseRecord(rec) {
     const progress = typeof rec.progress_students === 'string' ? JSON.parse(rec.progress_students) : (rec.progress_students || []);
     state.progressStudents = (Array.isArray(progress) ? progress : []).filter(s => s && s.name);
 
-    // 将已跳过的同学从 star / progress 中移除（保证不参与顺序选座）
+    // 计算预先安排的非星标学生（prefilled）
+    const starNameSet = new Set(state.starStudents.map(s => s.name));
+    const progressNameSet = new Set(state.progressStudents.map(s => s.name));
+    state.prefilledStudents = new Set();
+    for (const seatId in state.arrangement) {
+        const student = state.arrangement[seatId];
+        if (student && student.name) {
+            if (!starNameSet.has(student.name) && !progressNameSet.has(student.name)) {
+                state.prefilledStudents.add(student.name);
+            }
+        }
+    }
+
+    // 将已跳过的同学从 star / progress 中移除（保证不参与正常顺序选座）
     const skippedNames = state.skippedStudents.map(s => s.name);
     state.starStudents = state.starStudents.filter(s => !skippedNames.includes(s.name));
     state.progressStudents = state.progressStudents.filter(s => !skippedNames.includes(s.name));
@@ -862,11 +897,17 @@ function parseRecord(rec) {
 function buildSelectionOrder() {
     const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999)).map(s => s.name);
     const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999)).map(s => s.name);
-    state.selectionOrder = [...stars, ...progress];
+    const normalNames = [...stars, ...progress];
+    state.normalCount = normalNames.length;
+
+    // 跳过的同学按跳过时间顺序排在后面
+    const skippedNames = state.skippedStudents.map(s => s.name);
+
+    state.selectionOrder = [...normalNames, ...skippedNames];
     recomputeIndex();
 }
 
-// 重算下一位选座者：顺序名单中第一个未入座者
+// 重算当前选座者：顺序名单中第一个未入座者
 function recomputeIndex() {
     let i = 0;
     for (; i < state.selectionOrder.length; i++) {
@@ -884,7 +925,7 @@ function isSeated(name, seatedNameSet) {
     return false;
 }
 
-function nextExpectedName() {
+function currentStudentName() {
     if (state.currentIndex < state.selectionOrder.length) {
         return state.selectionOrder[state.currentIndex];
     }
@@ -893,6 +934,10 @@ function nextExpectedName() {
 
 function isSelectionDone() {
     return state.currentIndex >= state.selectionOrder.length;
+}
+
+function isInSkippedPhase() {
+    return state.currentIndex >= state.normalCount && state.currentIndex < state.selectionOrder.length;
 }
 
 // ==================== LEFT PANEL ====================
@@ -925,17 +970,20 @@ function renderLeftPanel() {
                 <div class="icon">✅</div>
                 <h2>本次选座已完成</h2>
                 <p>座位安排已保存，如需重新选座请联系教师重新推送座位表。</p>
-                <button class="btn btn-secondary btn-lg" onclick="goBack()"><i class="fa fa-arrow-left"></i> 返回</button>
             </div>`;
         return;
     }
 
-    // arranging
-    renderArranging(panel);
+    // arranging (包括 view-only 模式)
+    if (state.viewOnly) {
+        renderViewOnly(panel);
+    } else {
+        renderArranging(panel);
+    }
 }
 
 function renderArranging(panel) {
-    const seatedCount = Object.keys(state.arrangement).length;
+    const seatedSelectableCount = getSelectableSeatedCount();
     const totalSelectable = state.selectionOrder.length;
     const done = isSelectionDone();
 
@@ -943,17 +991,12 @@ function renderArranging(panel) {
         <div class="left-toolbar">
             <div>
                 <h3><i class="fa fa-table"></i> 选座区域</h3>
-                <div class="seating-info">已选座：${seatedCount}/${totalSelectable} · 请按右侧名单顺序拖动到座位</div>
-            </div>
-            <div class="toolbar-actions">
-                <button class="btn btn-success ${done ? 'btn-lg' : ''}" onclick="confirmSave()" ${totalSelectable === 0 ? 'disabled' : ''}>
-                    <i class="fa fa-save"></i> 保存
-                </button>
+                <div class="seating-info">已选座：${seatedSelectableCount}/${totalSelectable} · 请按右侧名单顺序拖动到座位</div>
             </div>
         </div>
         <div class="selection-indicator" id="selectionIndicator">
             <i class="fa fa-info-circle"></i>
-            <span>下一位选座的同学：</span>
+            <span id="indicatorLabel">当前选座的同学：</span>
             <span class="next-name" id="nextStudentName"></span>
         </div>
         <div class="seating-scale-wrapper" id="seatingScaleWrapper">
@@ -961,7 +1004,50 @@ function renderArranging(panel) {
         </div>`;
 
     renderSeats();
+    // 重新绑定座位拖拽事件（因为 seatingContainer 被重建了）
+    const seatingContainer = document.getElementById('seatingContainer');
+    if (seatingContainer) {
+        _bindSeatDragEvents(seatingContainer);
+    }
     requestAnimationFrame(scaleSeatingContainer);
+}
+
+function renderViewOnly(panel) {
+    const totalSeats = countTotalSeats(state.currentTemplate);
+    const occupiedSeats = Object.keys(state.arrangement).length;
+
+    panel.innerHTML = `
+        <div class="left-toolbar">
+            <div>
+                <h3><i class="fa fa-eye"></i> 座位表查看</h3>
+                <div class="seating-info">共 ${totalSeats} 个座位 · 已入座 ${occupiedSeats} 人</div>
+            </div>
+        </div>
+        <div class="seating-scale-wrapper" id="seatingScaleWrapper">
+            <div class="seating-container" id="seatingContainer"></div>
+        </div>
+        <div class="view-only-bottom-bar">
+            <button class="btn btn-danger" onclick="confirmCloseViewOnly()">
+                <i class="fa fa-times"></i> 关闭
+            </button>
+            <button class="btn btn-success" onclick="exportToExcel()">
+                <i class="fa fa-file-excel-o"></i> 导出为表格
+            </button>
+        </div>`;
+
+    renderSeats();
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+function getSelectableSeatedCount() {
+    let count = 0;
+    const prefilledSet = state.prefilledStudents;
+    for (const k in state.arrangement) {
+        if (state.arrangement[k] && !prefilledSet.has(state.arrangement[k].name)) {
+            count++;
+        }
+    }
+    return count;
 }
 
 // ==================== SEAT RENDERING ====================
@@ -975,6 +1061,8 @@ function renderSeats() {
     // 预计算星标学生姓名集合（O(1) 查找，避免在循环内重复遍历）
     const starNameSet = new Set(state.starStudents.map(s => s.name));
     const progressNameSet = new Set(state.progressStudents.map(s => s.name));
+    const skippedNameSet = new Set(state.skippedStudents.map(s => s.name));
+    const currentName = currentStudentName();
 
     // 使用 DocumentFragment 批量插入，减少布局回流
     const frag = document.createDocumentFragment();
@@ -1008,7 +1096,7 @@ function renderSeats() {
                 rowDiv.className = 'seat-row';
                 for (let c = 0; c < g.cols; c++) {
                     const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
-                    const seat = createSeat(seatId, starNameSet, progressNameSet);
+                    const seat = createSeat(seatId, starNameSet, progressNameSet, skippedNameSet, currentName);
                     rowDiv.appendChild(seat);
                 }
                 groupDiv.appendChild(rowDiv);
@@ -1070,7 +1158,7 @@ function renderPodium(container, template) {
     container.appendChild(podiumRow);
 }
 
-function createSeat(seatId, starNameSet, progressNameSet) {
+function createSeat(seatId, starNameSet, progressNameSet, skippedNameSet, currentName) {
     const seat = document.createElement('div');
     seat.className = 'seat';
     seat.id = seatId;
@@ -1081,26 +1169,35 @@ function createSeat(seatId, starNameSet, progressNameSet) {
     if (occupied) {
         seat.classList.add('occupied');
         seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
-
-        // O(1) Set 查找
-        if (isStar(occupied.name, starNameSet)) seat.classList.add('star');
-        else if (isProgress(occupied.name, progressNameSet)) seat.classList.add('progress');
-
-        seat.textContent = occupied.name;
         seat.dataset.studentName = occupied.name;
         seat.dataset.gender = occupied.gender;
-        // 拖拽事件通过事件委托处理（见 _initEventDelegation）
+
+        const isStarStudent = starNameSet.has(occupied.name);
+        const isProgressStudent = progressNameSet.has(occupied.name);
+        const isSkippedStudent = skippedNameSet.has(occupied.name);
+        const isPrefilled = state.prefilledStudents.has(occupied.name);
+
+        if (isStarStudent) {
+            seat.classList.add('star');
+        } else if (isProgressStudent || isSkippedStudent) {
+            // 跳过的同学也显示为进步之星样式（因为他们原本就是星标学生）
+            seat.classList.add('progress');
+        }
+
+        if (isPrefilled) {
+            seat.classList.add('prefilled');
+        }
+
+        // 当前选座者且已入座，可以拖回
+        if (occupied.name === currentName && !isPrefilled && !state.viewOnly) {
+            seat.classList.add('current-seated');
+        }
+
+        seat.textContent = occupied.name;
     } else {
         seat.textContent = '';
     }
     return seat;
-}
-
-function isStar(name, starNameSet) {
-    return starNameSet.has(name);
-}
-function isProgress(name, progressNameSet) {
-    return progressNameSet.has(name);
 }
 
 // 座位表自动缩放以适应左侧面板
@@ -1154,73 +1251,107 @@ function renderStudentList() {
         return;
     }
 
-    const nextName = nextExpectedName();
+    const currentName = currentStudentName();
     const remaining = state.selectionOrder.length - state.currentIndex;
-    info.textContent = nextName ? `下一位：${nextName}（剩余 ${remaining} 人）` : '选座完成，请点击保存';
+    const inSkipped = isInSkippedPhase();
+
+    if (isSelectionDone()) {
+        info.textContent = '选座完成，请确认提交';
+    } else if (inSkipped) {
+        info.textContent = `补选阶段：${currentName}（剩余 ${remaining} 人）`;
+    } else {
+        info.textContent = `当前：${currentName}（剩余 ${remaining} 人）`;
+    }
 
     // 预计算已入座学生姓名集合（O(1) 查找）
     const seatedNameSet = new Set(Object.values(state.arrangement).filter(s => s).map(s => s.name));
 
-    // 学习之星（按年排）
+    // 构建显示列表：
+    // 1. 未入座的正常选座同学（学习之星 + 进步之星）
+    // 2. 已跳过的同学（灰色，显示在最后）
     const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999));
-    // 进步之星（按顺序）
     const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999));
 
     // 使用 DocumentFragment 批量插入
     const frag = document.createDocumentFragment();
 
-    if (stars.length > 0) {
-        const group = makeNameGroup('star', '学习之星', stars.map((s, i) => ({
-            name: s.name, gender: s.gender, order: i + 1, type: 'star'
-        })), nextName, seatedNameSet);
+    // 学习之星组（只显示未入座的）
+    const unseatedStars = stars.filter(s => !seatedNameSet.has(s.name));
+    if (unseatedStars.length > 0) {
+        const group = makeNameGroup('star', '学习之星', unseatedStars.map((s, i) => ({
+            name: s.name, gender: s.gender, order: s.rank || (i + 1), type: 'star'
+        })), currentName);
         frag.appendChild(group);
     }
-    if (progress.length > 0) {
-        const group = makeNameGroup('progress', '进步之星', progress.map(s => ({
+
+    // 进步之星组（只显示未入座的）
+    const unseatedProgress = progress.filter(s => !seatedNameSet.has(s.name));
+    if (unseatedProgress.length > 0) {
+        const group = makeNameGroup('progress', '进步之星', unseatedProgress.map(s => ({
             name: s.name, gender: s.gender, order: s.order, type: 'progress'
-        })), nextName, seatedNameSet);
+        })), currentName);
+        frag.appendChild(group);
+    }
+
+    // 跳过组（灰色，显示在最后）
+    if (state.skippedStudents.length > 0) {
+        const skippedItems = state.skippedStudents.map((s, i) => ({
+            name: s.name, gender: s.gender, order: i + 1, type: 'skipped'
+        }));
+        const group = makeNameGroup('skipped', '已跳过', skippedItems, currentName);
         frag.appendChild(group);
     }
 
     container.appendChild(frag);
 
-    if (stars.length === 0 && progress.length === 0) {
+    if (unseatedStars.length === 0 && unseatedProgress.length === 0 && state.skippedStudents.length === 0) {
         container.innerHTML += '<div style="text-align:center;padding:30px;color:#94a3b8;">暂无选座名单</div>';
     }
 }
 
-function makeNameGroup(type, title, items, nextName, seatedNameSet) {
+function makeNameGroup(type, title, items, currentName) {
     const group = document.createElement('div');
     group.className = 'name-group ' + (type === 'star' ? 'star-group' : (type === 'progress' ? 'progress-group' : 'skipped-group'));
     const t = document.createElement('div');
     t.className = 'name-group-title';
     const icon = type === 'star' ? 'fa-star' : (type === 'progress' ? 'fa-trophy' : 'fa-ban');
-    // 计算未入座人数
-    const remaining = items.filter(item => !isSeated(item.name, seatedNameSet));
-    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（剩余${remaining.length}人）`;
+    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（${items.length}人）`;
     group.appendChild(t);
 
     const cards = document.createElement('div');
     cards.className = 'group-cards';
-    // 已入座的同学从右侧删除（不再显示）
     items.forEach(item => {
-        if (isSeated(item.name, seatedNameSet)) return;
-        cards.appendChild(createStudentCard(item, nextName, seatedNameSet));
+        cards.appendChild(createStudentCard(item, currentName));
     });
     group.appendChild(cards);
     return group;
 }
 
-function createStudentCard(item, nextName, seatedNameSet) {
+function createStudentCard(item, currentName) {
     const card = document.createElement('div');
     card.className = `student-card ${item.gender === '男' ? 'boy' : 'girl'} ${item.type}`;
     card.dataset.name = item.name;
     card.dataset.gender = item.gender;
     card.dataset.dragType = 'student';
 
-    const seated = isSeated(item.name, seatedNameSet);
-    if (seated) card.classList.add('seated');
-    if (item.name === nextName && !seated) card.classList.add('current');
+    const isCurrent = (item.name === currentName);
+    if (isCurrent && item.type !== 'skipped') {
+        card.classList.add('current');
+    }
+
+    // 跳过的同学：如果是当前选座者（补选阶段），也显示为可拖动
+    if (isCurrent && item.type === 'skipped') {
+        card.classList.remove('skipped');
+        card.classList.add('current');
+        // 补选阶段的当前同学显示为 progress 样式
+        card.classList.add('progress');
+    }
+
+    // 非当前同学且未跳过：灰色不可拖动
+    if (!isCurrent && item.type !== 'skipped') {
+        card.classList.add('disabled');
+        card.style.cursor = 'not-allowed';
+    }
 
     const nameSpan = document.createElement('span');
     nameSpan.textContent = item.name;
@@ -1232,13 +1363,6 @@ function createStudentCard(item, nextName, seatedNameSet) {
     badge.textContent = item.order;
     card.appendChild(badge);
 
-    // 已入座或已跳过：不可拖动
-    if (seated || item.type === 'skipped') {
-        card.style.cursor = 'not-allowed';
-        return card;
-    }
-
-    // 拖拽事件通过事件委托处理（见 _initEventDelegation），不再逐个绑定
     return card;
 }
 
@@ -1251,12 +1375,6 @@ let _dragState = {
 };
 
 function startCustomDrag(data, e) {
-    if (data.type === 'student') {
-        // 使用 Set 优化 O(1) 查找
-        const seatedNameSet = new Set(Object.values(state.arrangement).filter(s => s).map(s => s.name));
-        if (seatedNameSet.has(data.name)) return; // 已入座不拖动
-    }
-
     _dragState.active = true;
     _dragState.data = data;
     _dragState.currentTarget = null;
@@ -1347,8 +1465,12 @@ function _finishDrag(x, y) {
         if (data.type === 'move') {
             const listEl = elem.closest('#studentList');
             if (listEl) {
-                removeStudentFromSeat(data.fromSeat);
-                showToast(`已将 ${data.name} 移回名单`, 'success');
+                // 拖回右侧列表：仅当前选座者可以拖回
+                const currentName = currentStudentName();
+                if (data.name === currentName) {
+                    removeStudentFromSeat(data.fromSeat);
+                    showToast(`已将 ${data.name} 移回名单，可重新选座`, 'success');
+                }
             }
         }
     }
@@ -1373,20 +1495,32 @@ function _cleanupDrag() {
 // ==================== DROP HANDLING ====================
 function handleDrop(seatId, data) {
     if (data.type === 'student') {
-        // 顺序检查
-        if (state.currentIndex < state.selectionOrder.length) {
-            const expected = state.selectionOrder[state.currentIndex];
-            if (data.name !== expected) {
-                showToast(`请按照右侧名单顺序选择座位，下一位选座的同学：${expected}`, 'warning', 4000);
-                return;
-            }
-        }
-
-        if (state.arrangement[seatId]) {
-            showToast('该座位已有人，请先移走原有学生', 'warning');
+        // 顺序检查：只能是当前选座者
+        const expected = currentStudentName();
+        if (!expected || data.name !== expected) {
+            showToast(`请按照右侧名单顺序选择座位，当前选座的同学：${expected || '无'}`, 'warning', 4000);
             return;
         }
 
+        if (state.arrangement[seatId]) {
+            // 目标座位已有人
+            const occupiedStudent = state.arrangement[seatId];
+            // 如果是当前同学自己的座位（换座），允许
+            if (occupiedStudent.name === data.name) {
+                // 同一个座位，不做处理
+                return;
+            }
+            // 如果是 prefilled 学生，不允许
+            if (state.prefilledStudents.has(occupiedStudent.name)) {
+                showToast('该座位已有同学就坐，不可占用', 'warning');
+                return;
+            }
+            // 其他已入座的星标学生，也不允许（因为已选同学不可更改位置）
+            showToast('该座位已有同学就坐，不可占用', 'warning');
+            return;
+        }
+
+        // 如果当前同学已经入座了，先从原座位移除
         removeStudentFromAllSeats(data.name);
         state.arrangement[seatId] = { name: data.name, gender: data.gender };
 
@@ -1394,26 +1528,44 @@ function handleDrop(seatId, data) {
         renderSeats();
         renderStudentList();
         updateSelectionIndicator();
+        updateActionButton();
 
         if (isSelectionDone()) {
-            showToast('全部选座完成，请点击"保存"按钮', 'success', 4000);
+            showToast('全部选座完成，请点击"完成选座"按钮', 'success', 4000);
         }
         debouncedSave();
 
     } else if (data.type === 'move') {
-        if (state.arrangement[seatId]) {
-            // 交换座位
-            const temp = state.arrangement[seatId];
-            state.arrangement[seatId] = { name: data.name, gender: data.gender };
-            state.arrangement[data.fromSeat] = temp;
-        } else {
-            delete state.arrangement[data.fromSeat];
-            state.arrangement[seatId] = { name: data.name, gender: data.gender };
+        // 从座位拖到另一个座位：仅当前选座者可以移动
+        const currentName = currentStudentName();
+        if (data.name !== currentName) {
+            showToast('只有当前选座的同学可以移动座位', 'warning');
+            return;
         }
-        recomputeIndex();
+
+        if (state.arrangement[seatId]) {
+            const occupiedStudent = state.arrangement[seatId];
+            if (occupiedStudent.name === data.name) {
+                // 同一个座位，不做处理
+                return;
+            }
+            // 目标座位有人，不允许
+            if (state.prefilledStudents.has(occupiedStudent.name)) {
+                showToast('该座位已有同学就坐，不可占用', 'warning');
+                return;
+            }
+            showToast('该座位已有同学就坐，不可占用', 'warning');
+            return;
+        }
+
+        // 移动到新座位
+        delete state.arrangement[data.fromSeat];
+        state.arrangement[seatId] = { name: data.name, gender: data.gender };
+
         renderSeats();
         renderStudentList();
         updateSelectionIndicator();
+        updateActionButton();
         debouncedSave();
     }
 }
@@ -1425,13 +1577,21 @@ function removeStudentFromAllSeats(name) {
         }
     }
 }
+
 function removeStudentFromSeat(seatId) {
     if (state.arrangement[seatId]) {
+        const student = state.arrangement[seatId];
+        // prefilled 的学生不可移动
+        if (state.prefilledStudents.has(student.name)) {
+            showToast('该同学为预先安排，不可移动', 'warning');
+            return;
+        }
         delete state.arrangement[seatId];
         recomputeIndex();
         renderSeats();
         renderStudentList();
         updateSelectionIndicator();
+        updateActionButton();
         debouncedSave();
     }
 }
@@ -1439,39 +1599,74 @@ function removeStudentFromSeat(seatId) {
 function updateSelectionIndicator() {
     const indicator = document.getElementById('selectionIndicator');
     const nameEl = document.getElementById('nextStudentName');
+    const labelEl = document.getElementById('indicatorLabel');
     if (!indicator) return;
 
-    const next = nextExpectedName();
-    if (next) {
+    const current = currentStudentName();
+    if (current) {
         indicator.classList.add('active');
-        nameEl.textContent = next;
+        nameEl.textContent = current;
+        if (isInSkippedPhase()) {
+            indicator.classList.add('skipped-phase');
+            labelEl.textContent = '补选阶段，当前选座的同学：';
+        } else {
+            indicator.classList.remove('skipped-phase');
+            labelEl.textContent = '当前选座的同学：';
+        }
     } else {
         indicator.classList.remove('active');
     }
 }
 
-// ==================== SKIP PERSON ====================
+function updateActionButton() {
+    const btn = document.getElementById('actionBtn');
+    const btnText = document.getElementById('actionBtnText');
+    const btnIcon = document.getElementById('actionBtnIcon');
+    if (!btn) return;
+
+    if (isSelectionDone()) {
+        // 所有同学选完了，显示"完成选座"按钮
+        btn.className = 'btn btn-success btn-block';
+        btn.style.padding = '10px';
+        btn.style.fontSize = '14px';
+        btnIcon.className = 'fa fa-check';
+        btnText.textContent = '完成选座';
+    } else {
+        // 选座进行中，显示"跳过当前同学"按钮
+        btn.className = 'btn btn-warning btn-block';
+        btn.style.padding = '10px';
+        btn.style.fontSize = '14px';
+        btnIcon.className = 'fa fa-forward';
+        btnText.textContent = '跳过当前同学';
+    }
+}
+
+// 底部按钮点击处理
+function handleActionBtn() {
+    if (isSelectionDone()) {
+        confirmComplete();
+    } else {
+        showSkipPassword();
+    }
+}
+
+// ==================== SKIP FUNCTION ====================
 function showSkipPassword() {
     if (state.phase !== 'arranging') {
         showToast('当前无需跳过', 'info');
         return;
     }
-    const currentName = nextExpectedName();
+    const currentName = currentStudentName();
     if (!currentName) {
         showToast('选座已完成，无需跳过', 'info');
         return;
     }
 
-    const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mi = String(now.getMinutes()).padStart(2, '0');
     window._skipTargetName = currentName;
 
     showModal('small', '验证密码 · 跳过 ' + currentName, `
         <div class="modal-body">
-            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${escapeHtml(currentName)}</strong> 的选座，跳过后该同学将排列至进步之星后，不再参与顺序选座。</p>
+            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${escapeHtml(currentName)}</strong> 的选座，跳过后该同学将移至名单末尾，待其他同学选完后再继续选。</p>
             <p style="margin-bottom:12px;font-size:14px;color:#94a3b8;">请输入当前用户密码或管理员密码以确认跳过</p>
             <div class="form-group">
                 <input type="password" class="input-field" id="skipPasswordInput" placeholder="请输入密码" autofocus autocomplete="off">
@@ -1550,6 +1745,8 @@ async function confirmSkip() {
     let origin = 'star';
     const inStar = state.starStudents.find(s => s.name === targetName);
     const inProg = state.progressStudents.find(s => s.name === targetName);
+    const inSkipped = state.skippedStudents.find(s => s.name === targetName);
+
     if (inStar) {
         gender = inStar.gender || getGender(targetName);
         origin = 'star';
@@ -1558,20 +1755,31 @@ async function confirmSkip() {
         gender = inProg.gender || getGender(targetName);
         origin = 'progress';
         state.progressStudents = state.progressStudents.filter(s => s.name !== targetName);
+    } else if (inSkipped) {
+        // 补选阶段再次跳过：移到跳过列表末尾
+        gender = inSkipped.gender || getGender(targetName);
+        origin = inSkipped.origin || 'progress';
+        state.skippedStudents = state.skippedStudents.filter(s => s.name !== targetName);
     } else {
         gender = getGender(targetName);
         origin = 'progress';
     }
 
-    // 加入跳过名单（排列至进步之星后）
+    // 加入跳过名单末尾（按时间顺序）
     if (!state.skippedStudents.some(s => s.name === targetName)) {
-        state.skippedStudents.push({ name: targetName, gender: gender, origin: origin });
+        state.skippedStudents.push({
+            name: targetName,
+            gender: gender,
+            origin: origin,
+            skippedAt: new Date().toISOString()
+        });
     }
 
     buildSelectionOrder();
     renderSeats();
     renderStudentList();
     updateSelectionIndicator();
+    updateActionButton();
 
     showToast(`已跳过 ${targetName}`, 'success');
     debouncedSave();
@@ -1583,52 +1791,21 @@ async function sha256(str) {
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// ==================== SAVE ====================
-function debouncedSave() {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveArrangement(), 1000);
-}
-
-// 每次修改保存至数据库（仅更新 arrangement / 跳过信息 / 进步之星顺序）
-async function saveArrangement() {
+// ==================== COMPLETE SELECTION ====================
+function confirmComplete() {
     if (state.phase !== 'arranging' || !state.seatChooseId) return;
-    try {
-        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
-        const body = {
-            arrangement: JSON.stringify(arrangementToSave),
-            star_students: JSON.stringify(state.starStudents),
-            progress_students: JSON.stringify(state.progressStudents),
-            updated_at: new Date().toISOString()
-        };
-        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-    } catch(e) {
-        console.warn('保存失败:', e);
-    }
-}
-
-// 选择完成后点击"保存"：标记已完成 + localStorage
-function confirmSave() {
-    if (state.phase !== 'arranging' || !state.seatChooseId) return;
-    const done = isSelectionDone();
-    const msg = done
-        ? '确认保存本次选座结果？保存后将无法再修改座位安排。'
-        : '尚有同学未完成选座，确认提前保存并结束本次选座？保存后将无法再修改座位安排。';
-    showModal('small', '确认保存', `
+    showModal('small', '确认完成', `
         <div class="modal-body">
-            <p style="text-align:center;color:#475569;font-size:16px;">${msg}</p>
+            <p style="text-align:center;color:#475569;font-size:16px;">确认完成本次选座？完成后将无法再修改座位安排。</p>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-            <button class="btn btn-success" onclick="doSave()">确认保存</button>
+            <button class="btn btn-success" onclick="doComplete()">确认完成</button>
         </div>
     `);
 }
 
-async function doSave() {
+async function doComplete() {
     closeModal();
     try {
         const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
@@ -1653,6 +1830,152 @@ async function doSave() {
     } catch(e) {
         console.warn('保存失败:', e);
         showToast('保存失败，请检查网络后重试', 'error');
+    }
+}
+
+// ==================== VIEW-ONLY MODE ====================
+function confirmCloseViewOnly() {
+    showModal('small', '确认关闭', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;font-size:16px;">确认关闭查看？关闭后本次推送记录将被删除。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="doCloseViewOnly()">确认关闭</button>
+        </div>
+    `);
+}
+
+async function doCloseViewOnly() {
+    closeModal();
+    if (!state.seatChooseId) {
+        state.phase = 'empty';
+        renderLeftPanel();
+        return;
+    }
+    try {
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        state.record = null;
+        state.seatChooseId = null;
+        state.phase = 'empty';
+        state.viewOnly = false;
+        document.getElementById('rightPanel').style.display = '';
+        document.getElementById('mainContainer').classList.remove('view-only');
+        renderLeftPanel();
+        renderStudentList();
+        showToast('已关闭查看', 'success');
+    } catch(e) {
+        console.warn('删除记录失败:', e);
+        showToast('操作失败，请检查网络后重试', 'error');
+    }
+}
+
+// ==================== EXPORT EXCEL ====================
+function exportToExcel() {
+    if (!state.currentTemplate) return;
+
+    const template = state.currentTemplate;
+    const groups = template.groups || [];
+
+    // 构建二维数组形式的座位表
+    // 先计算总行数和总列数（简化：按组和行列转换）
+    const seatGroups = groups.filter(g => !g.aisle);
+    const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
+
+    // 构建行数据：每一行包含所有组的学生
+    let rows = [];
+    // 标题行
+    let headerRow = ['高二（13）班座位表'];
+    rows.push(headerRow);
+    rows.push([]); // 空行
+
+    // 讲台
+    rows.push(['', '', '', '讲　台', '', '', '']);
+    rows.push([]); // 空行
+
+    // 座位数据
+    let seatGroupIdx = 0;
+    for (let r = 0; r < maxRows; r++) {
+        let rowData = [];
+        let colIdx = 0;
+        for (const g of groups) {
+            if (g.aisle) {
+                rowData.push(''); // 过道
+            } else {
+                const offset = g.offset || 0;
+                const actualRow = r - offset;
+                if (actualRow >= 0 && actualRow < g.rows) {
+                    for (let c = 0; c < g.cols; c++) {
+                        const seatId = `seat-${seatGroupIdx}-${actualRow}-${c}`;
+                        const student = state.arrangement[seatId];
+                        rowData.push(student ? student.name : '');
+                    }
+                } else {
+                    // offset 行留空
+                    for (let c = 0; c < g.cols; c++) {
+                        rowData.push('');
+                    }
+                }
+                seatGroupIdx++;
+            }
+        }
+        seatGroupIdx = 0; // 重置，下一行重新计算
+        rows.push(rowData);
+    }
+
+    // 生成 CSV 格式（Excel 可直接打开）
+    let csvContent = '\uFEFF'; // BOM for Excel UTF-8
+    for (const row of rows) {
+        csvContent += row.map(cell => {
+            const str = String(cell || '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        }).join(',') + '\n';
+    }
+
+    // 下载文件
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', '座位表_' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('导出成功', 'success');
+}
+
+// ==================== AUTO SAVE ====================
+function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveArrangement(), 800);
+}
+
+// 每次修改保存至数据库（仅更新 arrangement / 跳过信息 / 进步之星顺序）
+async function saveArrangement() {
+    if (state.phase !== 'arranging' || !state.seatChooseId || state.viewOnly) return;
+    try {
+        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
+        const body = {
+            arrangement: JSON.stringify(arrangementToSave),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            updated_at: new Date().toISOString()
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+    } catch(e) {
+        console.warn('保存失败:', e);
     }
 }
 
