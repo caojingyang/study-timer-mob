@@ -794,10 +794,10 @@ async function loadLatestSeatChoose() {
         state.record = rec;
         state.seatChooseId = rec.id;
 
-        // 已完成（数据库标记 或 本地 localStorage 标记）
+        // 已完成的推送：下次打开时显示"未推送"，等待教师重新推送
         const localDone = localStorage.getItem('seat_choose_done_' + rec.id) === '1';
         if (rec.is_completed === true || localDone) {
-            state.phase = 'completed';
+            state.phase = 'empty';
             renderLeftPanel();
             renderStudentList();
             return;
@@ -909,11 +909,12 @@ function renderLeftPanel() {
     }
 
     if (state.phase === 'empty') {
+        const hadCompleted = state.record && state.record.is_completed === true;
         panel.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">📭</div>
-                <div class="empty-state-text">教师暂未推送座位表</div>
-                <div style="font-size:15px;color:#94a3b8;">请等待教师推送座位表后再进行选座</div>
+                <div class="empty-state-icon">${hadCompleted ? '🔄' : '📭'}</div>
+                <div class="empty-state-text">${hadCompleted ? '暂无新的选座任务' : '教师暂未推送座位表'}</div>
+                <div style="font-size:15px;color:#94a3b8;">${hadCompleted ? '上次选座已完成，请等待教师推送新的座位表' : '请等待教师推送座位表后再进行选座'}</div>
             </div>`;
         return;
     }
@@ -1144,7 +1145,8 @@ function renderStudentList() {
         return;
     }
     if (state.phase === 'empty') {
-        info.textContent = '暂无名单';
+        const hadCompleted = state.record && state.record.is_completed === true;
+        info.textContent = hadCompleted ? '等待新推送' : '暂无名单';
         return;
     }
     if (state.phase === 'completed') {
