@@ -875,6 +875,9 @@ async function init() {
 
     // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
     _initEventDelegation();
+
+    // 启动大屏选座自动同步轮询
+    _startSeatChoosePolling();
 }
 
 /* ==================== 事件委托（性能优化） ==================== */
@@ -1125,13 +1128,13 @@ function escapeHtml(text) {
 }
 
 // 显示Toast提示
-function showToast(msg, type = 'info') {
+function showToast(msg, type = 'info', duration = 2800) {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
     toast.className = 'toast ' + type;
     toast.style.display = 'block';
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 2800);
+    window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, duration);
 }
 
 // 计算模板的总座位数
@@ -2782,8 +2785,20 @@ function startStarSelection() {
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-secondary" onclick="skipStarSelection()">跳过</button>
         </div>
     `);
+}
+
+// 跳过学习之星/进步之星选择
+function skipStarSelection() {
+    closeModal();
+    state.starStudents = [];
+    state.progressStudents = [];
+    state.studentRanks = {};
+    buildSelectionOrder();
+    renderStudentList();
+    showToast('已跳过学习之星/进步之星选择', 'info');
 }
 
 // 处理排名表格上传
@@ -2837,13 +2852,14 @@ function handleRankFileUpload(event) {
                 const header = String(state.excelHeaders[c] || '').trim();
                 if (nameKeywords.some(kw => header.includes(kw))) { nameCol = c; break; }
             }
-            // 若无姓名表头，尝试匹配已知学生名
+            // 若无姓名表头，尝试匹配已知学生名（使用 Set 优化查找）
             if (nameCol === -1) {
+                const studentNameSet = new Set(state.originalStudents.map(s => s.name));
                 for (let c = 0; c < state.excelHeaders.length; c++) {
                     let matchCount = 0;
                     for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 10, aoa.length); r++) {
                         const val = aoa[r] && aoa[r][c] ? String(aoa[r][c]).trim() : '';
-                        if (state.originalStudents.some(s => s.name === val)) matchCount++;
+                        if (studentNameSet.has(val)) matchCount++;
                     }
                     if (matchCount > 3) { nameCol = c; break; }
                 }
@@ -2946,15 +2962,23 @@ function confirmRankSelection() {
         }
     }
 
-    // 按表格顺序重排学生
+    // 按表格顺序重排学生（使用 Map 避免 O(n²) 查找）
+    const origNameMap = new Map(state.originalStudents.map(s => [s.name, s]));
     const newStudents = [];
+    const addedNames = new Set();
     for (const item of studentNamesWithRanks) {
-        const orig = state.originalStudents.find(s => s.name === item.name);
-        newStudents.push(orig ? { ...orig } : { name: item.name, gender: '男' });
+        const orig = origNameMap.get(item.name);
+        if (orig) {
+            newStudents.push({ ...orig });
+            addedNames.add(item.name);
+        } else {
+            newStudents.push({ name: item.name, gender: '男' });
+            addedNames.add(item.name);
+        }
     }
     // 追加Excel中未包含的学生
     for (const orig of state.originalStudents) {
-        if (!studentNamesWithRanks.some(s => s.name === orig.name)) newStudents.push({ ...orig });
+        if (!addedNames.has(orig.name)) newStudents.push({ ...orig });
     }
     state.students = newStudents;
 
@@ -2974,41 +2998,63 @@ function showProgressStarModal(starNames) {
     const allStudents = state.students;
     let selectedProgress = [];
 
-    const renderCards = () => {
+    // 使用 DocumentFragment 一次性构建所有卡片，后续只更新单个卡片状态
+    const buildCardsOnce = () => {
         const grid = document.getElementById('progressStarGrid');
         if (!grid) return;
-        grid.innerHTML = '';
+        const frag = document.createDocumentFragment();
         allStudents.forEach(student => {
             const card = document.createElement('div');
             card.className = `star-card ${student.gender === '男' ? 'boy' : 'girl'}`;
             card.textContent = student.name;
             card.dataset.name = student.name;
             if (starNames.includes(student.name)) {
-                // 学习之星不可选择
                 card.classList.add('is-star');
                 card.title = '该同学为学习之星';
                 card.onclick = () => showToast('该同学为学习之星', 'info');
             } else {
-                const existing = selectedProgress.findIndex(s => s.name === student.name);
-                if (existing >= 0) {
-                    card.classList.add('selected');
-                    const badge = document.createElement('span');
-                    badge.className = 'star-badge';
-                    badge.textContent = existing + 1;
-                    card.appendChild(badge);
-                }
                 card.onclick = () => {
                     const idx = selectedProgress.findIndex(s => s.name === student.name);
                     if (idx >= 0) {
                         selectedProgress.splice(idx, 1);
+                        card.classList.remove('selected');
+                        const badge = card.querySelector('.star-badge');
+                        if (badge) badge.remove();
                     } else {
                         selectedProgress.push({ name: student.name, order: selectedProgress.length + 1, gender: student.gender });
+                        card.classList.add('selected');
+                        const badge = document.createElement('span');
+                        badge.className = 'star-badge';
+                        badge.textContent = selectedProgress.length;
+                        card.appendChild(badge);
                     }
-                    renderCards();
+                    // 仅更新确认按钮，不重建所有卡片
                     updateConfirmBtn();
+                    // 更新已选卡片的编号
+                    refreshBadges();
                 };
             }
-            grid.appendChild(card);
+            frag.appendChild(card);
+        });
+        grid.innerHTML = '';
+        grid.appendChild(frag);
+    };
+
+    // 重新编号已选卡片的 badge
+    const refreshBadges = () => {
+        const grid = document.getElementById('progressStarGrid');
+        if (!grid) return;
+        selectedProgress.forEach((s, i) => {
+            const card = grid.querySelector(`.star-card[data-name="${s.name}"]`);
+            if (card) {
+                let badge = card.querySelector('.star-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'star-badge';
+                    card.appendChild(badge);
+                }
+                badge.textContent = i + 1;
+            }
         });
     };
 
@@ -3038,7 +3084,7 @@ function showProgressStarModal(starNames) {
             <button class="btn btn-secondary" id="progressConfirmBtn" onclick="confirmProgressStars()">跳过</button>
         </div>
     `);
-    renderCards();
+    buildCardsOnce();
     updateConfirmBtn();
     window._selectedProgress = () => selectedProgress;
 }
@@ -3192,6 +3238,55 @@ async function pushToScreen() {
 }
 
 /* ==================== 从大屏同步选座结果 ==================== */
+
+// 大屏选座自动同步轮询
+let _pollTimer = null;
+let _lastSyncedChooseId = null;
+
+function _startSeatChoosePolling() {
+    if (_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = setInterval(_pollSeatChoose, 10000);
+}
+
+async function _pollSeatChoose() {
+    if (state.phase !== 'arranging') return;
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose?order=created_at.desc&limit=1');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data || data.length === 0) return;
+        const rec = data[0];
+        // 只在选座完成且尚未同步时触发
+        if (rec.is_completed === true && rec.id !== _lastSyncedChooseId) {
+            _lastSyncedChooseId = rec.id;
+            await _autoSyncFromSeatChoose(rec);
+        }
+    } catch(e) {
+        // 静默失败，不打扰用户
+    }
+}
+
+async function _autoSyncFromSeatChoose(rec) {
+    try {
+        let arrangement = typeof rec.arrangement === 'string' ? JSON.parse(rec.arrangement) : (rec.arrangement || {});
+        if (arrangement.__skipped__) delete arrangement.__skipped__;
+        state.arrangement = arrangement;
+        if (rec.star_students) {
+            state.starStudents = typeof rec.star_students === 'string' ? JSON.parse(rec.star_students) : rec.star_students;
+        }
+        if (rec.progress_students) {
+            state.progressStudents = typeof rec.progress_students === 'string' ? JSON.parse(rec.progress_students) : rec.progress_students;
+        }
+        renderSeats();
+        renderStudentList();
+        buildSelectionOrder();
+        updateModeToggleBtn();
+        debouncedSave();
+        showToast('大屏端选座完成，已自动同步', 'success', 3000);
+    } catch(e) {
+        console.warn('自动同步失败:', e);
+    }
+}
 
 // 从 seat_choose 表同步已完成的选座结果
 async function syncFromSeatChoose() {
