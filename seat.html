@@ -3645,8 +3645,8 @@ function exportToExcel() {
     // 创建工作表
     const ws = XLSX.utils.aoa_to_sheet(grid);
 
-    // 列宽：行标签8，座位10，过道3
-    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 8 : (t === 'aisle' ? 3 : 10) }));
+    // 列宽：行标签8.83，座位10.83，过道3.83（匹配模板）
+    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 8.83 : (t === 'aisle' ? 3.83 : 10.83) }));
 
     // 行高：座位28，空行10，讲台26
     ws['!rows'] = [];
@@ -3660,23 +3660,37 @@ function exportToExcel() {
     // 隐藏网格线
     ws['!views'] = [{ showGridLines: false }];
 
-    // 为座位格应用样式（空座位也保留框线，行标签列不加边框）
-    for (let r = 0; r < maxRows; r++) {
+    // 为所有单元格应用样式（空座位、过道、空行、讲台都加框线）
+    for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < totalCols; c++) {
-            if (seatCellMap[r][c]) {
-                const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
-                if (ws[cellRef]) {
-                    ws[cellRef].s = { border: thinBorder, alignment: centerAlign, font: cellFont };
-                } else {
-                    ws[cellRef] = { t: 's', v: '', s: { border: thinBorder, alignment: centerAlign, font: cellFont } };
-                }
+            const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+            if (ws[cellRef]) {
+                ws[cellRef].s = { border: thinBorder, alignment: centerAlign, font: cellFont };
+            } else {
+                ws[cellRef] = { t: 's', v: '', s: { border: thinBorder, alignment: centerAlign, font: cellFont } };
             }
         }
-        // 行标签样式：居中、宋体11pt、无边框
+    }
+
+    // 行标签列特殊处理：无边框（保持与模板一致）
+    for (let r = 0; r < maxRows; r++) {
         const labelRef = XLSX.utils.encode_cell({ r: r, c: 0 });
         if (ws[labelRef]) {
-            ws[labelRef].s = { alignment: centerAlign, font: cellFont };
+            ws[labelRef].s = { alignment: { horizontal: 'center', vertical: 'center' }, font: cellFont, border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
         }
+    }
+
+    // 讲台下方空行（行标签位置）也无边框
+    const emptyRowIdx = maxRows; // 空行索引
+    const emptyLabelRef = XLSX.utils.encode_cell({ r: emptyRowIdx, c: 0 });
+    if (ws[emptyLabelRef]) {
+        ws[emptyLabelRef].s = { border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
+    }
+
+    // 讲台行标签列也无边框
+    const podiumLabelRef = XLSX.utils.encode_cell({ r: podiumRowIdx, c: 0 });
+    if (ws[podiumLabelRef]) {
+        ws[podiumLabelRef].s = { border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
     }
 
     // 讲台格样式
