@@ -594,6 +594,82 @@
             .left-toolbar h3 { font-size: 16px; }
             .toolbar-actions .btn { padding: 8px 12px; font-size: 13px; }
         }
+
+        /* ==================== 座位行标签 ==================== */
+        .seat-group-with-labels { display: flex; align-items: flex-start; }
+        .row-labels-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding-right: 6px;
+            margin-right: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-align: center;
+            min-width: 32px;
+        }
+        .row-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 52px;
+            min-width: 28px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+
+        /* ==================== 座位搜索弹窗 ==================== */
+        .seat-search-container {
+            position: fixed;
+            z-index: 500;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            border: 2px solid var(--primary-light);
+            width: 200px;
+            max-height: 320px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .seat-search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .seat-search-input:focus { border-bottom-color: var(--primary); }
+        .seat-search-results {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 260px;
+        }
+        .seat-search-results::-webkit-scrollbar { width: 5px; }
+        .seat-search-results::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .seat-search-item {
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.1s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .seat-search-item:hover { background: var(--primary-bg); }
+        .seat-search-item.highlighted {
+            background: var(--primary);
+            color: white;
+        }
+        .seat-search-empty {
+            padding: 12px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -774,15 +850,31 @@ async function init() {
         state.templates.push({ ...DEFAULT_TEMPLATE, id: 'default', isDefault: true });
     }
 
-    // 初始阶段：检查未排完座位表
-    state.phase = 'initial';
-    renderLeftPanel();
+    // 检查未排完的座位表并自动恢复
+    let incompleteTable = null;
+    try {
+        const incomplete = await checkIncompleteSeatTables();
+        if (incomplete && incomplete.length > 0) {
+            incompleteTable = incomplete[0];
+        }
+    } catch(e) {
+        console.warn('检查未排完座位表失败:', e);
+    }
+
+    if (incompleteTable) {
+        // 自动恢复未排完的座位表
+        await continueIncomplete(incompleteTable.id);
+        // 弹窗链：自动保存提示 → 恢复提示 → 使用方法
+        setTimeout(() => _showPopupChain(true), 500);
+    } else {
+        state.phase = 'initial';
+        renderLeftPanel();
+        // 弹窗链：自动保存提示 → 使用方法
+        setTimeout(() => _showPopupChain(false), 500);
+    }
 
     // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
     _initEventDelegation();
-
-    // 显示首次使用提示（仅一次），放在最后避免被其他弹窗覆盖
-    showWelcomePrompt();
 }
 
 /* ==================== 事件委托（性能优化） ==================== */
@@ -852,6 +944,16 @@ function _initEventDelegation() {
             sourceElement: seat
         }, { clientX: touch.clientX, clientY: touch.clientY });
     }, { passive: false });
+
+    // 空座位点击搜索（Req 4）
+    seatingContainer.addEventListener('click', (e) => {
+        if (_dragState.active) return; // 正在拖拽中，忽略
+        // 如果刚刚结束拖拽，忽略此次click
+        if (_dragState._justEnded) return;
+        const seat = e.target.closest('.seat');
+        if (!seat || seat.classList.contains('occupied')) return;
+        onEmptySeatClick(seat.dataset.seatId);
+    });
 }
 
 /* ==================== 权限检查 ==================== */
@@ -879,25 +981,117 @@ function checkPermission() {
     }
 }
 
-/* ==================== 使用提示 ==================== */
-// 每次打开都显示的欢迎提示
-function showWelcomePrompt() {
-    // 延迟500ms确保所有初始化完成后再显示
+/* ==================== 弹窗链（自动保存提示 → 恢复提示 → 使用方法） ==================== */
+
+// 弹窗链入口：先显示自动保存提示
+function _showPopupChain(hasIncomplete) {
+    showModal('small', '温馨提示', `
+        <div class="modal-body">
+            <div style="text-align:center;padding:20px;">
+                <i class="fa fa-info-circle" style="font-size:40px;color:var(--primary);"></i>
+                <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">该智能选座系统会自动保存座位表数据，无需担心因关闭网页带来的数据损失，请您放心使用！</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal(); _afterWelcome(${hasIncomplete});">确认</button>
+        </div>
+    `);
+}
+
+// 自动保存提示关闭后的下一步
+function _afterWelcome(hasIncomplete) {
     setTimeout(() => {
-        // 先关闭可能打开的弹窗（通过移除active类，不要设置style.display）
-        document.getElementById('modalOverlay').classList.remove('active');
-        showModal('small', '温馨提示', `
-            <div class="modal-body">
-                <div style="text-align:center;padding:20px;">
-                    <i class="fa fa-info-circle" style="font-size:40px;color:var(--primary);"></i>
-                    <p style="margin-top:16px;color:#475569;font-size:15px;line-height:1.6;">该智能选座系统会自动保存座位表数据，无需担心因关闭网页带来的数据损失，请您放心使用！</p>
-                </div>
+        if (hasIncomplete) {
+            _showRecoveryPopup();
+        } else {
+            _showUsageGuide();
+        }
+    }, 300);
+}
+
+// 恢复提示弹窗（三个按钮：忽略、删除、继续排位）
+function _showRecoveryPopup() {
+    showModal('small', '检测到未排完的座位表', `
+        <div class="modal-body">
+            <div style="text-align:center;padding:16px;">
+                <i class="fa fa-check-circle" style="font-size:40px;color:#22c55e;"></i>
+                <p style="margin-top:16px;color:#475569;font-size:15px;">检测到未排完的座位表，已自动为您恢复</p>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" style="min-width:120px;" onclick="closeModal();">确认</button>
+        </div>
+        <div class="modal-footer" style="justify-content:center;gap:8px;">
+            <button class="btn btn-secondary" onclick="closeModal(); _ignoreRecovery();">忽略</button>
+            <button class="btn btn-danger" onclick="_confirmDeleteRecovery()">删除</button>
+            <button class="btn btn-primary" onclick="closeModal(); _showUsageGuide();">继续排位</button>
+        </div>
+    `);
+}
+
+// 忽略恢复：回到初始界面
+function _ignoreRecovery() {
+    state.phase = 'initial';
+    state.currentTemplate = null;
+    state.arrangement = {};
+    state.seatingTableName = '';
+    state.seatTableId = null;
+    state.isCompleted = false;
+    renderLeftPanel();
+    renderStudentList();
+    setTimeout(() => _showUsageGuide(), 300);
+}
+
+// 删除恢复：二次确认
+function _confirmDeleteRecovery() {
+    showModal('small', '二次确认', `
+        <div class="modal-body">
+            <p style="text-align:center;padding:20px;color:#475569;">确定要删除此座位表吗？此操作不可恢复。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal(); _showRecoveryPopup();">取消</button>
+            <button class="btn btn-danger" onclick="closeModal(); _doDeleteRecovery();">确认删除</button>
+        </div>
+    `);
+}
+
+// 执行删除
+async function _doDeleteRecovery() {
+    if (state.seatTableId) {
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/seat_tables?id=eq.${state.seatTableId}`, { method: 'DELETE' });
+            showToast('已删除', 'success');
+        } catch(e) {}
+    }
+    state.phase = 'initial';
+    state.currentTemplate = null;
+    state.arrangement = {};
+    state.seatingTableName = '';
+    state.seatTableId = null;
+    state.isCompleted = false;
+    renderLeftPanel();
+    renderStudentList();
+    setTimeout(() => _showUsageGuide(), 300);
+}
+
+// 使用方法弹窗（seat.html 版）
+function _showUsageGuide() {
+    showModal('medium', '使用方法', `
+        <div class="modal-body">
+            <div style="padding:12px;">
+                <p style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1e293b;">排座系统使用方法</p>
+                <ul style="list-style:none;padding:0;margin:0;line-height:2.2;">
+                    <li><i class="fa fa-hand-pointer-o" style="color:var(--primary);width:20px;"></i> 点击空座位可直接搜索并安排学生入座</li>
+                    <li><i class="fa fa-arrows" style="color:var(--primary);width:20px;"></i> 从右侧名单拖拽学生到座位完成排座</li>
+                    <li><i class="fa fa-exchange" style="color:var(--primary);width:20px;"></i> 已安排的座位可拖拽移动或拖回名单</li>
+                    <li><i class="fa fa-trophy" style="color:var(--primary);width:20px;"></i> 点击"学习之星、进步之星选座"上传排名表格</li>
+                    <li><i class="fa fa-tv" style="color:var(--primary);width:20px;"></i> 排座完成后可推送至班级大屏供学生选座</li>
+                    <li><i class="fa fa-file-excel-o" style="color:var(--primary);width:20px;"></i> 支持导出座位表为Excel文件</li>
+                    <li><i class="fa fa-cloud-upload" style="color:var(--primary);width:20px;"></i> 系统会自动保存您的排座进度</li>
+                </ul>
             </div>
-        `);
-    }, 500);
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal();">我知道了</button>
+        </div>
+    `);
 }
 
 /* ==================== 手机端检测 ==================== */
@@ -1187,6 +1381,9 @@ function renderArranging(panel) {
                 <button class="btn btn-secondary btn-sm" onclick="changeTemplate()">
                     <i class="fa fa-exchange"></i> 更换模板
                 </button>
+                <button class="btn btn-secondary btn-sm" onclick="syncFromSeatChoose()">
+                    <i class="fa fa-refresh"></i> 同步大屏
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="saveSeatTable()">
                     <i class="fa fa-save"></i> 保存
                 </button>
@@ -1205,6 +1402,9 @@ function renderArranging(panel) {
                 <i class="fa fa-forward"></i> 跳过此人
             </button>
             <button class="btn btn-secondary" id="modeToggleBtn" onclick="toggleSelectionMode()"></button>
+            <button class="btn btn-primary" onclick="promptPushToScreen()">
+                <i class="fa fa-tv"></i> 推送至大屏
+            </button>
             <button class="btn btn-success btn-lg" onclick="exportToExcel()">
                 <i class="fa fa-file-excel-o"></i> 导出座位表
             </button>
@@ -1246,6 +1446,46 @@ function renderSeats() {
             // 座位组
             const groupDiv = document.createElement('div');
             groupDiv.className = 'seat-group';
+            // 第一组（seatGroupIdx===0）添加行标签
+            if (seatGroupIdx === 0) {
+                groupDiv.className = 'seat-group-with-labels';
+                // 行标签列（从下至上：第一排~第七排）
+                const labelCol = document.createElement('div');
+                labelCol.className = 'row-labels-column';
+                const cnNums = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+                // 从上到下渲染行，标签从下到上
+                for (let r = 0; r < g.rows; r++) {
+                    const label = document.createElement('div');
+                    label.className = 'row-label';
+                    const rowNum = g.rows - r; // 从下往上编号
+                    label.textContent = `第${cnNums[rowNum] || rowNum}排`;
+                    labelCol.appendChild(label);
+                }
+                groupDiv.appendChild(labelCol);
+
+                // 座位组容器
+                const seatGroupInner = document.createElement('div');
+                seatGroupInner.className = 'seat-group';
+                if (g.offset && g.offset > 0) {
+                    const seatHeight = 52;
+                    const rowGap = 8;
+                    seatGroupInner.style.marginTop = (g.offset * (seatHeight + rowGap)) + 'px';
+                }
+                for (let r = 0; r < g.rows; r++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'seat-row';
+                    for (let c = 0; c < g.cols; c++) {
+                        const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
+                        const seat = createSeat(seatId, starNameSet, progressNameSet);
+                        rowDiv.appendChild(seat);
+                    }
+                    seatGroupInner.appendChild(rowDiv);
+                }
+                groupDiv.appendChild(seatGroupInner);
+                groupsRow.appendChild(groupDiv);
+                seatGroupIdx++;
+                continue;
+            }
             // 如果组有offset，向下平移
             if (g.offset && g.offset > 0) {
                 const seatHeight = 52; // 座位最小高度
@@ -1481,11 +1721,9 @@ function renderStudentList() {
             card.appendChild(badge);
         }
 
-        // 已入座学生半透明（O(1) Set 查找）
+        // 已入座学生从列表中移除（不再显示）
         const isSeated = seatedNameSet.has(student.name);
-        if (isSeated) {
-            card.classList.add('seated');
-        }
+        if (isSeated) return; // 跳过已入座学生
 
         // 拖拽事件通过事件委托处理（见 _initStudentCardDelegation），不再逐个绑定
         frag.appendChild(card);
@@ -1680,6 +1918,9 @@ function _cleanupDrag() {
     _dragState.active = false;
     _dragState.data = null;
     _dragState.currentTarget = null;
+    // 设置"刚结束拖拽"标记，防止 click 事件误触发空座位搜索
+    _dragState._justEnded = true;
+    setTimeout(() => { _dragState._justEnded = false; }, 100);
 }
 
 /* ==================== 放置处理 ==================== */
@@ -2925,6 +3166,247 @@ async function pushToScreen() {
     } catch(e) {
         console.warn('Push to screen failed:', e);
         showToast('推送失败，请重试', 'error');
+    }
+}
+
+/* ==================== 从大屏同步选座结果 ==================== */
+
+// 从 seat_choose 表同步已完成的选座结果
+async function syncFromSeatChoose() {
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose?order=created_at.desc&limit=1');
+        const data = await resp.json();
+        if (!data || data.length === 0) {
+            showToast('暂无大屏选座数据', 'warning');
+            return;
+        }
+        const rec = data[0];
+        if (!rec.is_completed) {
+            showToast('大屏选座尚未完成，请等待学生完成选座', 'warning');
+            return;
+        }
+        // 解析并合并座位安排
+        let arrangement = typeof rec.arrangement === 'string' ? JSON.parse(rec.arrangement) : (rec.arrangement || {});
+        // 移除 __skipped__ 元数据
+        if (arrangement.__skipped__) {
+            delete arrangement.__skipped__;
+        }
+        state.arrangement = arrangement;
+
+        // 更新星标/进步之星
+        if (rec.star_students) {
+            state.starStudents = typeof rec.star_students === 'string' ? JSON.parse(rec.star_students) : rec.star_students;
+        }
+        if (rec.progress_students) {
+            state.progressStudents = typeof rec.progress_students === 'string' ? JSON.parse(rec.progress_students) : rec.progress_students;
+        }
+
+        renderSeats();
+        renderStudentList();
+        updateModeToggleBtn();
+        debouncedSave();
+        showToast('已同步大屏选座结果', 'success');
+    } catch(e) {
+        console.warn('同步失败:', e);
+        showToast('同步失败，请重试', 'error');
+    }
+}
+
+/* ==================== 空座位点击搜索 ==================== */
+
+let _seatSearchState = {
+    active: false,
+    seatId: null,
+    results: [],
+    highlightIndex: -1
+};
+
+// 点击空座位触发搜索
+function onEmptySeatClick(seatId) {
+    // 关闭已有搜索
+    closeSeatSearch();
+
+    // 不在排座阶段不触发
+    if (state.phase !== 'arranging') return;
+
+    _seatSearchState.active = true;
+    _seatSearchState.seatId = seatId;
+    _seatSearchState.results = [];
+    _seatSearchState.highlightIndex = -1;
+
+    const seat = document.getElementById(seatId);
+    if (!seat) return;
+
+    // 创建搜索容器
+    const container = document.createElement('div');
+    container.className = 'seat-search-container';
+    container.id = 'seatSearchContainer';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'seat-search-input';
+    input.placeholder = '搜索姓名/拼音...';
+    input.id = 'seatSearchInput';
+
+    const resultsList = document.createElement('div');
+    resultsList.className = 'seat-search-results';
+    resultsList.id = 'seatSearchResults';
+
+    container.appendChild(input);
+    container.appendChild(resultsList);
+
+    // 定位到座位下方
+    const rect = seat.getBoundingClientRect();
+    container.style.position = 'fixed';
+    container.style.left = rect.left + 'px';
+    container.style.top = (rect.bottom + 4) + 'px';
+
+    document.body.appendChild(container);
+    input.focus();
+
+    // 初始显示所有未排座学生
+    searchStudentsForSeat('');
+
+    // 输入事件
+    input.addEventListener('input', (e) => {
+        searchStudentsForSeat(e.target.value);
+    });
+
+    // 键盘导航
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (_seatSearchState.highlightIndex < _seatSearchState.results.length - 1) {
+                _seatSearchState.highlightIndex++;
+                _renderSeatSearchResults();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (_seatSearchState.highlightIndex > 0) {
+                _seatSearchState.highlightIndex--;
+                _renderSeatSearchResults();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (_seatSearchState.highlightIndex >= 0 && _seatSearchState.highlightIndex < _seatSearchState.results.length) {
+                _selectStudentForSeat(_seatSearchState.results[_seatSearchState.highlightIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            closeSeatSearch();
+        }
+    });
+
+    // 点击外部关闭
+    setTimeout(() => {
+        document.addEventListener('click', _onSeatSearchOutsideClick);
+    }, 100);
+}
+
+// 搜索未排座学生
+function searchStudentsForSeat(keyword) {
+    const seatedNameSet = new Set(Object.values(state.arrangement).map(s => s.name));
+    const results = state.students.filter(s => {
+        if (seatedNameSet.has(s.name)) return false;
+        if (!keyword) return true;
+        return matchPinyin(s.name, keyword);
+    });
+    _seatSearchState.results = results;
+    _seatSearchState.highlightIndex = results.length > 0 ? 0 : -1;
+    _renderSeatSearchResults();
+}
+
+// 渲染搜索结果
+function _renderSeatSearchResults() {
+    const list = document.getElementById('seatSearchResults');
+    if (!list) return;
+    list.innerHTML = '';
+
+    _seatSearchState.results.forEach((student, idx) => {
+        const item = document.createElement('div');
+        item.className = 'seat-search-item';
+        if (idx === _seatSearchState.highlightIndex) {
+            item.classList.add('highlighted');
+        }
+        // 性别标记
+        const genderIcon = student.gender === '男' ? '♂' : '♀';
+        item.innerHTML = `<span style="margin-right:6px;color:${student.gender === '男' ? '#3b82f6' : '#ec4899'};">${genderIcon}</span>${escapeHtml(student.name)}`;
+        item.addEventListener('click', () => {
+            _selectStudentForSeat(student);
+        });
+        list.appendChild(item);
+    });
+
+    if (_seatSearchState.results.length === 0) {
+        list.innerHTML = '<div class="seat-search-empty">无匹配学生</div>';
+    }
+
+    // 滚动到高亮项
+    const highlighted = list.querySelector('.highlighted');
+    if (highlighted) {
+        highlighted.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+// 选定学生到座位
+function _selectStudentForSeat(student) {
+    if (!_seatSearchState.active || !_seatSearchState.seatId) return;
+    const seatId = _seatSearchState.seatId;
+
+    if (state.arrangement[seatId]) {
+        showToast('该座位已有人', 'warning');
+        return;
+    }
+
+    // 顺序选座模式检查
+    if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
+        const expectedName = state.selectionOrder[state.currentSelectionIndex];
+        if (student.name !== expectedName) {
+            showToast(`请按照右侧名单顺序选择座位，下一位选座的同学：${expectedName}`, 'warning');
+            return;
+        }
+    }
+
+    // 从其他座位移除（防止重复）
+    removeStudentFromAllSeats(student.name);
+    // 放入座位
+    state.arrangement[seatId] = { name: student.name, gender: student.gender };
+
+    // 推进顺序选座
+    if (state.orderSelectionActive && state.currentSelectionIndex < state.selectionOrder.length) {
+        state.currentSelectionIndex++;
+        if (state.currentSelectionIndex >= state.selectionOrder.length) {
+            state.orderSelectionActive = false;
+            showToast('顺序选座完成，现在可以自由排座', 'success');
+        }
+    }
+
+    closeSeatSearch();
+    renderSeats();
+    renderStudentList();
+    updateSelectionIndicator();
+    updateModeToggleBtn();
+    debouncedSave();
+}
+
+// 关闭座位搜索
+function closeSeatSearch() {
+    _seatSearchState.active = false;
+    _seatSearchState.seatId = null;
+    _seatSearchState.results = [];
+    _seatSearchState.highlightIndex = -1;
+    const container = document.getElementById('seatSearchContainer');
+    if (container) container.remove();
+    document.removeEventListener('click', _onSeatSearchOutsideClick);
+}
+
+// 点击搜索容器外部时关闭
+function _onSeatSearchOutsideClick(e) {
+    const container = document.getElementById('seatSearchContainer');
+    if (container && !container.contains(e.target)) {
+        const seat = e.target.closest('.seat');
+        if (!seat || seat.classList.contains('occupied')) {
+            closeSeatSearch();
+        }
     }
 }
 
