@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- pinyin-pro 用于拼音/首字母搜索 -->
     <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.2/dist/index.js"></script>
-    <!-- SheetJS 用于 Excel 导入导出 -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS 用于 Excel 导入导出（xlsx-js-style 支持样式） -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     <!-- Font Awesome 本地 CSS -->
     <link rel="stylesheet" href="font-awesome.min.css">
     <style>
@@ -3559,9 +3559,21 @@ function exportToExcel() {
     // 最大行数需考虑offset：组实际占用的行数为 rows + offset
     const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
 
-    // 通用样式：宋体11pt不加粗、居中对齐、wrapText、thin边框
-    const thinBorder = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-    const cellFont = { name: '宋体', sz: 11, bold: false };
+    // 通用样式：Calibri 12pt不加粗、居中对齐、thin边框（匹配模板）
+    const blackColor = { rgb: '000000' };
+    const thinBorder = {
+        top: { style: 'thin', color: blackColor },
+        bottom: { style: 'thin', color: blackColor },
+        left: { style: 'thin', color: blackColor },
+        right: { style: 'thin', color: blackColor }
+    };
+    const noBorder = {
+        top: { style: 'none' },
+        bottom: { style: 'none' },
+        left: { style: 'none' },
+        right: { style: 'none' }
+    };
+    const cellFont = { name: 'Calibri', sz: 12, bold: false, color: blackColor };
     const centerAlign = { horizontal: 'center', vertical: 'center', wrapText: true };
 
     // 构建网格数据和座位标记（第0列为行标签）
@@ -3645,8 +3657,8 @@ function exportToExcel() {
     // 创建工作表
     const ws = XLSX.utils.aoa_to_sheet(grid);
 
-    // 列宽：行标签8.83，座位10.83，过道3.83（匹配模板）
-    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 8.83 : (t === 'aisle' ? 3.83 : 10.83) }));
+    // 列宽：行标签9.66，座位11.66，过道4.66（匹配模板）
+    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 9.66 : (t === 'aisle' ? 4.66 : 11.66) }));
 
     // 行高：座位28，空行10，讲台26
     ws['!rows'] = [];
@@ -3672,25 +3684,12 @@ function exportToExcel() {
         }
     }
 
-    // 行标签列特殊处理：无边框（保持与模板一致）
-    for (let r = 0; r < maxRows; r++) {
+    // 行标签列（A列）无边框（匹配模板：第一排~第七排左侧无框线）
+    for (let r = 0; r < grid.length; r++) {
         const labelRef = XLSX.utils.encode_cell({ r: r, c: 0 });
         if (ws[labelRef]) {
-            ws[labelRef].s = { alignment: { horizontal: 'center', vertical: 'center' }, font: cellFont, border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
+            ws[labelRef].s.border = noBorder;
         }
-    }
-
-    // 讲台下方空行（行标签位置）也无边框
-    const emptyRowIdx = maxRows; // 空行索引
-    const emptyLabelRef = XLSX.utils.encode_cell({ r: emptyRowIdx, c: 0 });
-    if (ws[emptyLabelRef]) {
-        ws[emptyLabelRef].s = { border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
-    }
-
-    // 讲台行标签列也无边框
-    const podiumLabelRef = XLSX.utils.encode_cell({ r: podiumRowIdx, c: 0 });
-    if (ws[podiumLabelRef]) {
-        ws[podiumLabelRef].s = { border: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } } };
     }
 
     // 讲台格样式
