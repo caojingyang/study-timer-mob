@@ -303,6 +303,7 @@
             flex-direction: column;
             gap: 8px;
         }
+        .seat-row { display: flex; gap: 8px; }
         .seat {
             border: 2px dashed var(--seat-border);
             border-radius: 10px;
@@ -524,11 +525,21 @@
         .completed-screen .icon { font-size: 80px; }
         .completed-screen h2 { font-size: 28px; margin: 0; }
         .completed-screen p { font-size: 16px; color: #64748b; margin: 0; }
+        /* View-only mode toolbar */
+        .view-only-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 10px;
+        }
+        .view-only-info {
+            font-size: 15px;
+            color: #64748b;
+        }
         /* View-only mode bottom bar */
         .view-only-bottom-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             padding-top: 12px;
             border-top: 1px solid #f1f5f9;
             margin-top: 10px;
@@ -814,11 +825,11 @@ async function loadLatestSeatChoose() {
         // view_only 模式
         if (state.viewOnly) {
             state.phase = 'arranging'; // 复用 arranging 阶段的座位渲染
-            renderLeftPanel();
-            renderStudentList();
             // 隐藏右侧面板
-            document.getElementById('rightPanel').style.display = 'none';
+            const rightPanel = document.getElementById('rightPanel');
+            if (rightPanel) rightPanel.style.display = 'none';
             document.getElementById('mainContainer').classList.add('view-only');
+            renderLeftPanel();
             return;
         }
 
@@ -1024,20 +1035,19 @@ function renderViewOnly(panel) {
     const occupiedSeats = Object.keys(state.arrangement).length;
 
     panel.innerHTML = `
-        <div class="left-toolbar">
-            <div>
-                <h3><i class="fa fa-eye"></i> 座位表查看</h3>
-                <div class="seating-info">共 ${totalSeats} 个座位 · 已入座 ${occupiedSeats} 人</div>
+        <div class="view-only-toolbar">
+            <button class="btn btn-danger" onclick="confirmCloseViewOnly()">
+                <i class="fa fa-sign-out"></i> 退出
+            </button>
+            <div class="view-only-info">
+                <i class="fa fa-eye"></i> 座位表查看 · 共 ${totalSeats} 个座位 · 已入座 ${occupiedSeats} 人
             </div>
         </div>
         <div class="seating-scale-wrapper" id="seatingScaleWrapper">
             <div class="seating-container" id="seatingContainer"></div>
         </div>
         <div class="view-only-bottom-bar">
-            <button class="btn btn-danger" onclick="confirmCloseViewOnly()">
-                <i class="fa fa-times"></i> 关闭
-            </button>
-            <button class="btn btn-success" onclick="exportToExcel()">
+            <button class="btn btn-success btn-block" style="padding:12px;font-size:16px;" onclick="exportToExcel()">
                 <i class="fa fa-file-excel-o"></i> 导出为表格
             </button>
         </div>`;
