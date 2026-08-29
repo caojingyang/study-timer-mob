@@ -663,7 +663,8 @@ const state = {
     currentIndex: 0,         // 当前选座者在 selectionOrder 中的下标
     genderMap: {},           // 姓名 -> 性别
     phase: 'loading',        // 'loading' | 'empty' | 'arranging' | 'completed'
-    viewOnly: false          // 是否仅查看模式
+    viewOnly: false,         // 是否仅查看模式
+    seatingTableName: ''     // 座位表名称（与 seat.html 一致）
 };
 
 let saveTimer = null;
@@ -862,6 +863,9 @@ function parseRecord(rec) {
     } else {
         state.viewOnly = false;
     }
+
+    // 座位表名称（与 seat.html 中的 seatingTableName 一致）
+    state.seatingTableName = rec.seating_table_name || '座位表';
 
     // 模板布局
     const layout = typeof rec.template_layout === 'string' ? JSON.parse(rec.template_layout) : (rec.template_layout || {});
@@ -2008,7 +2012,7 @@ function exportToExcel() {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '座位表');
-    XLSX.writeFile(wb, '座位表.xlsx', { cellStyles: true });
+    XLSX.writeFile(wb, (state.seatingTableName || '座位表') + '.xlsx', { cellStyles: true });
     showToast('座位表已导出', 'success');
 }
 
