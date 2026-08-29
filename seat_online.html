@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>高二（13）班智能选座系统</title>
+    <link rel="icon" type="image/png" href="https://s41.ax1x.com/2026/07/01/pmdtqLF.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --boy-bg: #dbeafe;
+            --boy-text: #1e40af;
+            --boy-border: #93c5fd;
+            --girl-bg: #fce7f3;
+            --girl-text: #db2777;
+            --girl-border: #f9a8d4;
+            --star-border: #f59e0b;
+            --star-bg: #fef3c7;
+            --star-text: #92400e;
+            --progress-border: #22c55e;
+            --progress-bg: #dcfce7;
+            --progress-text: #166534;
+            --seat-border: #94a3b8;
+            --seat-empty-bg: #f8fafc;
+            --skipped-border: #94a3b8;
+            --skipped-bg: #f1f5f9;
+            --skipped-text: #64748b;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #1e293b;
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+            color: white;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+        }
+        /* Main layout */
+        .main-container {
+            display: flex;
+            gap: 18px;
+            padding: 18px;
+            height: calc(100vh - 76px);
+        }
+        .main-container.view-only {
+            justify-content: center;
+        }
+        .left-panel {
+            flex: 1;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            padding: 22px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .main-container.view-only .left-panel {
+            flex: none;
+            width: 80%;
+            max-width: 1200px;
+        }
+        .right-panel {
+            flex: 0 0 120px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .right-header {
+            padding: 12px 10px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .right-header h3 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .right-header .sub {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+            font-weight: 400;
+        }
+        .student-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            position: relative;
+        }
+        .student-list::-webkit-scrollbar { width: 8px; }
+        .student-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .student-list::-webkit-scrollbar-track { background: transparent; }
+        /* Star / Progress groups */
+        .name-group {
+            border: 2px dashed var(--star-border);
+            border-radius: 10px;
+            padding: 8px 6px 6px;
+            background: rgba(254, 243, 199, 0.25);
+            position: relative;
+        }
+        .name-group.progress-group {
+            border-color: var(--progress-border);
+            background: rgba(220, 252, 231, 0.3);
+        }
+        .name-group.skipped-group {
+            border-color: var(--skipped-border);
+            background: #f8fafc;
+        }
+        .name-group-title {
+            position: absolute;
+            top: -9px;
+            left: 8px;
+            background: white;
+            padding: 0 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .name-group.star-group .name-group-title { color: var(--star-text); }
+        .name-group.progress-group .name-group-title { color: var(--progress-text); }
+        .name-group.skipped-group .name-group-title { color: var(--skipped-text); }
+        .group-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 2px;
+        }
+        .student-card {
+            padding: 4px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: grab;
+            transition: all 0s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border: 2px dashed var(--seat-border);
+            text-align: center;
+            position: relative;
+            box-sizing: border-box;
+            width: 78px;
+            min-height: 52px;
+            align-self: center;
+            background: var(--seat-empty-bg);
+            touch-action: none;
+        }
+        .student-card:hover { transform: translateX(3px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .student-card:active { cursor: grabbing; }
+        .student-card.boy { background: var(--boy-bg); color: var(--boy-text); border-color: var(--boy-border); }
+        .student-card.girl { background: #fbcfe8; color: #9d174d; border-color: #f472b6; }
+        .student-card.star { border: 2px dashed var(--star-border); background: var(--star-bg); color: var(--star-text); }
+        .student-card.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); color: var(--progress-text); }
+        .student-card.skipped {
+            border: 2px dashed var(--skipped-border);
+            background: var(--skipped-bg);
+            color: var(--skipped-text);
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+        .student-card.skipped:hover { transform: none; box-shadow: none; }
+        .student-card.current {
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3);
+            animation: pulseCard 0s ease-in-out infinite;
+        }
+        .student-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .student-card.disabled:hover { transform: none; box-shadow: none; }
+        @keyframes pulseCard {
+            0%,100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.45), 0 4px 14px rgba(99,102,241,0.3); }
+            50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.25), 0 6px 18px rgba(99,102,241,0.35); }
+        }
+        .student-card.dragging { opacity: 0.5; }
+        .card-number {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 1;
+        }
+        .student-card.star .card-number { background: var(--star-border); }
+        .student-card.progress .card-number { background: var(--progress-border); }
+        .student-card.skipped .card-number { background: var(--skipped-border); }
+        .right-footer {
+            padding: 8px 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn {
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; }
+        .btn-secondary:hover { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+        .btn-warning:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-lg { padding: 16px 30px; font-size: 18px; border-radius: 14px; }
+        .btn-block { width: 100%; }
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            color: #94a3b8;
+        }
+        .empty-state-icon { font-size: 80px; }
+        .empty-state-text { font-size: 22px; font-weight: 600; }
+        /* Seating area */
+        .seating-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            transform-origin: top center;
+        }
+        .seating-scale-wrapper {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+        .seat-groups-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .seat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .seat-row { display: flex; gap: 8px; }
+        .seat {
+            border: 2px dashed var(--seat-border);
+            border-radius: 10px;
+            min-height: 52px;
+            min-width: 78px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0s;
+            background: var(--seat-empty-bg);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px;
+            text-align: center;
+            position: relative;
+            user-select: none;
+            touch-action: none;
+        }
+        .seat:hover { border-color: var(--primary-light); background: var(--primary-bg); }
+        .seat.drag-over {
+            background: #c7d2fe;
+            border-color: var(--primary);
+            border-style: solid;
+            transform: scale(1.06);
+        }
+        .seat.occupied {
+            border-style: solid;
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            cursor: not-allowed;
+        }
+        .seat.occupied.boy { background: var(--boy-bg); border-color: var(--boy-border); color: var(--boy-text); }
+        .seat.occupied.girl { background: #fbcfe8; border-color: #f472b6; color: #9d174d; }
+        .seat.occupied.star { border: 2px dashed var(--star-border); background: var(--star-bg); }
+        .seat.occupied.progress { border: 2px dashed var(--progress-border); background: var(--progress-bg); }
+        .seat.occupied.current-seated { cursor: grab; }
+        .seat.occupied.prefilled { cursor: not-allowed; }
+        .aisle-spacer { min-width: 24px; }
+        .podium-spacer-row { height: 16px; }
+        .podium-row { display: flex; gap: 12px; width: 100%; }
+        .podium {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            box-shadow: 0 4px 16px rgba(79,70,229,0.2);
+        }
+        /* Left toolbar */
+        .left-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .left-toolbar h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .seating-info { font-size: 14px; color: #64748b; margin-top: 4px; }
+        .toolbar-actions { display: flex; gap: 10px; }
+        /* Selection indicator */
+        .selection-indicator {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 14px;
+            padding: 14px 22px;
+            margin-bottom: 14px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #92400e;
+            justify-content: center;
+        }
+        .selection-indicator.active { display: flex; }
+        .selection-indicator .next-name {
+            background: white;
+            padding: 5px 14px;
+            border-radius: 10px;
+            color: #1e40af;
+            font-weight: 700;
+        }
+        .selection-indicator.skipped-phase {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            border-color: #6366f1;
+            color: #3730a3;
+        }
+        /* Drag overlay (drop back to list) */
+        .drag-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px;
+            z-index: 10;
+            pointer-events: none;
+            border-radius: 14px;
+        }
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: white;
+            border-radius: 18px;
+            padding: 26px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0s;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95) translateY(10px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .modal-card.large { width: 900px; }
+        .modal-card.medium { width: 560px; }
+        .modal-card.small { width: 420px; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .modal-title { font-size: 22px; font-weight: 700; color: #1e293b; }
+        .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #64748b;
+        }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { margin-bottom: 16px; }
+        .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0s;
+        }
+        .input-field:focus { border-color: var(--primary-light); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #475569; }
+        /* Custom drag ghost */
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.92;
+            transform: translate(-50%, -50%);
+            transition: none;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 14px 26px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            animation: toastIn 0s;
+            max-width: 80vw;
+            text-align: center;
+        }
+        @keyframes toastIn {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        .toast.warning { background: #d97706; }
+        /* Completed screen */
+        .completed-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #334155;
+        }
+        .completed-screen .icon { font-size: 80px; }
+        .completed-screen h2 { font-size: 28px; margin: 0; }
+        .completed-screen p { font-size: 16px; color: #64748b; margin: 0; }
+        /* View-only mode toolbar */
+        .view-only-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 10px;
+        }
+        .view-only-info {
+            font-size: 15px;
+            color: #64748b;
+        }
+        /* View-only mode bottom bar */
+        .view-only-bottom-bar {
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            margin-top: 10px;
+        }
+        /* 禁止文本选中 */
+        .student-card, .seat.occupied {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .left-panel, .right-panel { flex: 1; width: 100%; }
+            .right-panel { max-height: 350px; width: 100%; }
+            .header-title { font-size: 16px; }
+            .seat { min-width: 60px; min-height: 44px; font-size: 12px; }
+            .student-card { width: 60px; min-height: 44px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Main App -->
+<div id="appContent">
+
+<!-- Header -->
+<div class="app-header">
+    <div class="header-title">
+        <span style="font-size:30px;">🪑</span>
+        <span>高二（13）班智能选座系统</span>
+    </div>
+</div>
+
+<!-- Main Container -->
+<div class="main-container" id="mainContainer">
+    <!-- Left Panel: Seating Area -->
+    <div class="left-panel" id="leftPanel">
+        <!-- Content rendered dynamically -->
+    </div>
+
+    <!-- Right Panel: Student List (hidden in view-only mode) -->
+    <div class="right-panel" id="rightPanel">
+        <div class="right-header">
+            <h3><i class="fa fa-trophy"></i> 选座名单</h3>
+            <div class="sub" id="selectionInfo">加载中...</div>
+        </div>
+        <div class="student-list" id="studentList">
+            <div class="drag-overlay" id="dragOverlay">
+                <div>
+                    <i class="fa fa-arrows" style="font-size:26px;margin-bottom:6px;display:block;"></i>
+                    <span style="font-size:14px;">移到此处取消入座</span>
+                </div>
+            </div>
+        </div>
+        <div class="right-footer">
+            <button class="btn btn-warning btn-block" style="padding:10px;font-size:14px;" id="actionBtn" onclick="handleActionBtn()">
+                <i class="fa fa-forward" id="actionBtnIcon"></i> <span id="actionBtnText">跳过当前同学</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Modal Container -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+        <!-- Modal content rendered here -->
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== CONFIG ====================
+const SUPABASE_URL = 'https://wh12z213mob.pages.dev/api/supabase';
+
+// 班级花名册（用于查询性别，与 seat.html 保持一致）
+const DEFAULT_STUDENTS = [
+  {"name":"毕子昂","gender":"男"},{"name":"蔡峻熙","gender":"男"},{"name":"曹健","gender":"男"},
+  {"name":"曹敬杨","gender":"男"},{"name":"曹星瀚","gender":"男"},{"name":"陈骏昕","gender":"男"},
+  {"name":"崔贤俊","gender":"男"},{"name":"桂博岳","gender":"男"},{"name":"郭奕晨","gender":"男"},
+  {"name":"洪高远","gender":"男"},{"name":"靖永诚","gender":"男"},{"name":"黎孟翔","gender":"男"},
+  {"name":"李天诚","gender":"男"},{"name":"刘明磊","gender":"男"},{"name":"茆钰鸿","gender":"男"},
+  {"name":"秦家浩","gender":"男"},{"name":"盛泽宇","gender":"男"},{"name":"唐一晨","gender":"男"},
+  {"name":"陶杨","gender":"男"},{"name":"王明锐","gender":"男"},{"name":"王泰格","gender":"男"},
+  {"name":"王逸谦","gender":"男"},{"name":"王宇皓","gender":"男"},{"name":"王梓帆","gender":"男"},
+  {"name":"文靖涵","gender":"男"},{"name":"夏浩岩","gender":"男"},{"name":"徐赵暄","gender":"男"},
+  {"name":"许健翔","gender":"男"},{"name":"许元非","gender":"男"},{"name":"许志强","gender":"男"},
+  {"name":"杨添翼","gender":"男"},{"name":"尹吴子恒","gender":"男"},{"name":"张瑞杨","gender":"男"},
+  {"name":"张伟杰","gender":"男"},{"name":"张子豪","gender":"男"},{"name":"张梓宸","gender":"男"},
+  {"name":"鲍文萱","gender":"女"},{"name":"鲍谷歌","gender":"女"},{"name":"蔡欣瑜","gender":"女"},
+  {"name":"邓羽宸","gender":"女"},{"name":"黄梦怡","gender":"女"},{"name":"刘思颖","gender":"女"},
+  {"name":"刘以柯","gender":"女"},{"name":"刘紫涵","gender":"女"},{"name":"罗梦雪","gender":"女"},
+  {"name":"潘紫萱","gender":"女"},{"name":"强丽敏","gender":"女"},{"name":"秦卿","gender":"女"},
+  {"name":"宋欣雨","gender":"女"},{"name":"孙沁萱","gender":"女"},
+  {"name":"陶绮","gender":"女"},{"name":"汪学萍","gender":"女"},{"name":"王欣悦","gender":"女"},
+  {"name":"王雨涵","gender":"女"},{"name":"王雨桐","gender":"女"},{"name":"吴紫昕","gender":"女"},
+  {"name":"谢然","gender":"女"},{"name":"许亦优","gender":"女"},{"name":"杨霏菲","gender":"女"},
+  {"name":"赵子琳","gender":"女"},{"name":"宗钰晨","gender":"女"}
+];
+
+// ==================== STATE ====================
+const state = {
+    record: null,            // 当前 seat_choose 记录
+    seatChooseId: null,
+    currentTemplate: null,
+    arrangement: {},         // seatId -> {name, gender}  （不含跳过信息）
+    starStudents: [],        // [{name, rank, gender?}]
+    progressStudents: [],    // [{name, order, gender?}]
+    skippedStudents: [],     // [{name, gender, origin, skippedAt}] 按跳过时间排序
+    prefilledStudents: new Set(), // 推送座位表中预先安排的非星标学生（不可移动）
+    selectionOrder: [],      // 顺序选座名单：正常选座 + 已跳过同学（姓名数组）
+    normalCount: 0,          // 正常选座同学数量（用于区分正常和跳过阶段）
+    currentIndex: 0,         // 当前选座者在 selectionOrder 中的下标
+    genderMap: {},           // 姓名 -> 性别
+    phase: 'loading',        // 'loading' | 'empty' | 'arranging' | 'completed'
+    viewOnly: false          // 是否仅查看模式
+};
+
+let saveTimer = null;
+let toastTimer = null;
+
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+    buildGenderMap();
+    // 自动清理超过5天的过期推送数据
+    cleanupExpiredSeatChoose();
+    await loadLatestSeatChoose();
+    // 初始化事件委托（只绑定一次，替代每次渲染时逐元素绑定）
+    _initEventDelegation();
+}
+
+// 清理超过5天的座位表推送数据
+async function cleanupExpiredSeatChoose() {
+    try {
+        const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_choose?created_at=lt.${encodeURIComponent(cutoff)}`, {
+            method: 'DELETE'
+        });
+    } catch(e) {
+        // 静默失败，不影响用户体验
+        console.warn('清理过期数据失败:', e);
+    }
+}
+
+/* ==================== 事件委托（性能优化） ==================== */
+function _initEventDelegation() {
+    const studentList = document.getElementById('studentList');
+
+    // 学生卡片鼠标拖拽（仅当前选座者可拖动）
+    studentList.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const card = e.target.closest('.student-card');
+        if (!card) return;
+        // 只有当前选座者可拖动
+        if (!card.classList.contains('current')) return;
+        // 已跳过的不可拖动
+        if (card.classList.contains('skipped')) return;
+        e.preventDefault();
+        startCustomDrag({
+            type: 'student',
+            name: card.dataset.name,
+            gender: card.dataset.gender,
+            sourceElement: card
+        }, e);
+    });
+
+    // 学生卡片触摸拖拽
+    studentList.addEventListener('touchstart', (e) => {
+        const card = e.target.closest('.student-card');
+        if (!card) return;
+        if (!card.classList.contains('current')) return;
+        if (card.classList.contains('skipped')) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        startCustomDrag({
+            type: 'student',
+            name: card.dataset.name,
+            gender: card.dataset.gender,
+            sourceElement: card
+        }, { clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+
+    // 座位拖拽事件委托：在座位容器上绑定一次
+    const seatingContainer = document.getElementById('seatingContainer');
+    if (seatingContainer) {
+        _bindSeatDragEvents(seatingContainer);
+    }
+}
+
+function _bindSeatDragEvents(container) {
+    // 已入座座位鼠标拖拽（仅当前选座者且已入座时可拖回）
+    container.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const seat = e.target.closest('.seat.occupied');
+        if (!seat) return;
+        // 只有当前选座者已入座的座位可以拖回
+        if (!seat.classList.contains('current-seated')) return;
+        // prefilled 的学生不可移动
+        if (seat.classList.contains('prefilled')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startCustomDrag({
+            type: 'move',
+            fromSeat: seat.dataset.seatId,
+            name: seat.dataset.studentName,
+            gender: seat.dataset.gender,
+            sourceElement: seat
+        }, e);
+    });
+
+    // 已入座座位触摸拖拽
+    container.addEventListener('touchstart', (e) => {
+        const seat = e.target.closest('.seat.occupied');
+        if (!seat) return;
+        if (!seat.classList.contains('current-seated')) return;
+        if (seat.classList.contains('prefilled')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        startCustomDrag({
+            type: 'move',
+            fromSeat: seat.dataset.seatId,
+            name: seat.dataset.studentName,
+            gender: seat.dataset.gender,
+            sourceElement: seat
+        }, { clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+}
+
+// 构建姓名 -> 性别 的映射
+function buildGenderMap() {
+    state.genderMap = {};
+    for (const s of DEFAULT_STUDENTS) {
+        state.genderMap[s.name] = s.gender;
+    }
+}
+
+function getGender(name, fallback) {
+    if (fallback) return fallback;
+    return state.genderMap[name] || '男';
+}
+
+// ==================== DATABASE READ ====================
+async function loadLatestSeatChoose() {
+    state.phase = 'loading';
+    renderLeftPanel();
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/seat_choose?order=created_at.desc&limit=1', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        let data = [];
+        if (resp.ok) {
+            data = await resp.json();
+        }
+        if (!Array.isArray(data) || data.length === 0) {
+            state.phase = 'empty';
+            renderLeftPanel();
+            renderStudentList();
+            return;
+        }
+        const rec = data[0];
+        state.record = rec;
+        state.seatChooseId = rec.id;
+
+        // 已完成的推送：下次打开时显示"未推送"，等待教师重新推送
+        const localDone = localStorage.getItem('seat_choose_done_' + rec.id) === '1';
+        if (rec.is_completed === true || localDone) {
+            state.phase = 'empty';
+            renderLeftPanel();
+            renderStudentList();
+            return;
+        }
+
+        parseRecord(rec);
+
+        // view_only 模式
+        if (state.viewOnly) {
+            state.phase = 'arranging'; // 复用 arranging 阶段的座位渲染
+            // 隐藏右侧面板
+            const rightPanel = document.getElementById('rightPanel');
+            if (rightPanel) rightPanel.style.display = 'none';
+            document.getElementById('mainContainer').classList.add('view-only');
+            renderLeftPanel();
+            return;
+        }
+
+        state.phase = 'arranging';
+        buildSelectionOrder();
+        renderLeftPanel();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateActionButton();
+    } catch(e) {
+        console.warn('加载座位表失败:', e);
+        state.phase = 'empty';
+        renderLeftPanel();
+        renderStudentList();
+        showToast('加载座位表失败，请检查网络', 'error');
+    }
+}
+
+// 解析推送记录
+function parseRecord(rec) {
+    // view_only 字段：优先使用数据库字段，回退到 push_id 前缀解析
+    if (rec.view_only !== undefined && rec.view_only !== null) {
+        state.viewOnly = rec.view_only === true || rec.view_only === 'true';
+    } else if (rec.push_id && typeof rec.push_id === 'string') {
+        // push_id 前缀 VO=仅查看模式，SC=选座模式
+        state.viewOnly = rec.push_id.startsWith('VO');
+    } else {
+        state.viewOnly = false;
+    }
+
+    // 模板布局
+    const layout = typeof rec.template_layout === 'string' ? JSON.parse(rec.template_layout) : (rec.template_layout || {});
+    state.currentTemplate = layout;
+
+    // 当前排座结果（含 __skipped__ 跳过信息）
+    const rawArr = typeof rec.arrangement === 'string' ? JSON.parse(rec.arrangement) : (rec.arrangement || {});
+    state.arrangement = {};
+    state.skippedStudents = [];
+    if (rawArr && typeof rawArr === 'object') {
+        for (const k in rawArr) {
+            if (k === '__skipped__') {
+                const sk = rawArr[k];
+                if (Array.isArray(sk)) state.skippedStudents = sk.slice();
+            } else {
+                state.arrangement[k] = rawArr[k];
+            }
+        }
+    }
+
+    // 学习之星
+    const stars = typeof rec.star_students === 'string' ? JSON.parse(rec.star_students) : (rec.star_students || []);
+    state.starStudents = (Array.isArray(stars) ? stars : []).filter(s => s && s.name);
+
+    // 进步之星
+    const progress = typeof rec.progress_students === 'string' ? JSON.parse(rec.progress_students) : (rec.progress_students || []);
+    state.progressStudents = (Array.isArray(progress) ? progress : []).filter(s => s && s.name);
+
+    // 计算预先安排的非星标学生（prefilled）
+    const starNameSet = new Set(state.starStudents.map(s => s.name));
+    const progressNameSet = new Set(state.progressStudents.map(s => s.name));
+    state.prefilledStudents = new Set();
+    for (const seatId in state.arrangement) {
+        const student = state.arrangement[seatId];
+        if (student && student.name) {
+            if (!starNameSet.has(student.name) && !progressNameSet.has(student.name)) {
+                state.prefilledStudents.add(student.name);
+            }
+        }
+    }
+
+    // 将已跳过的同学从 star / progress 中移除（保证不参与正常顺序选座）
+    const skippedNames = state.skippedStudents.map(s => s.name);
+    state.starStudents = state.starStudents.filter(s => !skippedNames.includes(s.name));
+    state.progressStudents = state.progressStudents.filter(s => !skippedNames.includes(s.name));
+
+    // 补全性别
+    state.starStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+    state.progressStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+    state.skippedStudents.forEach(s => { s.gender = getGender(s.name, s.gender); });
+}
+
+// ==================== SELECTION ORDER ====================
+function buildSelectionOrder() {
+    const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999)).map(s => s.name);
+    const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999)).map(s => s.name);
+    const normalNames = [...stars, ...progress];
+    state.normalCount = normalNames.length;
+
+    // 跳过的同学按跳过时间顺序排在后面
+    const skippedNames = state.skippedStudents.map(s => s.name);
+
+    state.selectionOrder = [...normalNames, ...skippedNames];
+    recomputeIndex();
+}
+
+// 重算当前选座者：顺序名单中第一个未入座者
+function recomputeIndex() {
+    let i = 0;
+    for (; i < state.selectionOrder.length; i++) {
+        if (!isSeated(state.selectionOrder[i])) break;
+    }
+    state.currentIndex = i;
+}
+
+function isSeated(name, seatedNameSet) {
+    // 如果传入了预计算的 Set，直接 O(1) 查找；否则回退到遍历
+    if (seatedNameSet) return seatedNameSet.has(name);
+    for (const k in state.arrangement) {
+        if (state.arrangement[k] && state.arrangement[k].name === name) return true;
+    }
+    return false;
+}
+
+function currentStudentName() {
+    if (state.currentIndex < state.selectionOrder.length) {
+        return state.selectionOrder[state.currentIndex];
+    }
+    return null;
+}
+
+function isSelectionDone() {
+    return state.currentIndex >= state.selectionOrder.length;
+}
+
+function isInSkippedPhase() {
+    return state.currentIndex >= state.normalCount && state.currentIndex < state.selectionOrder.length;
+}
+
+// ==================== LEFT PANEL ====================
+function renderLeftPanel() {
+    const panel = document.getElementById('leftPanel');
+
+    if (state.phase === 'loading') {
+        panel.innerHTML = `
+            <div class="empty-state">
+                <i class="fa fa-spinner fa-spin" style="font-size:54px;"></i>
+                <div class="empty-state-text">正在加载座位表...</div>
+            </div>`;
+        return;
+    }
+
+    if (state.phase === 'empty') {
+        const hadCompleted = state.record && state.record.is_completed === true;
+        panel.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">${hadCompleted ? '🔄' : '📭'}</div>
+                <div class="empty-state-text">${hadCompleted ? '暂无新的选座任务' : '教师暂未推送座位表'}</div>
+                <div style="font-size:15px;color:#94a3b8;">${hadCompleted ? '上次选座已完成，请等待教师推送新的座位表' : '请等待教师推送座位表后再进行选座'}</div>
+            </div>`;
+        return;
+    }
+
+    if (state.phase === 'completed') {
+        panel.innerHTML = `
+            <div class="completed-screen">
+                <div class="icon">✅</div>
+                <h2>本次选座已完成</h2>
+                <p>座位安排已保存，如需重新选座请联系教师重新推送座位表。</p>
+            </div>`;
+        return;
+    }
+
+    // arranging (包括 view-only 模式)
+    if (state.viewOnly) {
+        renderViewOnly(panel);
+    } else {
+        renderArranging(panel);
+    }
+}
+
+function renderArranging(panel) {
+    const seatedSelectableCount = getSelectableSeatedCount();
+    const totalSelectable = state.selectionOrder.length;
+    const done = isSelectionDone();
+
+    panel.innerHTML = `
+        <div class="left-toolbar">
+            <div>
+                <h3><i class="fa fa-table"></i> 选座区域</h3>
+                <div class="seating-info">已选座：${seatedSelectableCount}/${totalSelectable} · 请按右侧名单顺序拖动到座位</div>
+            </div>
+        </div>
+        <div class="selection-indicator" id="selectionIndicator">
+            <i class="fa fa-info-circle"></i>
+            <span id="indicatorLabel">当前选座的同学：</span>
+            <span class="next-name" id="nextStudentName"></span>
+        </div>
+        <div class="seating-scale-wrapper" id="seatingScaleWrapper">
+            <div class="seating-container" id="seatingContainer"></div>
+        </div>`;
+
+    renderSeats();
+    // 重新绑定座位拖拽事件（因为 seatingContainer 被重建了）
+    const seatingContainer = document.getElementById('seatingContainer');
+    if (seatingContainer) {
+        _bindSeatDragEvents(seatingContainer);
+    }
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+function renderViewOnly(panel) {
+    const totalSeats = countTotalSeats(state.currentTemplate);
+    const occupiedSeats = Object.keys(state.arrangement).length;
+
+    panel.innerHTML = `
+        <div class="view-only-toolbar">
+            <button class="btn btn-danger" onclick="confirmCloseViewOnly()">
+                <i class="fa fa-sign-out"></i> 退出
+            </button>
+            <div class="view-only-info">
+                <i class="fa fa-eye"></i> 座位表查看 · 共 ${totalSeats} 个座位 · 已入座 ${occupiedSeats} 人
+            </div>
+        </div>
+        <div class="seating-scale-wrapper" id="seatingScaleWrapper">
+            <div class="seating-container" id="seatingContainer"></div>
+        </div>
+        <div class="view-only-bottom-bar">
+            <button class="btn btn-success btn-block" style="padding:12px;font-size:16px;" onclick="exportToExcel()">
+                <i class="fa fa-file-excel-o"></i> 导出为表格
+            </button>
+        </div>`;
+
+    renderSeats();
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+function getSelectableSeatedCount() {
+    let count = 0;
+    const prefilledSet = state.prefilledStudents;
+    for (const k in state.arrangement) {
+        if (state.arrangement[k] && !prefilledSet.has(state.arrangement[k].name)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// ==================== SEAT RENDERING ====================
+function renderSeats() {
+    const container = document.getElementById('seatingContainer');
+    if (!container || !state.currentTemplate) return;
+
+    container.innerHTML = '';
+    const template = state.currentTemplate;
+
+    // 预计算星标学生姓名集合（O(1) 查找，避免在循环内重复遍历）
+    const starNameSet = new Set(state.starStudents.map(s => s.name));
+    const progressNameSet = new Set(state.progressStudents.map(s => s.name));
+    const skippedNameSet = new Set(state.skippedStudents.map(s => s.name));
+    const currentName = currentStudentName();
+
+    // 使用 DocumentFragment 批量插入，减少布局回流
+    const frag = document.createDocumentFragment();
+
+    const groupsRow = document.createElement('div');
+    groupsRow.className = 'seat-groups-row';
+
+    let seatGroupIdx = 0;
+    const groups = template.groups || [];
+    // 计算最大占用行数（含offset）
+    const seatGroups = groups.filter(g => !g.aisle);
+    const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
+
+    for (const g of groups) {
+        if (g.aisle) {
+            const spacer = document.createElement('div');
+            spacer.className = 'aisle-spacer';
+            groupsRow.appendChild(spacer);
+        } else {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'seat-group';
+            // 有offset的组：向下平移
+            const offset = g.offset || 0;
+            if (offset > 0) {
+                const seatHeight = 52;
+                const rowGap = 8;
+                groupDiv.style.marginTop = (offset * (seatHeight + rowGap)) + 'px';
+            }
+            for (let r = 0; r < g.rows; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                for (let c = 0; c < g.cols; c++) {
+                    const seatId = `seat-${seatGroupIdx}-${r}-${c}`;
+                    const seat = createSeat(seatId, starNameSet, progressNameSet, skippedNameSet, currentName);
+                    rowDiv.appendChild(seat);
+                }
+                groupDiv.appendChild(rowDiv);
+            }
+            groupsRow.appendChild(groupDiv);
+            seatGroupIdx++;
+        }
+    }
+    frag.appendChild(groupsRow);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'podium-spacer-row';
+    frag.appendChild(spacer);
+
+    container.appendChild(frag);
+    renderPodium(container, template);
+
+    requestAnimationFrame(scaleSeatingContainer);
+}
+
+function renderPodium(container, template) {
+    const podiumStart = template.podium ? template.podium.startGroup : 0;
+    const podiumEnd = template.podium ? template.podium.endGroup : 0;
+
+    let beforeFlex = 0, podiumFlex = 0, afterFlex = 0;
+    let seatGroupIdx = 0;
+    for (const g of (template.groups || [])) {
+        if (g.aisle) {
+            if (seatGroupIdx > podiumStart && seatGroupIdx <= podiumEnd) podiumFlex += 1;
+            else if (seatGroupIdx <= podiumStart) beforeFlex += 1;
+            else afterFlex += 1;
+        } else {
+            if (seatGroupIdx >= podiumStart && seatGroupIdx <= podiumEnd) podiumFlex += g.cols;
+            else if (seatGroupIdx < podiumStart) beforeFlex += g.cols;
+            else afterFlex += g.cols;
+            seatGroupIdx++;
+        }
+    }
+
+    const podiumRow = document.createElement('div');
+    podiumRow.className = 'podium-row';
+    podiumRow.style.width = '100%';
+
+    if (beforeFlex > 0) {
+        const before = document.createElement('div');
+        before.style.flex = beforeFlex;
+        podiumRow.appendChild(before);
+    }
+    const podium = document.createElement('div');
+    podium.className = 'podium';
+    podium.style.flex = Math.max(podiumFlex, 1);
+    podium.textContent = '讲　台';
+    podiumRow.appendChild(podium);
+    if (afterFlex > 0) {
+        const after = document.createElement('div');
+        after.style.flex = afterFlex;
+        podiumRow.appendChild(after);
+    }
+    container.appendChild(podiumRow);
+}
+
+function createSeat(seatId, starNameSet, progressNameSet, skippedNameSet, currentName) {
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.id = seatId;
+    seat.dataset.seatId = seatId;
+    seat.dataset.dropTarget = 'seat';
+
+    const occupied = state.arrangement[seatId];
+    if (occupied) {
+        seat.classList.add('occupied');
+        seat.classList.add(occupied.gender === '男' ? 'boy' : 'girl');
+        seat.dataset.studentName = occupied.name;
+        seat.dataset.gender = occupied.gender;
+
+        const isStarStudent = starNameSet.has(occupied.name);
+        const isProgressStudent = progressNameSet.has(occupied.name);
+        const isSkippedStudent = skippedNameSet.has(occupied.name);
+        const isPrefilled = state.prefilledStudents.has(occupied.name);
+
+        if (isStarStudent) {
+            seat.classList.add('star');
+        } else if (isProgressStudent || isSkippedStudent) {
+            // 跳过的同学也显示为进步之星样式（因为他们原本就是星标学生）
+            seat.classList.add('progress');
+        }
+
+        if (isPrefilled) {
+            seat.classList.add('prefilled');
+        }
+
+        // 当前选座者且已入座，可以拖回
+        if (occupied.name === currentName && !isPrefilled && !state.viewOnly) {
+            seat.classList.add('current-seated');
+        }
+
+        seat.textContent = occupied.name;
+    } else {
+        seat.textContent = '';
+    }
+    return seat;
+}
+
+// 座位表自动缩放以适应左侧面板
+function scaleSeatingContainer() {
+    const wrapper = document.getElementById('seatingScaleWrapper');
+    const container = document.getElementById('seatingContainer');
+    if (!wrapper || !container) return;
+
+    container.style.transform = 'scale(1)';
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) return;
+
+    const scaleX = (wrapperRect.width - 8) / containerRect.width;
+    const scaleY = (wrapperRect.height - 8) / containerRect.height;
+    const scale = Math.min(scaleX, scaleY, 1);
+    if (scale < 1) {
+        container.style.transform = `scale(${scale})`;
+        container.style.transformOrigin = 'top center';
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (state.phase === 'arranging') {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(scaleSeatingContainer, 100);
+    }
+});
+
+// ==================== STUDENT LIST (RIGHT PANEL) ====================
+function renderStudentList() {
+    const container = document.getElementById('studentList');
+    const info = document.getElementById('selectionInfo');
+
+    // 保留 dragOverlay
+    const overlay = document.getElementById('dragOverlay');
+    container.innerHTML = '';
+    if (overlay) container.appendChild(overlay);
+
+    if (state.phase === 'loading') {
+        info.textContent = '加载中...';
+        return;
+    }
+    if (state.phase === 'empty') {
+        const hadCompleted = state.record && state.record.is_completed === true;
+        info.textContent = hadCompleted ? '等待新推送' : '暂无名单';
+        return;
+    }
+    if (state.phase === 'completed') {
+        info.textContent = '选座已完成';
+        return;
+    }
+
+    const currentName = currentStudentName();
+    const remaining = state.selectionOrder.length - state.currentIndex;
+    const inSkipped = isInSkippedPhase();
+
+    if (isSelectionDone()) {
+        info.textContent = '选座完成，请确认提交';
+    } else if (inSkipped) {
+        info.textContent = `补选阶段：${currentName}（剩余 ${remaining} 人）`;
+    } else {
+        info.textContent = `当前：${currentName}（剩余 ${remaining} 人）`;
+    }
+
+    // 预计算已入座学生姓名集合（O(1) 查找）
+    const seatedNameSet = new Set(Object.values(state.arrangement).filter(s => s).map(s => s.name));
+
+    // 构建显示列表：
+    // 1. 未入座的正常选座同学（学习之星 + 进步之星）
+    // 2. 已跳过的同学（灰色，显示在最后）
+    const stars = [...state.starStudents].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    const progress = [...state.progressStudents].sort((a, b) => (a.order || 999) - (b.order || 999));
+
+    // 使用 DocumentFragment 批量插入
+    const frag = document.createDocumentFragment();
+
+    // 学习之星组（只显示未入座的）
+    const unseatedStars = stars.filter(s => !seatedNameSet.has(s.name));
+    if (unseatedStars.length > 0) {
+        const group = makeNameGroup('star', '学习之星', unseatedStars.map((s, i) => ({
+            name: s.name, gender: s.gender, order: s.rank || (i + 1), type: 'star'
+        })), currentName);
+        frag.appendChild(group);
+    }
+
+    // 进步之星组（只显示未入座的）
+    const unseatedProgress = progress.filter(s => !seatedNameSet.has(s.name));
+    if (unseatedProgress.length > 0) {
+        const group = makeNameGroup('progress', '进步之星', unseatedProgress.map(s => ({
+            name: s.name, gender: s.gender, order: s.order, type: 'progress'
+        })), currentName);
+        frag.appendChild(group);
+    }
+
+    // 跳过组（灰色，显示在最后）
+    if (state.skippedStudents.length > 0) {
+        const skippedItems = state.skippedStudents.map((s, i) => ({
+            name: s.name, gender: s.gender, order: i + 1, type: 'skipped'
+        }));
+        const group = makeNameGroup('skipped', '已跳过', skippedItems, currentName);
+        frag.appendChild(group);
+    }
+
+    container.appendChild(frag);
+
+    if (unseatedStars.length === 0 && unseatedProgress.length === 0 && state.skippedStudents.length === 0) {
+        container.innerHTML += '<div style="text-align:center;padding:30px;color:#94a3b8;">暂无选座名单</div>';
+    }
+}
+
+function makeNameGroup(type, title, items, currentName) {
+    const group = document.createElement('div');
+    group.className = 'name-group ' + (type === 'star' ? 'star-group' : (type === 'progress' ? 'progress-group' : 'skipped-group'));
+    const t = document.createElement('div');
+    t.className = 'name-group-title';
+    const icon = type === 'star' ? 'fa-star' : (type === 'progress' ? 'fa-trophy' : 'fa-ban');
+    t.innerHTML = `<i class="fa ${icon}"></i> ${title}（${items.length}人）`;
+    group.appendChild(t);
+
+    const cards = document.createElement('div');
+    cards.className = 'group-cards';
+    items.forEach(item => {
+        cards.appendChild(createStudentCard(item, currentName));
+    });
+    group.appendChild(cards);
+    return group;
+}
+
+function createStudentCard(item, currentName) {
+    const card = document.createElement('div');
+    card.className = `student-card ${item.gender === '男' ? 'boy' : 'girl'} ${item.type}`;
+    card.dataset.name = item.name;
+    card.dataset.gender = item.gender;
+    card.dataset.dragType = 'student';
+
+    const isCurrent = (item.name === currentName);
+    if (isCurrent && item.type !== 'skipped') {
+        card.classList.add('current');
+    }
+
+    // 跳过的同学：如果是当前选座者（补选阶段），也显示为可拖动
+    if (isCurrent && item.type === 'skipped') {
+        card.classList.remove('skipped');
+        card.classList.add('current');
+        // 补选阶段的当前同学显示为 progress 样式
+        card.classList.add('progress');
+    }
+
+    // 非当前同学且未跳过：灰色不可拖动
+    if (!isCurrent && item.type !== 'skipped') {
+        card.classList.add('disabled');
+        card.style.cursor = 'not-allowed';
+    }
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = item.name;
+    nameSpan.style.pointerEvents = 'none';
+    card.appendChild(nameSpan);
+
+    const badge = document.createElement('span');
+    badge.className = 'card-number';
+    badge.textContent = item.order;
+    card.appendChild(badge);
+
+    return card;
+}
+
+// ==================== CUSTOM DRAG SYSTEM ====================
+let _dragState = {
+    active: false,
+    data: null,
+    ghost: null,
+    currentTarget: null
+};
+
+function startCustomDrag(data, e) {
+    _dragState.active = true;
+    _dragState.data = data;
+    _dragState.currentTarget = null;
+
+    const ghost = data.sourceElement.cloneNode(true);
+    ghost.className = 'drag-ghost ' + data.sourceElement.className;
+    ghost.style.width = data.sourceElement.offsetWidth + 'px';
+    ghost.style.height = data.sourceElement.offsetHeight + 'px';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    document.body.appendChild(ghost);
+    _dragState.ghost = ghost;
+
+    if (data.sourceElement) {
+        data.sourceElement.style.opacity = '0.4';
+    }
+
+    document.addEventListener('mousemove', _onDragMove);
+    document.addEventListener('mouseup', _onDragEnd);
+    document.addEventListener('touchmove', _onDragMoveTouch, { passive: false });
+    document.addEventListener('touchend', _onDragEndTouch);
+}
+
+function _onDragMove(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    _updateGhostPosition(e.clientX, e.clientY);
+    _checkDropTarget(e.clientX, e.clientY);
+}
+function _onDragMoveTouch(e) {
+    if (!_dragState.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    _updateGhostPosition(touch.clientX, touch.clientY);
+    _checkDropTarget(touch.clientX, touch.clientY);
+}
+function _updateGhostPosition(x, y) {
+    if (_dragState.ghost) {
+        _dragState.ghost.style.left = x + 'px';
+        _dragState.ghost.style.top = y + 'px';
+    }
+}
+function _checkDropTarget(x, y) {
+    if (_dragState.currentTarget) {
+        _dragState.currentTarget.classList.remove('drag-over');
+        _dragState.currentTarget = null;
+    }
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+    if (_dragState.ghost) _dragState.ghost.style.display = 'block';
+    if (!elem) return;
+
+    let seatEl = elem.closest('.seat[data-drop-target="seat"]');
+    if (seatEl) {
+        seatEl.classList.add('drag-over');
+        _dragState.currentTarget = seatEl;
+    }
+
+    const listEl = elem.closest('#studentList');
+    if (listEl && _dragState.data.type === 'move') {
+        const overlay = document.getElementById('dragOverlay');
+        if (overlay) overlay.style.display = 'flex';
+    } else {
+        const overlay = document.getElementById('dragOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+}
+function _onDragEnd(e) {
+    if (!_dragState.active) return;
+    _finishDrag(e.clientX, e.clientY);
+}
+function _onDragEndTouch(e) {
+    if (!_dragState.active) return;
+    const touch = e.changedTouches[0];
+    _finishDrag(touch.clientX, touch.clientY);
+}
+function _finishDrag(x, y) {
+    const data = _dragState.data;
+    if (_dragState.ghost) _dragState.ghost.style.display = 'none';
+    const elem = document.elementFromPoint(x, y);
+
+    if (elem) {
+        const seatEl = elem.closest('.seat[data-drop-target="seat"]');
+        if (seatEl) {
+            const seatId = seatEl.dataset.seatId;
+            handleDrop(seatId, data);
+        }
+        if (data.type === 'move') {
+            const listEl = elem.closest('#studentList');
+            if (listEl) {
+                // 拖回右侧列表：仅当前选座者可以拖回
+                const currentName = currentStudentName();
+                if (data.name === currentName) {
+                    removeStudentFromSeat(data.fromSeat);
+                    showToast(`已将 ${data.name} 移回名单，可重新选座`, 'success');
+                }
+            }
+        }
+    }
+    _cleanupDrag();
+}
+function _cleanupDrag() {
+    if (_dragState.ghost) { _dragState.ghost.remove(); _dragState.ghost = null; }
+    if (_dragState.data && _dragState.data.sourceElement) {
+        _dragState.data.sourceElement.style.opacity = '';
+    }
+    const overlay = document.getElementById('dragOverlay');
+    if (overlay) overlay.style.display = 'none';
+    _dragState.active = false;
+    _dragState.data = null;
+    _dragState.currentTarget = null;
+    document.removeEventListener('mousemove', _onDragMove);
+    document.removeEventListener('mouseup', _onDragEnd);
+    document.removeEventListener('touchmove', _onDragMoveTouch);
+    document.removeEventListener('touchend', _onDragEndTouch);
+}
+
+// ==================== DROP HANDLING ====================
+function handleDrop(seatId, data) {
+    if (data.type === 'student') {
+        // 顺序检查：只能是当前选座者
+        const expected = currentStudentName();
+        if (!expected || data.name !== expected) {
+            showToast(`请按照右侧名单顺序选择座位，当前选座的同学：${expected || '无'}`, 'warning', 4000);
+            return;
+        }
+
+        if (state.arrangement[seatId]) {
+            // 目标座位已有人
+            const occupiedStudent = state.arrangement[seatId];
+            // 如果是当前同学自己的座位（换座），允许
+            if (occupiedStudent.name === data.name) {
+                // 同一个座位，不做处理
+                return;
+            }
+            // 如果是 prefilled 学生，不允许
+            if (state.prefilledStudents.has(occupiedStudent.name)) {
+                showToast('该座位已有同学就坐，不可占用', 'warning');
+                return;
+            }
+            // 其他已入座的星标学生，也不允许（因为已选同学不可更改位置）
+            showToast('该座位已有同学就坐，不可占用', 'warning');
+            return;
+        }
+
+        // 如果当前同学已经入座了，先从原座位移除
+        removeStudentFromAllSeats(data.name);
+        state.arrangement[seatId] = { name: data.name, gender: data.gender };
+
+        recomputeIndex();
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateActionButton();
+
+        if (isSelectionDone()) {
+            showToast('全部选座完成，请点击"完成选座"按钮', 'success', 4000);
+        }
+        debouncedSave();
+
+    } else if (data.type === 'move') {
+        // 从座位拖到另一个座位：仅当前选座者可以移动
+        const currentName = currentStudentName();
+        if (data.name !== currentName) {
+            showToast('只有当前选座的同学可以移动座位', 'warning');
+            return;
+        }
+
+        if (state.arrangement[seatId]) {
+            const occupiedStudent = state.arrangement[seatId];
+            if (occupiedStudent.name === data.name) {
+                // 同一个座位，不做处理
+                return;
+            }
+            // 目标座位有人，不允许
+            if (state.prefilledStudents.has(occupiedStudent.name)) {
+                showToast('该座位已有同学就坐，不可占用', 'warning');
+                return;
+            }
+            showToast('该座位已有同学就坐，不可占用', 'warning');
+            return;
+        }
+
+        // 移动到新座位
+        delete state.arrangement[data.fromSeat];
+        state.arrangement[seatId] = { name: data.name, gender: data.gender };
+
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateActionButton();
+        debouncedSave();
+    }
+}
+
+function removeStudentFromAllSeats(name) {
+    for (const seatId in state.arrangement) {
+        if (state.arrangement[seatId] && state.arrangement[seatId].name === name) {
+            delete state.arrangement[seatId];
+        }
+    }
+}
+
+function removeStudentFromSeat(seatId) {
+    if (state.arrangement[seatId]) {
+        const student = state.arrangement[seatId];
+        // prefilled 的学生不可移动
+        if (state.prefilledStudents.has(student.name)) {
+            showToast('该同学为预先安排，不可移动', 'warning');
+            return;
+        }
+        delete state.arrangement[seatId];
+        recomputeIndex();
+        renderSeats();
+        renderStudentList();
+        updateSelectionIndicator();
+        updateActionButton();
+        debouncedSave();
+    }
+}
+
+function updateSelectionIndicator() {
+    const indicator = document.getElementById('selectionIndicator');
+    const nameEl = document.getElementById('nextStudentName');
+    const labelEl = document.getElementById('indicatorLabel');
+    if (!indicator) return;
+
+    const current = currentStudentName();
+    if (current) {
+        indicator.classList.add('active');
+        nameEl.textContent = current;
+        if (isInSkippedPhase()) {
+            indicator.classList.add('skipped-phase');
+            labelEl.textContent = '补选阶段，当前选座的同学：';
+        } else {
+            indicator.classList.remove('skipped-phase');
+            labelEl.textContent = '当前选座的同学：';
+        }
+    } else {
+        indicator.classList.remove('active');
+    }
+}
+
+function updateActionButton() {
+    const btn = document.getElementById('actionBtn');
+    const btnText = document.getElementById('actionBtnText');
+    const btnIcon = document.getElementById('actionBtnIcon');
+    if (!btn) return;
+
+    if (isSelectionDone()) {
+        // 所有同学选完了，显示"完成选座"按钮
+        btn.className = 'btn btn-success btn-block';
+        btn.style.padding = '10px';
+        btn.style.fontSize = '14px';
+        btnIcon.className = 'fa fa-check';
+        btnText.textContent = '完成选座';
+    } else {
+        // 选座进行中，显示"跳过当前同学"按钮
+        btn.className = 'btn btn-warning btn-block';
+        btn.style.padding = '10px';
+        btn.style.fontSize = '14px';
+        btnIcon.className = 'fa fa-forward';
+        btnText.textContent = '跳过当前同学';
+    }
+}
+
+// 底部按钮点击处理
+function handleActionBtn() {
+    if (isSelectionDone()) {
+        confirmComplete();
+    } else {
+        showSkipPassword();
+    }
+}
+
+// ==================== SKIP FUNCTION ====================
+function showSkipPassword() {
+    if (state.phase !== 'arranging') {
+        showToast('当前无需跳过', 'info');
+        return;
+    }
+    const currentName = currentStudentName();
+    if (!currentName) {
+        showToast('选座已完成，无需跳过', 'info');
+        return;
+    }
+
+    window._skipTargetName = currentName;
+
+    showModal('small', '验证密码 · 跳过 ' + currentName, `
+        <div class="modal-body">
+            <p style="margin-bottom:12px;color:#475569;">即将跳过 <strong style="color:#1e40af;">${escapeHtml(currentName)}</strong> 的选座，跳过后该同学将移至名单末尾，待其他同学选完后再继续选。</p>
+            <p style="margin-bottom:12px;font-size:14px;color:#94a3b8;">请输入当前用户密码或管理员密码以确认跳过</p>
+            <div class="form-group">
+                <input type="password" class="input-field" id="skipPasswordInput" placeholder="请输入密码" autofocus autocomplete="off">
+            </div>
+            <div style="font-size:13px;color:#94a3b8;">提示：管理员密码为当前月日时分（8位数字）。</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-warning" onclick="confirmSkip()">确认跳过</button>
+        </div>
+    `);
+    const input = document.getElementById('skipPasswordInput');
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmSkip(); });
+    setTimeout(() => input.focus(), 0);
+}
+
+// 生成管理员密码：月日时分（8位数字，24小时制，不足补0）
+function getAdminPassword() {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    return mm + dd + hh + mi;
+}
+
+async function confirmSkip() {
+    const input = document.getElementById('skipPasswordInput');
+    const password = input ? input.value : '';
+    if (!password) {
+        showToast('请输入密码', 'warning');
+        return;
+    }
+
+    const targetName = window._skipTargetName;
+    if (!targetName) {
+        closeModal();
+        return;
+    }
+
+    // 1) 管理员密码校验
+    const adminOk = (password === getAdminPassword());
+
+    // 2) 用户密码校验（查询 users 表，按 real_name 或 username 匹配，SHA-256 比对）
+    let userOk = false;
+    if (!adminOk) {
+        try {
+            const hash = await sha256(password);
+            const url = SUPABASE_URL + '/rest/v1/users?or=(real_name.ilike.' + encodeURIComponent(targetName) + ',username.ilike.' + encodeURIComponent(targetName) + ')&select=password_hash,real_name,username';
+            const resp = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+            if (resp.ok) {
+                const rows = await resp.json();
+                if (Array.isArray(rows) && rows.length > 0) {
+                    userOk = rows.some(r => r.password_hash && r.password_hash === hash);
+                }
+            }
+        } catch(e) {
+            console.warn('用户密码校验失败:', e);
+        }
+    }
+
+    if (!adminOk && !userOk) {
+        showToast('密码错误，请重新输入', 'error');
+        if (input) { input.value = ''; input.focus(); }
+        return;
+    }
+
+    closeModal();
+
+    // 执行跳过
+    // 先从座位上移除（若已入座）
+    removeStudentFromAllSeats(targetName);
+
+    // 判断来源
+    let gender = '男';
+    let origin = 'star';
+    const inStar = state.starStudents.find(s => s.name === targetName);
+    const inProg = state.progressStudents.find(s => s.name === targetName);
+    const inSkipped = state.skippedStudents.find(s => s.name === targetName);
+
+    if (inStar) {
+        gender = inStar.gender || getGender(targetName);
+        origin = 'star';
+        state.starStudents = state.starStudents.filter(s => s.name !== targetName);
+    } else if (inProg) {
+        gender = inProg.gender || getGender(targetName);
+        origin = 'progress';
+        state.progressStudents = state.progressStudents.filter(s => s.name !== targetName);
+    } else if (inSkipped) {
+        // 补选阶段再次跳过：移到跳过列表末尾
+        gender = inSkipped.gender || getGender(targetName);
+        origin = inSkipped.origin || 'progress';
+        state.skippedStudents = state.skippedStudents.filter(s => s.name !== targetName);
+    } else {
+        gender = getGender(targetName);
+        origin = 'progress';
+    }
+
+    // 加入跳过名单末尾（按时间顺序）
+    if (!state.skippedStudents.some(s => s.name === targetName)) {
+        state.skippedStudents.push({
+            name: targetName,
+            gender: gender,
+            origin: origin,
+            skippedAt: new Date().toISOString()
+        });
+    }
+
+    buildSelectionOrder();
+    renderSeats();
+    renderStudentList();
+    updateSelectionIndicator();
+    updateActionButton();
+
+    showToast(`已跳过 ${targetName}`, 'success');
+    debouncedSave();
+}
+
+// SHA-256（与 mobile.html 保持一致）
+async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ==================== COMPLETE SELECTION ====================
+function confirmComplete() {
+    if (state.phase !== 'arranging' || !state.seatChooseId) return;
+    showModal('small', '确认完成', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;font-size:16px;">确认完成本次选座？完成后将无法再修改座位安排。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-success" onclick="doComplete()">确认完成</button>
+        </div>
+    `);
+}
+
+async function doComplete() {
+    closeModal();
+    try {
+        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
+        const body = {
+            arrangement: JSON.stringify(arrangementToSave),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            is_completed: true,
+            updated_at: new Date().toISOString()
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        // localStorage 标记已完成，避免下次打开仍显示座位表
+        localStorage.setItem('seat_choose_done_' + state.seatChooseId, '1');
+        state.phase = 'completed';
+        renderLeftPanel();
+        renderStudentList();
+        showToast('选座结果已保存', 'success');
+    } catch(e) {
+        console.warn('保存失败:', e);
+        showToast('保存失败，请检查网络后重试', 'error');
+    }
+}
+
+// ==================== VIEW-ONLY MODE ====================
+function confirmCloseViewOnly() {
+    showModal('small', '确认关闭', `
+        <div class="modal-body">
+            <p style="text-align:center;color:#475569;font-size:16px;">确认关闭查看？关闭后本次推送记录将被删除。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" onclick="doCloseViewOnly()">确认关闭</button>
+        </div>
+    `);
+}
+
+async function doCloseViewOnly() {
+    closeModal();
+    if (!state.seatChooseId) {
+        state.phase = 'empty';
+        renderLeftPanel();
+        return;
+    }
+    try {
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        state.record = null;
+        state.seatChooseId = null;
+        state.phase = 'empty';
+        state.viewOnly = false;
+        document.getElementById('rightPanel').style.display = '';
+        document.getElementById('mainContainer').classList.remove('view-only');
+        renderLeftPanel();
+        renderStudentList();
+        showToast('已关闭查看', 'success');
+    } catch(e) {
+        console.warn('删除记录失败:', e);
+        showToast('操作失败，请检查网络后重试', 'error');
+    }
+}
+
+// ==================== EXPORT EXCEL ====================
+function exportToExcel() {
+    if (!state.currentTemplate) return;
+
+    const template = state.currentTemplate;
+    const arrangement = state.arrangement;
+
+    // 中文数字映射
+    const cnNums = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+
+    // 计算总列数和列类型（第0列为行标签，之后为座位/过道）
+    let totalCols = 1;
+    let colTypes = ['label'];
+    for (const g of template.groups) {
+        if (g.aisle) {
+            totalCols += 1;
+            colTypes.push('aisle');
+        } else {
+            totalCols += g.cols;
+            for (let c = 0; c < g.cols; c++) colTypes.push('seat');
+        }
+    }
+
+    const seatGroups = template.groups.filter(g => !g.aisle);
+    const maxRows = Math.max(...seatGroups.map(g => g.rows + (g.offset || 0)));
+
+    // 样式定义（严格匹配模板）
+    const black = { rgb: '000000' };
+    const borderAll = {
+        top: { style: 'thin', color: black },
+        bottom: { style: 'thin', color: black },
+        left: { style: 'thin', color: black },
+        right: { style: 'thin', color: black }
+    };
+    const fontSongti11 = { name: '宋体', sz: 11, color: black };
+    const fontSongti14Bold = { name: '宋体', sz: 14, color: black, bold: true };
+    const alignCenter = { horizontal: 'center', vertical: 'center' };
+
+    const styleWithBorder = { font: fontSongti11, alignment: alignCenter, border: borderAll };
+    const styleNoBorder = { font: fontSongti11, alignment: alignCenter };
+    const stylePodium = { font: fontSongti14Bold, alignment: alignCenter, border: borderAll };
+
+    const ws = {};
+    let range = { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+
+    function setCell(r, c, value, style) {
+        const ref = XLSX.utils.encode_cell({ r: r, c: c });
+        if (value !== undefined && value !== null && value !== '') {
+            ws[ref] = { t: 's', v: String(value), s: style };
+        } else {
+            ws[ref] = { t: 's', v: '', s: style };
+        }
+        if (r > range.e.r) range.e.r = r;
+        if (c > range.e.c) range.e.c = c;
+    }
+
+    for (let r = 0; r < maxRows; r++) {
+        const rowLabel = `第${cnNums[maxRows - r] || (maxRows - r)}排`;
+        setCell(r, 0, rowLabel, styleNoBorder);
+
+        let col = 1;
+        let sgIdx = 0;
+        for (const g of template.groups) {
+            if (g.aisle) {
+                setCell(r, col, '', styleNoBorder);
+                col += 1;
+            } else {
+                const offset = g.offset || 0;
+                for (let c = 0; c < g.cols; c++) {
+                    const adjustedRow = r - offset;
+                    let cellValue = '';
+                    if (adjustedRow >= 0 && adjustedRow < g.rows) {
+                        const seatId = `seat-${sgIdx}-${adjustedRow}-${c}`;
+                        const student = arrangement[seatId];
+                        if (student) cellValue = student.name;
+                    }
+                    setCell(r, col + c, cellValue, styleWithBorder);
+                }
+                col += g.cols;
+                sgIdx++;
+            }
+        }
+    }
+
+    const emptyRowIdx = maxRows;
+    for (let c = 0; c < totalCols; c++) {
+        setCell(emptyRowIdx, c, '', styleNoBorder);
+    }
+
+    const podiumRowIdx = emptyRowIdx + 1;
+    const podiumStartCol = 4;
+    const podiumEndCol = 9;
+
+    for (let c = 0; c < totalCols; c++) {
+        setCell(podiumRowIdx, c, '', styleNoBorder);
+    }
+    for (let c = podiumStartCol; c <= podiumEndCol; c++) {
+        if (c < totalCols) {
+            let val = '';
+            if (c === podiumStartCol) val = '讲台';
+            setCell(podiumRowIdx, c, val, stylePodium);
+        }
+    }
+
+    ws['!ref'] = XLSX.utils.encode_range(range);
+    ws['!cols'] = colTypes.map(t => ({ wch: t === 'label' ? 8.0 : (t === 'aisle' ? 3.0 : 10.0) }));
+    ws['!rows'] = [];
+    for (let r = 0; r < maxRows; r++) ws['!rows'].push({ hpt: 28 });
+    ws['!rows'].push({ hpt: 10 });
+    ws['!rows'].push({ hpt: 26 });
+    ws['!merges'] = [{ s: { r: podiumRowIdx, c: podiumStartCol }, e: { r: podiumRowIdx, c: podiumEndCol } }];
+    ws['!views'] = [{ showGridLines: false }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '座位表');
+    XLSX.writeFile(wb, '座位表.xlsx', { cellStyles: true });
+    showToast('座位表已导出', 'success');
+}
+
+// ==================== AUTO SAVE ====================
+function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveArrangement(), 100);
+}
+
+// 每次修改保存至数据库（仅更新 arrangement / 跳过信息 / 进步之星顺序）
+async function saveArrangement() {
+    if (state.phase !== 'arranging' || !state.seatChooseId || state.viewOnly) return;
+    try {
+        const arrangementToSave = { ...state.arrangement, __skipped__: state.skippedStudents };
+        const body = {
+            arrangement: JSON.stringify(arrangementToSave),
+            star_students: JSON.stringify(state.starStudents),
+            progress_students: JSON.stringify(state.progressStudents),
+            updated_at: new Date().toISOString()
+        };
+        await fetch(SUPABASE_URL + '/rest/v1/seat_choose?id=eq.' + state.seatChooseId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+    } catch(e) {
+        console.warn('保存失败:', e);
+    }
+}
+
+// ==================== MODAL / TOAST ====================
+function showModal(size, title, content) {
+    const overlay = document.getElementById('modalOverlay');
+    const card = document.getElementById('modalCard');
+    card.className = 'modal-card ' + size;
+    card.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        ${content}
+    `;
+    overlay.classList.add('active');
+}
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, duration);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+}
+
+function countTotalSeats(template) {
+    if (!template || !template.groups) return 0;
+    return template.groups.filter(g => !g.aisle).reduce((sum, g) => sum + g.cols * g.rows, 0);
+}
+</script>
+</body>
+</html>
