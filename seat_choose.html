@@ -839,8 +839,15 @@ async function loadLatestSeatChoose() {
 
 // 解析推送记录
 function parseRecord(rec) {
-    // view_only 字段
-    state.viewOnly = rec.view_only === true || rec.view_only === 'true';
+    // view_only 字段：优先使用数据库字段，回退到 push_id 前缀解析
+    if (rec.view_only !== undefined && rec.view_only !== null) {
+        state.viewOnly = rec.view_only === true || rec.view_only === 'true';
+    } else if (rec.push_id && typeof rec.push_id === 'string') {
+        // push_id 前缀 VO=仅查看模式，SC=选座模式
+        state.viewOnly = rec.push_id.startsWith('VO');
+    } else {
+        state.viewOnly = false;
+    }
 
     // 模板布局
     const layout = typeof rec.template_layout === 'string' ? JSON.parse(rec.template_layout) : (rec.template_layout || {});
