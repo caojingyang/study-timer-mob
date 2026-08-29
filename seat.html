@@ -3276,7 +3276,7 @@ function promptPushToScreen() {
 async function pushToScreen() {
     try {
         const viewOnly = !hasUnseatedStarStudents();
-        const pushId = 'SC' + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const pushId = (viewOnly ? 'VO' : 'SC') + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
         const body = {
             push_id: pushId,
             seating_table_name: state.seatingTableName || '未命名座位表',
