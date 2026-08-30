@@ -744,11 +744,21 @@ async function init() {
     _initEventDelegation();
 }
 
-// 清理超过5天的座位表推送数据
+// 清理过期/已完成的座位表推送数据（超过5天 或 已完成的记录）
 async function cleanupExpiredSeatChoose() {
     try {
+        // 1. 删除超过5天的推送记录
         const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
         await fetch(`${SUPABASE_URL}/rest/v1/seat_choose?created_at=lt.${encodeURIComponent(cutoff)}`, {
+            method: 'DELETE'
+        });
+        // 2. 删除已完成的推送记录（已完成同步的不再保留）
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_choose?is_completed=eq.true`, {
+            method: 'DELETE'
+        });
+        // 3. 清理超过30天的未完成座位表记录
+        const tableCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(`${SUPABASE_URL}/rest/v1/seat_tables?updated_at=lt.${encodeURIComponent(tableCutoff)}&is_completed=eq.false`, {
             method: 'DELETE'
         });
     } catch(e) {
