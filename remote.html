@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>远程管理 — 高二（13）班</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh; color: #e2e8f0;
+        }
+        .header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(99,102,241,0.3);
+            padding: 0.7rem 1rem; display: flex; align-items: center; gap: 0.8rem;
+        }
+        .back-btn {
+            background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+            color: #a5b4fc; padding: 0.4rem 0.8rem; border-radius: 0.5rem;
+            font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+        }
+        .back-btn:active { background: rgba(99,102,241,0.4); }
+        .header-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+        .version-label { font-size: 0.7rem; color: #64748b; margin-left: auto; }
+
+        .main-container { padding: 3.5rem 1rem 2rem; max-width: 960px; margin: 0 auto; }
+
+        .perm-denied {
+            text-align: center; padding: 3rem 1rem; color: #94a3b8;
+        }
+        .perm-denied-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+        .tab-bar {
+            display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem; border-radius: 0.6rem; border: 1px solid rgba(99,102,241,0.3);
+            background: rgba(30,41,59,0.6); color: #94a3b8; font-size: 0.85rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff; border-color: transparent;
+        }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* 文件管理 */
+        .file-toolbar {
+            display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; flex-wrap: wrap;
+        }
+        .file-path-display {
+            flex: 1; min-width: 200px; background: rgba(30,41,59,0.6);
+            border: 1px solid rgba(99,102,241,0.2); border-radius: 0.5rem;
+            padding: 0.5rem 0.8rem; font-size: 0.82rem; color: #94a3b8;
+            overflow-x: auto; white-space: nowrap;
+        }
+        .file-btn {
+            padding: 0.4rem 0.7rem; border-radius: 0.4rem; border: none;
+            font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+        }
+        .file-btn-upload { background: #3b82f6; color: #fff; }
+        .file-btn-mkdir { background: #8b5cf6; color: #fff; }
+        .file-btn-refresh { background: #6b7280; color: #fff; }
+        .file-btn:active { opacity: 0.8; }
+
+        .file-list {
+            background: rgba(15,23,42,0.5); border-radius: 0.6rem;
+            border: 1px solid rgba(99,102,241,0.15); overflow: hidden;
+        }
+        .file-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 0.8rem; border-bottom: 1px solid rgba(99,102,241,0.08);
+            cursor: pointer;
+        }
+        .file-item:active { background: rgba(99,102,241,0.15); }
+        .file-item:last-child { border-bottom: none; }
+        .file-icon { font-size: 1.2rem; width: 1.5rem; text-align: center; }
+        .file-name { flex: 1; font-size: 0.85rem; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-size { font-size: 0.72rem; color: #64748b; }
+        .file-actions { display: flex; gap: 0.3rem; }
+        .file-action-btn {
+            padding: 0.2rem 0.4rem; border-radius: 0.3rem; border: none;
+            font-size: 0.7rem; cursor: pointer;
+        }
+        .file-action-download { background: #2563eb; color: #fff; }
+        .file-action-delete { background: #dc2626; color: #fff; }
+        .file-empty { text-align: center; padding: 2rem; color: #64748b; font-size: 0.85rem; }
+
+        /* CMD */
+        .cmd-input-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .cmd-input {
+            flex: 1; background: rgba(15,23,42,0.8); border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 0.5rem; padding: 0.5rem 0.8rem; color: #e2e8f0;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 0.82rem;
+        }
+        .cmd-run-btn {
+            padding: 0.5rem 1rem; border-radius: 0.5rem; border: none;
+            background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;
+            font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+        }
+        .cmd-admin-check {
+            display: flex; align-items: center; gap: 0.3rem;
+            font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.5rem;
+        }
+        .cmd-output {
+            background: rgba(0,0,0,0.6); border-radius: 0.5rem;
+            border: 1px solid rgba(99,102,241,0.15);
+            padding: 0.8rem; min-height: 200px; max-height: 400px; overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem;
+            color: #4ade80; white-space: pre-wrap; word-break: break-all;
+        }
+        .cmd-output-line { line-height: 1.5; }
+
+        /* 拍照 */
+        .camera-container { text-align: center; }
+        .camera-btn {
+            padding: 0.8rem 2rem; border-radius: 0.6rem; border: none;
+            background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+            font-size: 1rem; cursor: pointer; margin: 1rem 0;
+        }
+        .camera-btn:active { opacity: 0.8; }
+        .camera-photo {
+            max-width: 100%; border-radius: 0.6rem; border: 2px solid rgba(99,102,241,0.3);
+        }
+        .camera-loading {
+            display: inline-block; width: 2rem; height: 2rem;
+            border: 3px solid rgba(99,102,241,0.3); border-top-color: #6366f1;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-bar {
+            font-size: 0.75rem; color: #64748b; text-align: center;
+            margin-top: 0.5rem; min-height: 1rem;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">← 返回</button>
+        <span class="header-title">🖥️ 远程管理</span>
+        <span class="version-label">v1.0.0 (移动端 v2.9.0)</span>
+    </div>
+
+    <div class="main-container">
+        <div id="permDenied" class="perm-denied hidden">
+            <div class="perm-denied-icon">🔒</div>
+            <p>您没有任何远程管理权限</p>
+        </div>
+
+        <div id="remoteMain" class="hidden">
+            <div class="tab-bar" id="tabBar">
+                <button class="tab-btn active" id="tabFiles" onclick="showTab('files')">📁 文件管理</button>
+                <button class="tab-btn" id="tabCmd" onclick="showTab('cmd')">💻 远程CMD</button>
+                <button class="tab-btn" id="tabCamera" onclick="showTab('camera')">📷 远程拍照</button>
+            </div>
+
+            <!-- 文件管理 -->
+            <div id="panelFiles" class="panel active">
+                <div class="file-toolbar">
+                    <div class="file-path-display" id="filePathDisplay">桌面</div>
+                    <button class="file-btn file-btn-refresh" onclick="loadFiles()">🔄</button>
+                    <button class="file-btn file-btn-upload" onclick="showUploadDialog()">📤 上传</button>
+                    <button class="file-btn file-btn-mkdir" onclick="showMkdirDialog()">📁 新建文件夹</button>
+                </div>
+                <input type="file" id="uploadInput" class="hidden" onchange="uploadFile(event)">
+                <div class="file-list" id="fileList">
+                    <div class="file-empty">加载中…</div>
+                </div>
+                <div class="status-bar" id="fileStatus"></div>
+            </div>
+
+            <!-- 远程CMD -->
+            <div id="panelCmd" class="panel">
+                <div class="cmd-admin-check">
+                    <input type="checkbox" id="cmdAsAdmin">
+                    <label for="cmdAsAdmin">以管理员身份运行</label>
+                </div>
+                <div class="cmd-input-row">
+                    <input type="text" class="cmd-input" id="cmdInput" placeholder="输入 CMD 命令…" onkeydown="if(event.key==='Enter')runCmd()">
+                    <button class="cmd-run-btn" onclick="runCmd()">▶ 运行</button>
+                </div>
+                <div class="cmd-output" id="cmdOutput">
+                    <span style="color:#64748b">等待命令输入…</span>
+                </div>
+                <div class="status-bar" id="cmdStatus"></div>
+            </div>
+
+            <!-- 远程拍照 -->
+            <div id="panelCamera" class="panel">
+                <div class="camera-container">
+                    <button class="camera-btn" onclick="takePhoto()">📷 拍摄照片</button>
+                    <div id="cameraResult"></div>
+                </div>
+                <div class="status-bar" id="cameraStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 配置 ============
+        var CB_DB_URL = 'https://wh12z213-d4gi5jt764f91a558.api.tcloudbasegateway.com/v1/rdb';
+        var CB_API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjNmYjk2NWJkLWU5OTQtNDc5YS04MjEwLWIzNTY0ZTM1ODY3MyJ9.eyJhdWQiOiJ3aDEyejIxMy1kNGdpNWp0NzY0ZjkxYTU1OCIsImV4cCI6MjUzNDAyMzAwNzk5LCJpYXQiOjE3ODY3ODU0NTcsImF0X2hhc2giOiJBcmpXelNNT1JFQ3ZtT01aT1lPbHBBIiwicHJvamVjdF9pZCI6IndoMTJ6MjEzLWQ0Z2k1anQ3NjRmOTFhNTU4IiwibWV0YSI6eyJwbGF0Zm9ybSI6IkFwaUtleSJ9LCJyb2xlIjoic2VydmljZV9yb2xlIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiYXBpa2V5IiwicHJvdmlkZXJzIjpbImFwaWtleSJdfSwiYWRtaW5pc3RyYXRvcl9pZCI6IjIwODg1NTMxNzA1NzY4NjczMjgiLCJ1c2VyX3R5cGUiOiIiLCJjbGllbnRfdHlwZSI6ImNsaWVudF9zZXJ2ZXIiLCJpc19zeXN0ZW1fYWRtaW4iOnRydWV9.T8YR_AZQ3lPLyDfp_tCJ0baefybTYO9Q-LtFbdCsE9bjjYvJoONyIiVk5pWGcWriaAJoQxhxn68gFwO9lsQF5U4pI_2sbkmBBXIzAbkZy1cW5ABDhREAbBYR21LrPFd5nkms0hjH5TwRR7ll8i6L1fXKoZZosGIQBPECtr96A800dXishQ7NZqx8Afcy1mRm_x1Bt8ChTVoqCOZzK8cOcTHQ3BFYs8t2FXHM-tbO0MsegilFxbJ87OxzIfsn70Whv72YormFiyQXCDL1ZrcNvMFR1ORih123nrQlhUsAXfrtQC643lbFWCk4VzEYDsp2VkYhOr13Sm-L-4faYYrGvA';
+
+        var currentUser = null;
+        var screenUrl = null;
+        var currentPath = '';
+        var currentTab = 'files';
+
+        // ============ CloudBase API ============
+        async function cbGet(table, select, filter) {
+            var url = CB_DB_URL + '/' + table + '?select=' + encodeURIComponent(select);
+            if (filter) url += '&' + filter;
+            var resp = await fetch(url, {
+                headers: { 'Authorization': 'Bearer ' + CB_API_KEY }
+            });
+            if (!resp.ok) throw new Error('CB GET ' + resp.status);
+            return await resp.json();
+        }
+
+        // ============ 初始化 ============
+        async function init() {
+            try {
+                var stored = localStorage.getItem('currentUser');
+                if (!stored) {
+                    window.location.href = 'mobile.html';
+                    return;
+                }
+                currentUser = JSON.parse(stored);
+                if (!currentUser || !currentUser.username) {
+                    window.location.href = 'mobile.html';
+                    return;
+                }
+
+                // 获取权限
+                var perms = {};
+                if (currentUser.user_metadata && currentUser.user_metadata.permissions) {
+                    perms = currentUser.user_metadata.permissions;
+                }
+
+                // 检查是否拥有任意远程权限
+                var hasRemoteFile = perms.remoteFile === true || perms.isAdmin === true;
+                var hasRemoteCmd = perms.remoteCmd === true || perms.isAdmin === true;
+                var hasRemoteCamera = perms.remoteCamera === true || perms.isAdmin === true;
+
+                if (!hasRemoteFile && !hasRemoteCmd && !hasRemoteCamera) {
+                    document.getElementById('permDenied').classList.remove('hidden');
+                    return;
+                }
+
+                // 显示对应标签
+                if (!hasRemoteFile) document.getElementById('tabFiles').classList.add('hidden');
+                if (!hasRemoteCmd) document.getElementById('tabCmd').classList.add('hidden');
+                if (!hasRemoteCamera) document.getElementById('tabCamera').classList.add('hidden');
+
+                // 默认显示第一个有权限的标签
+                if (!hasRemoteFile) {
+                    if (hasRemoteCmd) showTab('cmd');
+                    else if (hasRemoteCamera) showTab('camera');
+                }
+
+                document.getElementById('remoteMain').classList.remove('hidden');
+
+                // 获取大屏地址
+                await getScreenUrl();
+
+                // 如果有文件管理权限，加载文件列表
+                if (hasRemoteFile) loadFiles();
+            } catch (e) {
+                console.error('初始化失败:', e);
+                document.getElementById('permDenied').classList.remove('hidden');
+                document.querySelector('.perm-denied p').textContent = '初始化失败: ' + e.message;
+            }
+        }
+
+        async function getScreenUrl() {
+            try {
+                var data = await cbGet('screen_heartbeat', 'ip_address,port,last_heartbeat', 'id=eq.1');
+                if (data && data.length > 0) {
+                    var ip = data[0].ip_address;
+                    var port = data[0].port || 8080;
+                    screenUrl = 'http://' + ip + ':' + port;
+                } else {
+                    screenUrl = 'http://localhost:8080';
+                }
+            } catch (e) {
+                console.warn('获取大屏地址失败:', e);
+                screenUrl = 'http://localhost:8080';
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'mobile.html';
+        }
+
+        function showTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+            if (tab === 'files') {
+                document.getElementById('tabFiles').classList.add('active');
+                document.getElementById('panelFiles').classList.add('active');
+            } else if (tab === 'cmd') {
+                document.getElementById('tabCmd').classList.add('active');
+                document.getElementById('panelCmd').classList.add('active');
+            } else if (tab === 'camera') {
+                document.getElementById('tabCamera').classList.add('active');
+                document.getElementById('panelCamera').classList.add('active');
+            }
+        }
+
+        // ============ 文件管理 ============
+        async function loadFiles(path) {
+            if (!path) path = currentPath;
+            currentPath = path;
+            document.getElementById('filePathDisplay').textContent = path ? '桌面/' + path : '桌面';
+            document.getElementById('fileList').innerHTML = '<div class="file-empty">加载中…</div>';
+
+            try {
+                var resp = await fetch(screenUrl + '/api/remote/files?path=' + encodeURIComponent(path));
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data = await resp.json();
+
+                var html = '';
+                if (path) {
+                    var parentPath = path.split('/').slice(0, -1).join('/');
+                    html += '<div class="file-item" onclick="loadFiles(\'' + parentPath + '\')">' +
+                        '<span class="file-icon">📁</span>' +
+                        '<span class="file-name">..</span></div>';
+                }
+                if (!data.items || data.items.length === 0) {
+                    html = '<div class="file-empty">空文件夹</div>';
+                    if (path) {
+                        html = '<div class="file-item" onclick="loadFiles(\'' + path.split('/').slice(0,-1).join('/') + '\')">' +
+                            '<span class="file-icon">📁</span><span class="file-name">..</span></div>' + html;
+                    }
+                } else {
+                    data.items.forEach(function(item) {
+                        if (item.isDir) {
+                            html += '<div class="file-item" onclick="loadFiles(\'' + item.relPath + '\')">' +
+                                '<span class="file-icon">📁</span>' +
+                                '<span class="file-name">' + item.name + '</span>' +
+                                '<span class="file-size">' + formatDate(item.modified) + '</span>' +
+                                '<div class="file-actions">' +
+                                '<button class="file-action-btn file-action-delete" onclick="event.stopPropagation();deleteFile(\'' + item.relPath + '\')">删除</button>' +
+                                '</div></div>';
+                        } else {
+                            html += '<div class="file-item">' +
+                                '<span class="file-icon">' + getFileIcon(item.name) + '</span>' +
+                                '<span class="file-name">' + item.name + '</span>' +
+                                '<span class="file-size">' + formatSize(item.size) + '</span>' +
+                                '<div class="file-actions">' +
+                                '<button class="file-action-btn file-action-download" onclick="downloadFile(\'' + item.relPath + '\')">下载</button>' +
+                                '<button class="file-action-btn file-action-delete" onclick="deleteFile(\'' + item.relPath + '\')">删除</button>' +
+                                '</div></div>';
+                        }
+                    });
+                }
+                document.getElementById('fileList').innerHTML = html;
+                document.getElementById('fileStatus').textContent = '';
+            } catch (e) {
+                document.getElementById('fileList').innerHTML = '<div class="file-empty">加载失败</div>';
+                document.getElementById('fileStatus').textContent = '错误: ' + e.message;
+            }
+        }
+
+        function getFileIcon(name) {
+            var ext = name.split('.').pop().toLowerCase();
+            if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) return '🖼️';
+            if (['mp4','avi','mkv','mov','wmv'].includes(ext)) return '🎬';
+            if (['mp3','wav','flac','ogg'].includes(ext)) return '🎵';
+            if (['doc','docx'].includes(ext)) return '📄';
+            if (['xls','xlsx','csv'].includes(ext)) return '📊';
+            if (['ppt','pptx'].includes(ext)) return '📽️';
+            if (['zip','rar','7z','tar','gz'].includes(ext)) return '📦';
+            if (['exe','msi','bat'].includes(ext)) return '⚙️';
+            if (['py','js','java','c','cpp','html','css','json','txt','md'].includes(ext)) return '📝';
+            return '📄';
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + 'B';
+            if (bytes < 1048576) return (bytes/1024).toFixed(1) + 'KB';
+            if (bytes < 1073741824) return (bytes/1048576).toFixed(1) + 'MB';
+            return (bytes/1073741824).toFixed(1) + 'GB';
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '';
+            var d = new Date(iso);
+            return (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+        }
+
+        function showUploadDialog() {
+            document.getElementById('uploadInput').click();
+        }
+
+        async function uploadFile(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('fileStatus').textContent = '正在上传 ' + file.name + '…';
+
+            try {
+                var formData = new FormData();
+                formData.append('path', currentPath);
+                formData.append('file', file);
+
+                var resp = await fetch(screenUrl + '/api/remote/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data = await resp.json();
+                document.getElementById('fileStatus').textContent = '上传成功: ' + file.name;
+                loadFiles();
+            } catch (e) {
+                document.getElementById('fileStatus').textContent = '上传失败: ' + e.message;
+            }
+            event.target.value = '';
+        }
+
+        function showMkdirDialog() {
+            var name = prompt('请输入文件夹名称:');
+            if (!name) return;
+            var newPath = currentPath ? currentPath + '/' + name : name;
+            createDir(newPath);
+        }
+
+        async function createDir(path) {
+            try {
+                var resp = await fetch(screenUrl + '/api/remote/mkdir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                document.getElementById('fileStatus').textContent = '文件夹创建成功';
+                loadFiles();
+            } catch (e) {
+                document.getElementById('fileStatus').textContent = '创建失败: ' + e.message;
+            }
+        }
+
+        function downloadFile(relPath) {
+            var url = screenUrl + '/api/remote/download?path=' + encodeURIComponent(relPath);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = relPath.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function deleteFile(relPath) {
+            if (!confirm('确认删除: ' + relPath + ' ?')) return;
+            try {
+                var resp = await fetch(screenUrl + '/api/remote/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: relPath })
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                document.getElementById('fileStatus').textContent = '删除成功';
+                loadFiles();
+            } catch (e) {
+                document.getElementById('fileStatus').textContent = '删除失败: ' + e.message;
+            }
+        }
+
+        // ============ 远程CMD ============
+        async function runCmd() {
+            var cmd = document.getElementById('cmdInput').value.trim();
+            if (!cmd) return;
+            var asAdmin = document.getElementById('cmdAsAdmin').checked;
+
+            var output = document.getElementById('cmdOutput');
+            output.innerHTML = '<span style="color:#64748b">> ' + cmd + '</span>\n';
+            document.getElementById('cmdStatus').textContent = '执行中…';
+
+            try {
+                var resp = await fetch(screenUrl + '/api/remote/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd, asAdmin: asAdmin })
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data = await resp.json();
+
+                if (data.output) {
+                    output.innerHTML += '<span style="color:#4ade80">' + escapeHtml(data.output) + '</span>\n';
+                }
+                if (data.error) {
+                    output.innerHTML += '<span style="color:#f87171">错误: ' + escapeHtml(data.error) + '</span>\n';
+                }
+                output.innerHTML += '<span style="color:#64748b">--- 执行完毕 ---</span>\n';
+                document.getElementById('cmdStatus').textContent = '执行完成';
+            } catch (e) {
+                output.innerHTML += '<span style="color:#f87171">执行失败: ' + escapeHtml(e.message) + '</span>\n';
+                document.getElementById('cmdStatus').textContent = '执行失败';
+            }
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============ 远程拍照 ============
+        async function takePhoto() {
+            var result = document.getElementById('cameraResult');
+            var status = document.getElementById('cameraStatus');
+            result.innerHTML = '<div class="camera-loading"></div>';
+            status.textContent = '正在拍照…';
+
+            try {
+                var resp = await fetch(screenUrl + '/api/remote/camera');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+                var blob = await resp.blob();
+                var url = URL.createObjectURL(blob);
+                result.innerHTML = '<img class="camera-photo" src="' + url + '" alt="拍照结果">';
+                status.textContent = '拍照成功 (' + formatSize(blob.size) + ')';
+            } catch (e) {
+                result.innerHTML = '<span style="color:#f87171">拍照失败</span>';
+                status.textContent = '错误: ' + e.message;
+            }
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>
